@@ -1,63 +1,82 @@
+// src/pages/SignIn.js
+
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { TextField, Button, Container, Typography } from '@mui/material';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Container,
+  TextField,
+  Button,
+  Typography,
+  Link as MuiLink,
+} from '@mui/material';
 
 const SignIn = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Extract the redirect URL from query parameters
+  const query = new URLSearchParams(location.search);
+  const redirect = query.get('redirect') || '/';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();
 
-  const handleSignIn = async (e) => {
-    e.preventDefault();
-    const { data, error } = await supabase.auth.signInWithPassword({
+  const handleSignIn = async () => {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
     if (error) {
-      alert(error.message);
+      console.error('Error signing in:', error);
+      alert('Error signing in: ' + error.message);
     } else {
-      navigate('/');
+      // Redirect to the desired page after sign-in
+      navigate(redirect);
     }
   };
 
   return (
-    <Container maxWidth='sm'>
-      <Typography variant='h4' component='h1' gutterBottom>
+    <Container maxWidth='sm' style={{ marginTop: '2rem' }}>
+      <Typography variant='h4' gutterBottom>
         Sign In
       </Typography>
-      <form onSubmit={handleSignIn}>
-        <TextField
-          label='Email'
-          type='email'
-          fullWidth
-          margin='normal'
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <TextField
-          label='Password'
-          type='password'
-          fullWidth
-          margin='normal'
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <Button
-          variant='contained'
-          color='primary'
-          type='submit'
-          fullWidth
-          style={{ marginTop: '1rem' }}
+      <TextField
+        label='Email'
+        type='email'
+        fullWidth
+        margin='normal'
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <TextField
+        label='Password'
+        type='password'
+        fullWidth
+        margin='normal'
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <Button
+        variant='contained'
+        color='primary'
+        fullWidth
+        onClick={handleSignIn}
+        style={{ marginTop: '1rem' }}
+      >
+        Sign In
+      </Button>
+      <Typography variant='body2' style={{ marginTop: '1rem' }}>
+        Don't have an account?{' '}
+        <MuiLink
+          component='button'
+          variant='body2'
+          onClick={() => navigate(`/signup?redirect=${encodeURIComponent(redirect)}`)}
         >
-          Sign In
-        </Button>
-        <Typography variant='body2' align='center' style={{ marginTop: '1rem' }}>
-          Don't have an account? <Link to='/signup'>Sign Up</Link>
-        </Typography>
-      </form>
+          Sign Up
+        </MuiLink>
+      </Typography>
     </Container>
   );
 };

@@ -45,47 +45,40 @@ const AcceptInvitation = () => {
       return;
     }
 
-    // Check if the user's email matches the invitation email
-    if (user.email !== invitation.email) {
-      alert(
-        'The email associated with your account does not match the invitation email.'
-      );
-      return;
-    }
-
-    // Associate the user with the organization
-    const { error } = await supabase.from('organization_users').insert([
-      {
-        organization_id: invitation.organization_id,
+    try {
+      // Call the accept_invitation function
+      const { error } = await supabase.rpc('accept_invitation', {
+        invitation_token: token,
         user_id: user.id,
-        role: 'member',
-      },
-    ]);
+      });
 
-    if (error) {
-      console.error('Error accepting invitation:', error);
-      alert('Error accepting invitation.');
-    } else {
-      // Update the invitation status
-      await supabase
-        .from('invitations')
-        .update({ status: 'accepted', accepted_at: new Date() })
-        .eq('id', invitation.id);
-
-      alert('Invitation accepted!');
-      navigate('/organization-dashboard');
+      if (error) {
+        console.error('Error accepting invitation:', error);
+        alert('Error accepting invitation: ' + error.message);
+      } else {
+        alert('Invitation accepted!');
+        navigate('/organization-dashboard');
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('Unexpected error: ' + error.message);
     }
   };
 
   const handleDecline = async () => {
-    // Update the invitation status
-    await supabase
+    // Update the invitation status to 'declined'
+    const { error } = await supabase
       .from('invitations')
       .update({ status: 'declined' })
       .eq('id', invitation.id);
 
-    alert('Invitation declined.');
-    navigate('/');
+    if (error) {
+      console.error('Error declining invitation:', error);
+      alert('Error declining invitation.');
+    } else {
+      alert('Invitation declined.');
+      navigate('/');
+    }
   };
 
   if (loading) {
@@ -112,4 +105,3 @@ const AcceptInvitation = () => {
 };
 
 export default AcceptInvitation;
-
