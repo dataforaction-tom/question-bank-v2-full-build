@@ -1,3 +1,5 @@
+// src/pages/OrganizationDashboard.js
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import {
@@ -27,17 +29,22 @@ const OrganizationDashboard = () => {
   const fetchMembers = async (organizationId) => {
     const { data, error } = await supabase
       .from('organization_users')
-      .select(`
+      .select(
+        `
         *,
-        auth_users (
-          email
+        users (
+          id,
+          name,
+          bio
         )
-      `)
+      `
+      )
       .eq('organization_id', organizationId);
-
+  
     if (error) {
       console.error('Error fetching members:', error);
     } else {
+      console.log('Fetched members:', data);
       setMembers(data);
     }
   };
@@ -66,11 +73,12 @@ const OrganizationDashboard = () => {
     fetchOrganization();
   }, [session.user.id, navigate]);
 
+  // Function to send the invitation email
   const sendInvitationEmail = async (email, token) => {
     // Construct the invitation link
     const invitationLink = `${window.location.origin}/accept-invitation?token=${token}`;
 
-    // Send the email via your serverless function
+    // Send the email via serverless vercel function
     try {
       const response = await fetch('/api/send-invitation-email', {
         method: 'POST',
@@ -91,6 +99,7 @@ const OrganizationDashboard = () => {
     }
   };
 
+  // Function to handle inviting a user
   const handleInvite = async () => {
     if (!emailToInvite) {
       alert('Please enter an email address.');
@@ -120,6 +129,7 @@ const OrganizationDashboard = () => {
     }
   };
 
+  // Function to handle changing a member's role
   const handleRoleChange = async (memberId, newRole) => {
     // Update the role in the database
     const { error } = await supabase
@@ -151,32 +161,52 @@ const OrganizationDashboard = () => {
       <Typography variant='h4'>{organization.name} Dashboard</Typography>
       <Typography variant='h6'>Members:</Typography>
       <List>
-        {members.map((member) => (
-          <ListItem key={member.id}>
-            <ListItemText
-              primary={member.auth_users.email}
-              secondary={`Role: ${member.role}`}
-            />
-            {/* Show role management options only if the member is not the current user */}
-            {member.user_id !== session.user.id && (
-              <FormControl
-                variant='outlined'
-                size='small'
-                style={{ minWidth: 120 }}
-              >
-                <InputLabel>Role</InputLabel>
-                <Select
-                  value={member.role}
-                  onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                  label='Role'
+        {members.map((member) => {
+          const user = member.users;
+          const name = user ? user.name || user.email : 'Unknown User';
+          const bio = user ? user.bio : null;
+
+          return (
+            <ListItem key={member.id}>
+              <ListItemText
+                primary={name}
+                secondary={
+                  <>
+                    <Typography component='span' variant='body2' color='textPrimary'>
+                      Role: {member.role}
+                    </Typography>
+                    {bio && (
+                      <>
+                        {' - '}
+                        <Typography component='span' variant='body2' color='textSecondary'>
+                          {bio}
+                        </Typography>
+                      </>
+                    )}
+                  </>
+                }
+              />
+              {/* Show role management options only if the member is not the current user */}
+              {member.user_id !== session.user.id && (
+                <FormControl
+                  variant='outlined'
+                  size='small'
+                  style={{ minWidth: 120 }}
                 >
-                  <MenuItem value='member'>Member</MenuItem>
-                  <MenuItem value='admin'>Admin</MenuItem>
-                </Select>
-              </FormControl>
-            )}
-          </ListItem>
-        ))}
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={member.role}
+                    onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                    label='Role'
+                  >
+                    <MenuItem value='member'>Member</MenuItem>
+                    <MenuItem value='admin'>Admin</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
+            </ListItem>
+          );
+        })}
       </List>
       <Typography variant='h6' style={{ marginTop: '2rem' }}>
         Invite a User:
