@@ -1,25 +1,87 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
+import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
+import Dashboard from './pages/Dashboard';
+import SubmitQuestion from './pages/SubmitQuestion';
+import Questions from './pages/Questions';
+import QuestionDetail from './pages/QuestionDetail';
+import QuestionRanking from './pages/QuestionRanking';
+import Navbar from './components/Navbar';
+import AuthRoute from './components/AuthRoute';
+import OrganizationSignUp from './pages/OrganizationSignUp';
+import OrganizationDashboard from './pages/OrganizationDashboard';
 
-function App() {
+const App = () => {
+  const { session } = useAuth();
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      {session && <Navbar />}
+      <Routes>
+        <Route path='/signin' element={<SignIn />} />
+        <Route path='/signup' element={<SignUp />} />
+        <Route
+          path='/'
+          element={
+            <AuthRoute>
+              <Dashboard />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path='/organization-dashboard'
+          element={
+            <AuthRoute>
+              <OrganizationDashboard />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path='/create-organization'
+          element={
+            <AuthRoute>
+              <OrganizationSignUp />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path='/submit-question'
+          element={
+            <AuthRoute>
+              <SubmitQuestion />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path='/questions/:id'
+          element={
+            <AuthRoute>
+              <QuestionDetail />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path='/questions'
+          element={
+            <AuthRoute>
+              <Questions />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path='/rank-questions'
+          element={
+            <AuthRoute>
+              <QuestionRanking />
+            </AuthRoute>
+          }
+        />
+        {/* Add more routes as needed */}
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;
