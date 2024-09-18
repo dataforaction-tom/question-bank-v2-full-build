@@ -12,7 +12,8 @@ import Navbar from './components/Navbar';
 import AuthRoute from './components/AuthRoute';
 import OrganizationSignUp from './pages/OrganizationSignUp';
 import OrganizationDashboard from './pages/OrganizationDashboard';
-import AcceptInvitation from './pages/AcceptInvitation'; // Import the component
+import AcceptInvitation from './pages/AcceptInvitation'; 
+import UserProfile from './pages/UserProfile';
 
 const App = () => {
   const { session } = useAuth();
@@ -77,6 +78,14 @@ const App = () => {
           element={
             <AuthRoute>
               <QuestionRanking />
+            </AuthRoute>
+          }
+        />
+        <Route
+          path='/profile'
+          element={
+            <AuthRoute>
+              <UserProfile />
             </AuthRoute>
           }
         />

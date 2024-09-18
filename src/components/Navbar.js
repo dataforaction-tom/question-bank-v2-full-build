@@ -37,6 +37,9 @@ const Navbar = () => {
     <Button color='inherit' component={Link} to='/organization-dashboard'>
       Organization Dashboard
     </Button>
+    <Button color='inherit' component={Link} to='/profile'>
+          Profile
+        </Button>
         <Button color='inherit' onClick={handleLogout}>
           Logout
         </Button>
