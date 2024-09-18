@@ -12,6 +12,7 @@ import Navbar from './components/Navbar';
 import AuthRoute from './components/AuthRoute';
 import OrganizationSignUp from './pages/OrganizationSignUp';
 import OrganizationDashboard from './pages/OrganizationDashboard';
+import AcceptInvitation from './pages/AcceptInvitation'; // Import the component
 
 const App = () => {
   const { session } = useAuth();
@@ -22,6 +23,7 @@ const App = () => {
       <Routes>
         <Route path='/signin' element={<SignIn />} />
         <Route path='/signup' element={<SignUp />} />
+        <Route path='/accept-invitation' element={<AcceptInvitation />} /> {/* Add this route */}
         <Route
           path='/'
           element={
