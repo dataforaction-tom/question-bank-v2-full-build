@@ -49,7 +49,6 @@ const AcceptInvitation = () => {
       // Call the accept_invitation function
       const { error } = await supabase.rpc('accept_invitation', {
         invitation_token: token,
-        user_id: user.id,
       });
 
       if (error) {
