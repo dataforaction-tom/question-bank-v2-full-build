@@ -1,3 +1,5 @@
+// src/pages/AcceptInvitation.js
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +42,14 @@ const AcceptInvitation = () => {
     if (!user) {
       // Redirect to sign-up/sign-in page with a redirect back to this page
       navigate(`/signin?redirect=/accept-invitation?token=${token}`);
+      return;
+    }
+
+    // Check if the user's email matches the invitation email
+    if (user.email !== invitation.email) {
+      alert(
+        'The email associated with your account does not match the invitation email.'
+      );
       return;
     }
 
@@ -102,3 +112,4 @@ const AcceptInvitation = () => {
 };
 
 export default AcceptInvitation;
+
