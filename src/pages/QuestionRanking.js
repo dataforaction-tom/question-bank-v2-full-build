@@ -18,15 +18,17 @@ const QuestionRanking = () => {
       const { data, error } = await supabase
         .from('questions')
         .select('*')
-        .order('random()')
-        .limit(3);
+        .limit(100);  // Fetch more questions than needed
 
       if (error) {
         console.error('Error fetching questions:', error);
         alert('An error occurred while fetching questions.');
       } else {
-        console.log('Fetched questions for ranking:', data);
-        setQuestions(data);
+        // Shuffle the fetched questions and take the first 3
+        const shuffled = data.sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, 3);
+        console.log('Fetched questions for ranking:', selected);
+        setQuestions(selected);
       }
     };
 
