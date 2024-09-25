@@ -12,7 +12,7 @@ import {
   Checkbox,
   Card,
   CardContent,
-  CardActions,
+  Grid,
 } from '@mui/material';
 import * as Yup from 'yup';
 
@@ -76,8 +76,8 @@ const SubmitQuestion = () => {
   };
 
   return (
-    <Container maxWidth='sm'>
-      <Typography variant='h4' component='h1' gutterBottom>
+    <Container maxWidth="md">
+      <Typography variant="h4" component="h1" gutterBottom>
         Submit a Question
       </Typography>
       <Formik
@@ -216,6 +216,28 @@ const SubmitQuestion = () => {
           </Form>
         )}
       </Formik>
+
+      {similarQuestions.length > 0 && (
+        <div style={{ marginTop: '2rem' }}>
+          <Typography variant="h5" gutterBottom>
+            Similar Questions
+          </Typography>
+          <Grid container spacing={2}>
+            {similarQuestions.map((question) => (
+              <Grid item xs={12} sm={6} md={4} key={question.id}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="body1">{question.content}</Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Similarity: {(question.similarity * 100).toFixed(2)}%
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </div>
+      )}
     </Container>
   );
 };
