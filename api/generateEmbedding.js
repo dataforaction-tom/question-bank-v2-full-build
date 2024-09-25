@@ -1,14 +1,13 @@
-import { Configuration, OpenAIApi } from "openai";
+const OpenAI = require('openai');
 
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
+  console.log('Received request:', req.body);
   if (req.method === 'POST') {
     try {
-      console.log('API route called');
       const { question } = req.body;
       console.log('Question received for embedding:', question);
 
@@ -16,35 +15,35 @@ export default async function handler(req, res) {
         throw new Error('OPENAI_API_KEY is not set');
       }
 
-      const response = await openai.createEmbedding({
+      const response = await openai.embeddings.create({
         model: "text-embedding-3-small",
         input: question,
       });
 
-      console.log('OpenAI response:', response.data);
-      const [{ embedding }] = response.data.data;
+      console.log('OpenAI embedding response:', response);
+      const [{ embedding }] = response.data;
 
       const categories = ["Poverty", "Health", "Advice", "Education", "Environment"];
       const prompt = `Question: "${question}"\nCategorize this question into one of the following categories: ${categories.join(", ")}. If you cannot find a category that closely matches the question you should attempt to create a new category. Category: \n`;
       console.log('Category prompt:', prompt);
       
-      const categoryResponse = await openai.createCompletion({
+      const categoryResponse = await openai.completions.create({
         model: "gpt-3.5-turbo-instruct",
         prompt: prompt,
         max_tokens: 50
       });
 
-      console.log('Category response:', categoryResponse.data);
-      const category = categoryResponse.data.choices[0].text.trim();
+      console.log('Category response:', categoryResponse);
+      const category = categoryResponse.choices[0].text.trim();
       console.log("Category:", category);
 
       res.status(200).json({ embedding, category });
     } catch (error) {
       console.error('Error in API route:', error);
-      res.status(500).json({ message: 'Failed to generate embedding', error: error.toString() });
+      res.status(500).json({ message: 'Failed to generate embedding or category', error: error.toString() });
     }
   } else {
     res.setHeader('Allow', ['POST']);
     res.status(405).end('Method Not Allowed');
   }
-}
+};
