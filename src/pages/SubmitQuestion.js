@@ -51,7 +51,8 @@ const SubmitQuestion = () => {
         throw new Error('No embedding returned from API');
       }
 
-      // Search for similar questions
+      // Search for similar questions using the updated RPC
+      console.log('Calling match_questions with embedding:', data.embedding);
       const { data: similarData, error: searchError } = await supabase
         .rpc('match_questions', { 
           query_embedding: data.embedding, 
@@ -59,8 +60,12 @@ const SubmitQuestion = () => {
           match_count: 5
         });
 
-      if (searchError) throw searchError;
+      if (searchError) {
+        console.error('Error searching for similar questions:', searchError);
+        throw searchError;
+      }
 
+      console.log('Similar questions:', similarData);
       setSimilarQuestions(similarData);
       return data;
     } catch (error) {
