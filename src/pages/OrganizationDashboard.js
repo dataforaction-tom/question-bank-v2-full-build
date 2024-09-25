@@ -14,6 +14,11 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Divider,
+  Card,
+  CardContent,
+  CardActionArea,
+  CardActions,
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import { v4 as uuidv4 } from 'uuid';
@@ -24,6 +29,8 @@ const OrganizationDashboard = () => {
   const [organization, setOrganization] = useState(null);
   const [members, setMembers] = useState([]);
   const [emailToInvite, setEmailToInvite] = useState('');
+  const [organizationQuestions, setOrganizationQuestions] = useState([]);
+  const [openQuestions, setOpenQuestions] = useState([]);
   const navigate = useNavigate();
 
   const fetchMembers = async (organizationId) => {
@@ -49,6 +56,54 @@ const OrganizationDashboard = () => {
     }
   };
 
+  const fetchQuestions = async (organizationId) => {
+    // Fetch questions directly associated with the organization
+    const { data: directQuestions, error: directError } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('organization_id', organizationId);
+
+    if (directError) {
+      console.error('Error fetching directly associated questions:', directError);
+    }
+
+    // Fetch questions associated via organization_questions table
+    const { data: indirectQuestions, error: indirectError } = await supabase
+      .from('organization_questions')
+      .select(`
+        question_id,
+        questions (*)
+      `)
+      .eq('organization_id', organizationId);
+
+    if (indirectError) {
+      console.error('Error fetching indirectly associated questions:', indirectError);
+    }
+
+    // Combine and deduplicate the questions
+    const allOrgQuestions = [
+      ...(directQuestions || []).map(q => ({ ...q, is_direct: true })),
+      ...(indirectQuestions?.map(q => ({ ...q.questions, is_direct: false, id: q.question_id })) || [])
+    ];
+    const uniqueOrgQuestions = Array.from(new Set(allOrgQuestions.map(q => q.id)))
+      .map(id => allOrgQuestions.find(q => q.id === id));
+
+    setOrganizationQuestions(uniqueOrgQuestions);
+
+    // Fetch open questions
+    const { data: openQs, error: openError } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('is_open', true)
+      .is('organization_id', null);
+
+    if (openError) {
+      console.error('Error fetching open questions:', openError);
+    } else {
+      setOpenQuestions(openQs);
+    }
+  };
+
   useEffect(() => {
     const fetchOrganization = async () => {
       // Fetch the organization where the user is an admin
@@ -65,8 +120,8 @@ const OrganizationDashboard = () => {
         navigate('/');
       } else {
         setOrganization(data);
-        // Fetch members after setting the organization
         await fetchMembers(data.id);
+        await fetchQuestions(data.id);
       }
     };
 
@@ -146,6 +201,103 @@ const OrganizationDashboard = () => {
     }
   };
 
+  const handleQuestionClick = (id) => {
+    navigate(`/questions/${id}`);
+  };
+
+  const handleAddToOrganization = async (questionId) => {
+    // Check if the question is already added to the organization
+    const { data: existingEntry, error: checkError } = await supabase
+      .from('organization_questions')
+      .select('*')
+      .eq('organization_id', organization.id)
+      .eq('question_id', questionId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking existing entry:', checkError);
+      alert('Failed to add question to organization.');
+      return;
+    }
+
+    if (existingEntry) {
+      alert('This question is already added to your organization.');
+      return;
+    }
+
+    // Add the question to the organization
+    const { error } = await supabase
+      .from('organization_questions')
+      .insert({ organization_id: organization.id, question_id: questionId });
+
+    if (error) {
+      console.error('Error adding question to organization:', error);
+      alert('Failed to add question to organization.');
+    } else {
+      await fetchQuestions(organization.id);
+      alert('Question added to organization successfully!');
+    }
+  };
+
+  const handleRemoveFromOrganization = async (questionId) => {
+    // Remove the question from the organization_questions table
+    const { error } = await supabase
+      .from('organization_questions')
+      .delete()
+      .eq('organization_id', organization.id)
+      .eq('question_id', questionId);
+
+    if (error) {
+      console.error('Error removing question from organization:', error);
+      alert('Failed to remove question from organization.');
+    } else {
+      await fetchQuestions(organization.id);
+      alert('Question removed from organization successfully!');
+    }
+  };
+
+  const renderQuestionCard = (question, isOrganizationQuestion = false) => (
+    <Card
+      key={question.id}
+      style={{ marginBottom: '1rem', cursor: 'pointer' }}
+    >
+      <CardActionArea onClick={() => handleQuestionClick(question.id)}>
+        <CardContent>
+          <Typography variant='h6'>{question.content}</Typography>
+          <Typography variant='body2' color="textSecondary">
+            Created: {new Date(question.created_at).toLocaleDateString()}
+          </Typography>
+        </CardContent>
+      </CardActionArea>
+      <CardActions>
+        {!isOrganizationQuestion && (
+          <Button 
+            size="small" 
+            color="primary" 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAddToOrganization(question.id);
+            }}
+          >
+            Add to Organization
+          </Button>
+        )}
+        {isOrganizationQuestion && question.is_direct === false && (
+          <Button 
+            size="small" 
+            color="secondary" 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRemoveFromOrganization(question.id);
+            }}
+          >
+            Remove from Organization
+          </Button>
+        )}
+      </CardActions>
+    </Card>
+  );
+
   if (!organization) {
     return (
       <Container>
@@ -221,6 +373,24 @@ const OrganizationDashboard = () => {
       <Button variant='contained' color='primary' onClick={handleInvite}>
         Invite User
       </Button>
+      <Divider style={{ margin: '2rem 0' }} />
+      <Typography variant='h5' style={{ marginTop: '2rem', marginBottom: '1rem' }}>
+        Organization Questions
+      </Typography>
+      {organizationQuestions.map(question => renderQuestionCard(question, true))}
+      {organizationQuestions.length === 0 && (
+        <Typography variant='body1'>No questions found for this organization.</Typography>
+      )}
+
+      <Divider style={{ margin: '2rem 0' }} />
+
+      <Typography variant='h5' style={{ marginTop: '2rem', marginBottom: '1rem' }}>
+        Open Questions
+      </Typography>
+      {openQuestions.map(question => renderQuestionCard(question))}
+      {openQuestions.length === 0 && (
+        <Typography variant='body1'>No open questions available.</Typography>
+      )}
     </Container>
   );
 };

@@ -18,7 +18,7 @@ const Questions = () => {
       const { data, error } = await supabase
         .from('questions')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('priority_score', { ascending: false });
 
       if (error) {
         console.error('Error fetching questions:', error);
