@@ -8,8 +8,13 @@ const openai = new OpenAIApi(configuration);
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
+      console.log('API route called');
       const { question } = req.body;
       console.log('Question received for embedding:', question);
+
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OPENAI_API_KEY is not set');
+      }
 
       const response = await openai.createEmbedding({
         model: "text-embedding-3-small",
@@ -21,7 +26,7 @@ export default async function handler(req, res) {
 
       const categories = ["Poverty", "Health", "Advice", "Education", "Environment"];
       const prompt = `Question: "${question}"\nCategorize this question into one of the following categories: ${categories.join(", ")}. If you cannot find a category that closely matches the question you should attempt to create a new category. Category: \n`;
-      console.log(prompt);
+      console.log('Category prompt:', prompt);
       
       const categoryResponse = await openai.createCompletion({
         model: "gpt-3.5-turbo-instruct",
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
 
       res.status(200).json({ embedding, category });
     } catch (error) {
-      console.error('Error generating embedding:', error);
+      console.error('Error in API route:', error);
       res.status(500).json({ message: 'Failed to generate embedding', error: error.toString() });
     }
   } else {
