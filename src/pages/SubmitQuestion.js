@@ -27,8 +27,8 @@ const SubmitQuestion = () => {
 
   const checkSimilarQuestions = async (content) => {
     try {
-      // Generate embedding using the Vercel API route
-      const response = await fetch('/api/generate-embedding', {
+      console.log('Sending request to generate embedding');
+      const response = await fetch('/api/generateEmbedding', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,16 +36,25 @@ const SubmitQuestion = () => {
         body: JSON.stringify({ question: content }),
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to generate embedding');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to generate embedding: ${response.status} ${response.statusText}`);
       }
 
-      const { embedding, category } = await response.json();
+      const data = await response.json();
+      console.log('Embedding data:', data);
+
+      if (!data.embedding) {
+        throw new Error('No embedding returned from API');
+      }
 
       // Search for similar questions
       const { data: similarData, error: searchError } = await supabase
         .rpc('match_questions', { 
-          query_embedding: embedding, 
+          query_embedding: data.embedding, 
           match_threshold: 0.8,
           match_count: 5
         });
@@ -53,10 +62,11 @@ const SubmitQuestion = () => {
       if (searchError) throw searchError;
 
       setSimilarQuestions(similarData);
-      return { embedding, category };
+      return data;
     } catch (error) {
       console.error('Error checking similar questions:', error);
-      alert('Failed to check for similar questions');
+      alert(`Failed to check for similar questions: ${error.message}`);
+      throw error;
     }
   };
 
