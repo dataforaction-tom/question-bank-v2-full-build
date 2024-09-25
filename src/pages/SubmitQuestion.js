@@ -1,6 +1,6 @@
 // src/pages/SubmitQuestion.js
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Formik, Form } from 'formik';
 import { supabase } from '../supabaseClient';
 import {
@@ -10,26 +10,69 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
+  Card,
+  CardContent,
+  CardActions,
 } from '@mui/material';
 import * as Yup from 'yup';
 
 const QuestionSchema = Yup.object().shape({
   content: Yup.string().required('Question content is required'),
+  answer: Yup.string().required('Answer is required'),
   is_open: Yup.boolean(),
 });
 
 const SubmitQuestion = () => {
+  const [similarQuestions, setSimilarQuestions] = useState([]);
+
+  const checkSimilarQuestions = async (content) => {
+    try {
+      // Generate embedding using the Vercel API route
+      const response = await fetch('/api/generate-embedding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question: content }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate embedding');
+      }
+
+      const { embedding, category } = await response.json();
+
+      // Search for similar questions
+      const { data: similarData, error: searchError } = await supabase
+        .rpc('match_questions', { 
+          query_embedding: embedding, 
+          match_threshold: 0.8,
+          match_count: 5
+        });
+
+      if (searchError) throw searchError;
+
+      setSimilarQuestions(similarData);
+      return { embedding, category };
+    } catch (error) {
+      console.error('Error checking similar questions:', error);
+      alert('Failed to check for similar questions');
+    }
+  };
+
   return (
     <Container maxWidth='sm'>
       <Typography variant='h4' component='h1' gutterBottom>
         Submit a Question
       </Typography>
       <Formik
-        initialValues={{ content: '', is_open: true }}
+        initialValues={{ content: '', answer: '', is_open: true }}
         validationSchema={QuestionSchema}
         onSubmit={async (values, { setSubmitting, resetForm }) => {
           try {
             console.log('Submitting question:', values);
+
+            const { embedding, category } = await checkSimilarQuestions(values.content);
 
             // Get the current user
             const {
@@ -74,10 +117,12 @@ const SubmitQuestion = () => {
             const { data, error } = await supabase.from('questions').insert([
               {
                 content: values.content,
+                answer: values.answer,
                 is_open: values.is_open,
                 organization_id: organizationId,
                 created_by: user.id,
-                
+                embedding: embedding,
+                category: category,
               },
             ]);
 
@@ -88,6 +133,7 @@ const SubmitQuestion = () => {
               console.log('Question submitted:', data);
               alert('Question submitted successfully!');
               resetForm();
+              setSimilarQuestions([]);
             }
           } catch (error) {
             console.error('Unexpected error:', error);
@@ -118,6 +164,19 @@ const SubmitQuestion = () => {
               onBlur={handleBlur}
               error={touched.content && Boolean(errors.content)}
               helperText={touched.content && errors.content}
+            />
+            <TextField
+              label='Answering this question means you will be able to do what?'
+              name='answer'
+              fullWidth
+              margin='normal'
+              multiline
+              rows={4}
+              value={values.answer}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              error={touched.answer && Boolean(errors.answer)}
+              helperText={touched.answer && errors.answer}
             />
             <FormControlLabel
               control={
