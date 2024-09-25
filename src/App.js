@@ -14,6 +14,7 @@ import OrganizationSignUp from './pages/OrganizationSignUp';
 import OrganizationDashboard from './pages/OrganizationDashboard';
 import AcceptInvitation from './pages/AcceptInvitation'; 
 import UserProfile from './pages/UserProfile';
+import MyQuestions from './pages/MyQuestions';
 
 const App = () => {
   const { session } = useAuth();
@@ -70,6 +71,14 @@ const App = () => {
           element={
             <AuthRoute>
               <Questions />
+            </AuthRoute>
+          }
+        />
+         <Route
+          path='/my-questions' 
+          element={
+            <AuthRoute>
+              <MyQuestions />
             </AuthRoute>
           }
         />
