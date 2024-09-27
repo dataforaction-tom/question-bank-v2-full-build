@@ -15,11 +15,13 @@ import OrganizationDashboard from './pages/OrganizationDashboard';
 import AcceptInvitation from './pages/AcceptInvitation'; 
 import UserProfile from './pages/UserProfile';
 import MyQuestions from './pages/MyQuestions';
-
+import { ThemeProvider } from './theme-context';
+import './index.css';
 const App = () => {
   const { session } = useAuth();
 
   return (
+    <ThemeProvider>
     <Router>
       {session && <Navbar />}
       <Routes>
@@ -101,6 +103,7 @@ const App = () => {
         {/* Add more routes as needed */}
       </Routes>
     </Router>
+    </ThemeProvider>
   );
 };
 

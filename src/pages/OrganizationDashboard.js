@@ -15,14 +15,12 @@ import {
   FormControl,
   InputLabel,
   Divider,
-  Card,
-  CardContent,
-  CardActionArea,
-  CardActions,
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
+import QuestionTable from '../components/QuestionTable';
+import QuestionCard from '../components/QuestionCard';
 
 const OrganizationDashboard = () => {
   const { session } = useAuth();
@@ -31,82 +29,11 @@ const OrganizationDashboard = () => {
   const [emailToInvite, setEmailToInvite] = useState('');
   const [organizationQuestions, setOrganizationQuestions] = useState([]);
   const [openQuestions, setOpenQuestions] = useState([]);
+  const [viewMode, setViewMode] = useState('cards');
   const navigate = useNavigate();
-
-  const fetchMembers = async (organizationId) => {
-    const { data, error } = await supabase
-      .from('organization_users')
-      .select(
-        `
-        *,
-        users (
-          id,
-          name,
-          bio
-        )
-      `
-      )
-      .eq('organization_id', organizationId);
-  
-    if (error) {
-      console.error('Error fetching members:', error);
-    } else {
-      console.log('Fetched members:', data);
-      setMembers(data);
-    }
-  };
-
-  const fetchQuestions = async (organizationId) => {
-    // Fetch questions directly associated with the organization
-    const { data: directQuestions, error: directError } = await supabase
-      .from('questions')
-      .select('*')
-      .eq('organization_id', organizationId);
-
-    if (directError) {
-      console.error('Error fetching directly associated questions:', directError);
-    }
-
-    // Fetch questions associated via organization_questions table
-    const { data: indirectQuestions, error: indirectError } = await supabase
-      .from('organization_questions')
-      .select(`
-        question_id,
-        questions (*)
-      `)
-      .eq('organization_id', organizationId);
-
-    if (indirectError) {
-      console.error('Error fetching indirectly associated questions:', indirectError);
-    }
-
-    // Combine and deduplicate the questions
-    const allOrgQuestions = [
-      ...(directQuestions || []).map(q => ({ ...q, is_direct: true })),
-      ...(indirectQuestions?.map(q => ({ ...q.questions, is_direct: false, id: q.question_id })) || [])
-    ];
-    const uniqueOrgQuestions = Array.from(new Set(allOrgQuestions.map(q => q.id)))
-      .map(id => allOrgQuestions.find(q => q.id === id));
-
-    setOrganizationQuestions(uniqueOrgQuestions);
-
-    // Fetch open questions
-    const { data: openQs, error: openError } = await supabase
-      .from('questions')
-      .select('*')
-      .eq('is_open', true)
-      .is('organization_id', null);
-
-    if (openError) {
-      console.error('Error fetching open questions:', openError);
-    } else {
-      setOpenQuestions(openQs);
-    }
-  };
 
   useEffect(() => {
     const fetchOrganization = async () => {
-      // Fetch the organization where the user is an admin
       const { data, error } = await supabase
         .from('organizations')
         .select('*, organization_users!inner(*)')
@@ -128,12 +55,73 @@ const OrganizationDashboard = () => {
     fetchOrganization();
   }, [session.user.id, navigate]);
 
-  // Function to send the invitation email
+  const fetchMembers = async (organizationId) => {
+    const { data, error } = await supabase
+      .from('organization_users')
+      .select(`
+        *,
+        users (
+          id,
+          name,
+          bio
+        )
+      `)
+      .eq('organization_id', organizationId);
+  
+    if (error) {
+      console.error('Error fetching members:', error);
+    } else {
+      setMembers(data);
+    }
+  };
+
+  const fetchQuestions = async (organizationId) => {
+    const { data: directQuestions, error: directError } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('organization_id', organizationId);
+
+    if (directError) {
+      console.error('Error fetching directly associated questions:', directError);
+    }
+
+    const { data: indirectQuestions, error: indirectError } = await supabase
+      .from('organization_questions')
+      .select(`
+        question_id,
+        questions (*)
+      `)
+      .eq('organization_id', organizationId);
+
+    if (indirectError) {
+      console.error('Error fetching indirectly associated questions:', indirectError);
+    }
+
+    const allOrgQuestions = [
+      ...(directQuestions || []).map(q => ({ ...q, is_direct: true })),
+      ...(indirectQuestions?.map(q => ({ ...q.questions, is_direct: false, id: q.question_id })) || [])
+    ];
+    const uniqueOrgQuestions = Array.from(new Set(allOrgQuestions.map(q => q.id)))
+      .map(id => allOrgQuestions.find(q => q.id === id));
+
+    setOrganizationQuestions(uniqueOrgQuestions);
+
+    const { data: openQs, error: openError } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('is_open', true)
+      .is('organization_id', null);
+
+    if (openError) {
+      console.error('Error fetching open questions:', openError);
+    } else {
+      setOpenQuestions(openQs);
+    }
+  };
+
   const sendInvitationEmail = async (email, token) => {
-    // Construct the invitation link
     const invitationLink = `${window.location.origin}/accept-invitation?token=${token}`;
 
-    // Send the email via serverless vercel function
     try {
       const response = await fetch('/api/send-invitation-email', {
         method: 'POST',
@@ -154,17 +142,14 @@ const OrganizationDashboard = () => {
     }
   };
 
-  // Function to handle inviting a user
   const handleInvite = async () => {
     if (!emailToInvite) {
       alert('Please enter an email address.');
       return;
     }
 
-    // Generate a unique token
     const invitationToken = uuidv4();
 
-    // Insert the invitation into the database
     const { error } = await supabase.from('invitations').insert([
       {
         email: emailToInvite,
@@ -177,16 +162,13 @@ const OrganizationDashboard = () => {
       console.error('Error creating invitation:', error);
       alert('Error creating invitation.');
     } else {
-      // Send the invitation email
       await sendInvitationEmail(emailToInvite, invitationToken);
       alert('Invitation sent successfully!');
       setEmailToInvite('');
     }
   };
 
-  // Function to handle changing a member's role
   const handleRoleChange = async (memberId, newRole) => {
-    // Update the role in the database
     const { error } = await supabase
       .from('organization_users')
       .update({ role: newRole })
@@ -196,7 +178,6 @@ const OrganizationDashboard = () => {
       console.error('Error updating role:', error);
       alert('Error updating user role.');
     } else {
-      // Refresh members list
       await fetchMembers(organization.id);
     }
   };
@@ -206,7 +187,6 @@ const OrganizationDashboard = () => {
   };
 
   const handleAddToOrganization = async (questionId) => {
-    // Check if the question is already added to the organization
     const { data: existingEntry, error: checkError } = await supabase
       .from('organization_questions')
       .select('*')
@@ -225,7 +205,6 @@ const OrganizationDashboard = () => {
       return;
     }
 
-    // Add the question to the organization
     const { error } = await supabase
       .from('organization_questions')
       .insert({ organization_id: organization.id, question_id: questionId });
@@ -240,7 +219,6 @@ const OrganizationDashboard = () => {
   };
 
   const handleRemoveFromOrganization = async (questionId) => {
-    // Remove the question from the organization_questions table
     const { error } = await supabase
       .from('organization_questions')
       .delete()
@@ -256,47 +234,32 @@ const OrganizationDashboard = () => {
     }
   };
 
-  const renderQuestionCard = (question, isOrganizationQuestion = false) => (
-    <Card
-      key={question.id}
-      style={{ marginBottom: '1rem', cursor: 'pointer' }}
-    >
-      <CardActionArea onClick={() => handleQuestionClick(question.id)}>
-        <CardContent>
-          <Typography variant='h6'>{question.content}</Typography>
-          <Typography variant='body2' color="textSecondary">
-            Created: {new Date(question.created_at).toLocaleDateString()}
-          </Typography>
-        </CardContent>
-      </CardActionArea>
-      <CardActions>
-        {!isOrganizationQuestion && (
-          <Button 
-            size="small" 
-            color="primary" 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleAddToOrganization(question.id);
-            }}
-          >
-            Add to Organization
-          </Button>
-        )}
-        {isOrganizationQuestion && question.is_direct === false && (
-          <Button 
-            size="small" 
-            color="secondary" 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRemoveFromOrganization(question.id);
-            }}
-          >
-            Remove from Organization
-          </Button>
-        )}
-      </CardActions>
-    </Card>
-  );
+  const renderQuestions = (questions, isOrganizationQuestion = false) => {
+    if (viewMode === 'table') {
+      return (
+        <QuestionTable 
+          questions={questions} 
+          onQuestionClick={handleQuestionClick}
+          onAddToOrganization={isOrganizationQuestion ? null : handleAddToOrganization}
+          onRemoveFromOrganization={isOrganizationQuestion ? handleRemoveFromOrganization : null}
+        />
+      );
+    } else {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {questions.map(question => (
+            <QuestionCard 
+              key={question.id} 
+              question={question} 
+              onClick={() => handleQuestionClick(question.id)}
+              onAddToOrganization={isOrganizationQuestion ? null : () => handleAddToOrganization(question.id)}
+              onRemoveFromOrganization={isOrganizationQuestion && question.is_direct === false ? () => handleRemoveFromOrganization(question.id) : null}
+            />
+          ))}
+        </div>
+      );
+    }
+  };
 
   if (!organization) {
     return (
@@ -338,13 +301,8 @@ const OrganizationDashboard = () => {
                   </>
                 }
               />
-              {/* Show role management options only if the member is not the current user */}
               {member.user_id !== session.user.id && (
-                <FormControl
-                  variant='outlined'
-                  size='small'
-                  style={{ minWidth: 120 }}
-                >
+                <FormControl variant='outlined' size='small' style={{ minWidth: 120 }}>
                   <InputLabel>Role</InputLabel>
                   <Select
                     value={member.role}
@@ -374,20 +332,32 @@ const OrganizationDashboard = () => {
         Invite User
       </Button>
       <Divider style={{ margin: '2rem 0' }} />
-      <Typography variant='h5' style={{ marginTop: '2rem', marginBottom: '1rem' }}>
-        Organization Questions
-      </Typography>
-      {organizationQuestions.map(question => renderQuestionCard(question, true))}
+      <div className="flex justify-between items-center mb-4">
+        <Typography variant='h5'>Organization Questions</Typography>
+        <div>
+          <button 
+            onClick={() => setViewMode('table')} 
+            className={`px-4 py-2 ${viewMode === 'table' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
+          >
+            Table View
+          </button>
+          <button 
+            onClick={() => setViewMode('cards')} 
+            className={`ml-2 px-4 py-2 ${viewMode === 'cards' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
+          >
+            Card View
+          </button>
+        </div>
+      </div>
+      {renderQuestions(organizationQuestions, true)}
       {organizationQuestions.length === 0 && (
         <Typography variant='body1'>No questions found for this organization.</Typography>
       )}
-
       <Divider style={{ margin: '2rem 0' }} />
-
-      <Typography variant='h5' style={{ marginTop: '2rem', marginBottom: '1rem' }}>
+      <Typography variant='h5' style={{ marginBottom: '1rem' }}>
         Open Questions
       </Typography>
-      {openQuestions.map(question => renderQuestionCard(question))}
+      {renderQuestions(openQuestions)}
       {openQuestions.length === 0 && (
         <Typography variant='body1'>No open questions available.</Typography>
       )}
