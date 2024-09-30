@@ -30,37 +30,27 @@ const OrganizationELORanking = () => {
 
   const fetchRandomQuestions = async () => {
     try {
-      // Fetch questions directly associated with the organization
-      const { data: directQuestions, error: directError } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('organization_id', organizationId);
-
-      if (directError) throw directError;
-
-      // Fetch questions from organization_questions table
-      const { data: indirectQuestions, error: indirectError } = await supabase
-        .from('organization_questions')
+      // Fetch questions with their latest ELO scores
+      const { data: questionsWithRankings, error: rankingsError } = await supabase
+        .from('organization_question_rankings')
         .select(`
           question_id,
+          elo_score,
           questions (*)
         `)
         .eq('organization_id', organizationId);
 
-      if (indirectError) throw indirectError;
+      if (rankingsError) throw rankingsError;
 
-      // Combine all questions
-      const allQuestions = [
-        ...directQuestions,
-        ...indirectQuestions.map(q => ({ ...q.questions, id: q.question_id }))
-      ];
-
-      // Remove duplicates
-      const uniqueQuestions = Array.from(new Set(allQuestions.map(q => q.id)))
-        .map(id => allQuestions.find(q => q.id === id));
+      // Combine question data with ELO scores
+      const allQuestions = questionsWithRankings.map(q => ({
+        ...q.questions,
+        id: q.question_id,
+        elo_score: q.elo_score
+      }));
 
       // Shuffle and select 3 random questions
-      const shuffled = uniqueQuestions.sort(() => 0.5 - Math.random());
+      const shuffled = allQuestions.sort(() => 0.5 - Math.random());
       const selected = shuffled.slice(0, 3);
 
       setQuestions(selected);
@@ -84,29 +74,22 @@ const OrganizationELORanking = () => {
     try {
       for (let i = 0; i < questions.length - 1; i++) {
         for (let j = i + 1; j < questions.length; j++) {
-          await supabase.rpc('update_organization_elo_ratings', {
+          const winner = questions[i];
+          const loser = questions[j];
+          
+          // Call the stored procedure to update ELO ratings
+          const { data, error } = await supabase.rpc('update_organization_elo_ratings', {
             org_id: organizationId,
-            winner_id: questions[i].id,
-            loser_id: questions[j].id,
+            winner_id: winner.id,
+            loser_id: loser.id,
           });
+
+          if (error) throw error;
         }
       }
 
-      // Ensure all questions are in the organization_question_rankings table
-      const updates = questions.map((question, index) => ({
-        organization_id: organizationId,
-        question_id: question.id,
-        elo_score: question.elo_rating || 1500, // Default ELO rating if not set
-      }));
-
-      const { error } = await supabase
-        .from('organization_question_rankings')
-        .upsert(updates, { onConflict: ['organization_id', 'question_id'] });
-
-      if (error) throw error;
-
       alert('Ranking submitted successfully!');
-      fetchRandomQuestions();
+      await fetchRandomQuestions(); // Refetch questions to get updated scores
     } catch (error) {
       console.error('Error submitting ranking:', error);
       alert('An error occurred while submitting your ranking.');

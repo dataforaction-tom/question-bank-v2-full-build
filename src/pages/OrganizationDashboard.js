@@ -35,6 +35,8 @@ const OrganizationDashboard = () => {
   const [viewMode, setViewMode] = useState('cards');
   const [showMembers, setShowMembers] = useState(false);
   const navigate = useNavigate();
+  const [sortBy, setSortBy] = useState('manual_rank'); // 'manual_rank' or 'elo_score'
+  const [sortedQuestions, setSortedQuestions] = useState([]);
 
   useEffect(() => {
     const fetchOrganization = async () => {
@@ -58,6 +60,10 @@ const OrganizationDashboard = () => {
 
     fetchOrganization();
   }, [session.user.id, navigate]);
+
+  useEffect(() => {
+    sortQuestions(organizationQuestions, sortBy);
+  }, [sortBy, organizationQuestions]);
 
   const fetchMembers = async (organizationId) => {
     const { data, error } = await supabase
@@ -108,18 +114,39 @@ const OrganizationDashboard = () => {
     const uniqueOrgQuestions = Array.from(new Set(allOrgQuestions.map(q => q.id)))
       .map(id => allOrgQuestions.find(q => q.id === id));
 
-    setOrganizationQuestions(uniqueOrgQuestions);
+    const { data: rankings, error: rankingsError } = await supabase
+      .from('organization_question_rankings')
+      .select('question_id, manual_rank, elo_score')
+      .eq('organization_id', organizationId);
 
+    if (rankingsError) {
+      console.error('Error fetching rankings:', rankingsError);
+    }
+
+    const questionsWithRankings = uniqueOrgQuestions.map(question => {
+      const ranking = rankings?.find(r => r.question_id === question.id) || {};
+      return {
+        ...question,
+        manual_rank: ranking.manual_rank || 0,
+        elo_score: ranking.elo_score || 1500 // Default ELO score
+      };
+    });
+
+    setOrganizationQuestions(questionsWithRankings);
+    sortQuestions(questionsWithRankings, sortBy);
+
+    // Fetch open questions
     const { data: openQs, error: openError } = await supabase
       .from('questions')
       .select('*')
-      .eq('is_open', true)
-      .is('organization_id', null);
+      .eq('is_open', true);
 
     if (openError) {
       console.error('Error fetching open questions:', openError);
     } else {
-      setOpenQuestions(openQs);
+      // Sort open questions by priority_score
+      const sortedOpenQuestions = openQs.sort((a, b) => b.priority_score - a.priority_score);
+      setOpenQuestions(sortedOpenQuestions);
     }
   };
 
@@ -328,23 +355,28 @@ const OrganizationDashboard = () => {
   };
 
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
+    const displayQuestions = isOrganizationQuestion ? sortedQuestions : questions;
+  
     switch (viewMode) {
       case 'table':
         return (
           <QuestionTable 
-            questions={questions} 
+            questions={displayQuestions} 
             onQuestionClick={handleQuestionClick}
             onAddToOrganization={isAdmin && !isOrganizationQuestion ? handleAddToOrganization : null}
             onRemoveFromOrganization={isAdmin && isOrganizationQuestion ? handleRemoveFromOrganization : null}
             onDeleteQuestion={isAdmin && isOrganizationQuestion ? handleDeleteDirectQuestion : null}
             onMakeQuestionOpen={isAdmin && isOrganizationQuestion ? handleMakeQuestionOpen : null}
             isAdmin={isAdmin}
+            sortBy={isOrganizationQuestion ? sortBy : 'priority_score'}
+            onSortChange={isOrganizationQuestion ? setSortBy : null}
+            isOrganizationQuestion={isOrganizationQuestion}
           />
         );
       case 'cards':
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {questions.map(question => (
+            {displayQuestions.map(question => (
               <QuestionCard 
                 key={question.id} 
                 question={question} 
@@ -354,6 +386,7 @@ const OrganizationDashboard = () => {
                 onDeleteQuestion={isAdmin && isOrganizationQuestion && question.is_direct ? () => handleDeleteDirectQuestion(question.id) : null}
                 onMakeQuestionOpen={isAdmin && isOrganizationQuestion && question.is_direct && !question.is_open ? () => handleMakeQuestionOpen(question.id) : null}
                 isAdmin={isAdmin}
+                isOrganizationQuestion={isOrganizationQuestion}
               />
             ))}
           </div>
@@ -367,6 +400,17 @@ const OrganizationDashboard = () => {
 
   const toggleMembersSection = () => {
     setShowMembers(!showMembers);
+  };
+
+  const sortQuestions = (questions, sortMethod) => {
+    const sorted = [...questions].sort((a, b) => {
+      if (sortMethod === 'manual_rank') {
+        return a.manual_rank - b.manual_rank;
+      } else {
+        return b.elo_score - a.elo_score; // Higher ELO score first
+      }
+    });
+    setSortedQuestions(sorted);
   };
 
   if (!organization) {
@@ -459,6 +503,18 @@ const OrganizationDashboard = () => {
       <div className="flex justify-between items-center mb-4">
         <Typography variant='h5'>Organization Questions</Typography>
         <div>
+          <button 
+            onClick={() => setSortBy('manual_rank')} 
+            className={`px-4 py-2 ${sortBy === 'manual_rank' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition mr-2`}
+          >
+            Manual Rank
+          </button>
+          <button 
+            onClick={() => setSortBy('elo_score')} 
+            className={`px-4 py-2 ${sortBy === 'elo_score' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition mr-2`}
+          >
+            ELO Score
+          </button>
           <button 
             onClick={() => setViewMode('table')} 
             className={`px-4 py-2 ${viewMode === 'table' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
