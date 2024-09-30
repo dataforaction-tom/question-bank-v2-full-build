@@ -30,13 +30,33 @@ const OrganizationManualRanking = () => {
 
   const fetchQuestions = async () => {
     try {
-      // Fetch questions
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('organization_questions')
-        .select('question_id, questions(*)')
+      // Fetch questions directly associated with the organization
+      const { data: directQuestions, error: directError } = await supabase
+        .from('questions')
+        .select('*')
         .eq('organization_id', organizationId);
 
-      if (questionsError) throw questionsError;
+      if (directError) throw directError;
+
+      // Fetch questions from organization_questions table
+      const { data: indirectQuestions, error: indirectError } = await supabase
+        .from('organization_questions')
+        .select(`
+          question_id,
+          questions (*)
+        `)
+        .eq('organization_id', organizationId);
+
+      if (indirectError) throw indirectError;
+
+      // Combine all questions, ensuring no duplicates
+      const allQuestions = [
+        ...directQuestions,
+        ...indirectQuestions.map(q => ({ ...q.questions, id: q.question_id }))
+      ];
+
+      // Remove duplicates based on question ID
+      const uniqueQuestions = Array.from(new Map(allQuestions.map(q => [q.id, q])).values());
 
       // Fetch rankings
       const { data: rankingsData, error: rankingsError } = await supabase
@@ -48,10 +68,9 @@ const OrganizationManualRanking = () => {
 
       // Combine questions with their rankings
       const rankingsMap = new Map(rankingsData.map(r => [r.question_id, r.manual_rank]));
-      const sortedQuestions = questionsData.map(q => ({
-        ...q.questions,
-        id: q.question_id,  // Ensure we're using the correct ID
-        manual_rank: rankingsMap.get(q.question_id) || null
+      const sortedQuestions = uniqueQuestions.map(q => ({
+        ...q,
+        manual_rank: rankingsMap.get(q.id) || null
       })).sort((a, b) => {
         if (a.manual_rank === null && b.manual_rank === null) return 0;
         if (a.manual_rank === null) return 1;
@@ -73,36 +92,43 @@ const OrganizationManualRanking = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    setQuestions(items);
+    // Update the manual_rank for all items
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      manual_rank: index + 1
+    }));
+
+    setQuestions(updatedItems);
   };
 
   const applyInitialRanks = () => {
     const updatedQuestions = questions.map((question, index) => ({
       ...question,
-      manual_rank: question.manual_rank || index + 1
+      manual_rank: index + 1
     }));
     setQuestions(updatedQuestions);
   };
 
   const handleSubmitRanking = async () => {
     try {
-      const updates = questions.map((question, index) => ({
+      const updates = questions.map((question) => ({
         organization_id: organizationId,
         question_id: question.id,
-        manual_rank: question.manual_rank || index + 1
+        manual_rank: question.manual_rank
       }));
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('organization_question_rankings')
         .upsert(updates, { onConflict: ['organization_id', 'question_id'] });
 
       if (error) throw error;
 
+      console.log('Ranking update response:', data);
       alert('Ranking submitted successfully!');
-      fetchQuestions();
+      fetchQuestions(); // Refresh the questions to ensure we have the latest data
     } catch (error) {
       console.error('Error submitting ranking:', error);
-      alert('An error occurred while submitting your ranking.');
+      alert(`An error occurred while submitting your ranking: ${error.message}`);
     }
   };
 

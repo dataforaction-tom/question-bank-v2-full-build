@@ -8,7 +8,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
 const OrganizationKanban = ({ organizationId }) => {
   const [questions, setQuestions] = useState({});
-  const [sortBy, setSortBy] = useState('manual_rank'); // or 'priority_score'
+  const [sortBy, setSortBy] = useState('manual_rank');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -25,39 +25,58 @@ const OrganizationKanban = ({ organizationId }) => {
     try {
       setIsLoading(true);
       setError(null);
-      // Fetch questions
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('organization_questions')
-        .select('question_id, questions(*)')
-        .eq('organization_id', organizationId);
-
-      if (questionsError) throw questionsError;
-
-      // Fetch rankings and kanban data separately
+      
+      // Fetch questions from organization_question_rankings
       const { data: rankingsData, error: rankingsError } = await supabase
         .from('organization_question_rankings')
-        .select('question_id, manual_rank, kanban_status, kanban_order')
+        .select(`
+          question_id,
+          manual_rank,
+          kanban_status,
+          kanban_order,
+          questions (id, content, priority_score, organization_id)
+        `)
         .eq('organization_id', organizationId);
 
       if (rankingsError) throw rankingsError;
 
-      // Combine the data
+      // Fetch questions directly associated with the organization
+      const { data: directQuestions, error: directError } = await supabase
+        .from('questions')
+        .select('id, content, priority_score')
+        .eq('organization_id', organizationId);
+
+      if (directError) throw directError;
+
+      // Combine all questions
+      const allQuestions = [
+        ...rankingsData.map(item => ({
+          id: item.question_id,
+          content: item.questions.content,
+          priority_score: item.questions.priority_score,
+          status: item.kanban_status || 'Now',
+          order_in_status: item.kanban_order || 0,
+          manual_rank: item.manual_rank
+        })),
+        ...directQuestions.map(q => ({
+          id: q.id,
+          content: q.content,
+          priority_score: q.priority_score,
+          status: 'Now',
+          order_in_status: 0,
+          manual_rank: 0
+        }))
+      ];
+
+      // Remove duplicates
+      const uniqueQuestions = Array.from(new Set(allQuestions.map(q => q.id)))
+        .map(id => allQuestions.find(q => q.id === id));
+
+      // Group questions by Kanban status
       const groupedQuestions = KANBAN_STATUSES.reduce((acc, status) => {
-        acc[status] = [];
+        acc[status] = uniqueQuestions.filter(q => q.status === status);
         return acc;
       }, {});
-
-      questionsData.forEach(item => {
-        const ranking = rankingsData.find(r => r.question_id === item.question_id) || {};
-        const question = {
-          ...item.questions,
-          id: item.question_id,
-          status: ranking.kanban_status || 'Now',
-          order_in_status: ranking.kanban_order || 0,
-          manual_rank: ranking.manual_rank
-        };
-        groupedQuestions[question.status].push(question);
-      });
 
       // Sort questions within each status
       KANBAN_STATUSES.forEach(status => {
@@ -97,17 +116,20 @@ const OrganizationKanban = ({ organizationId }) => {
     setQuestions(newQuestions);
 
     // Update the database
-    const { error } = await supabase
-      .from('organization_question_rankings')
-      .upsert({
-        organization_id: organizationId,
-        question_id: draggableId,
-        kanban_status: destStatus,
-        kanban_order: destination.index
-      }, { onConflict: ['organization_id', 'question_id'] });
+    try {
+      const { error } = await supabase
+        .from('organization_question_rankings')
+        .upsert({
+          organization_id: organizationId,
+          question_id: draggableId,
+          kanban_status: destStatus,
+          kanban_order: destination.index
+        }, { onConflict: ['organization_id', 'question_id'] });
 
-    if (error) {
+      if (error) throw error;
+    } catch (error) {
       console.error('Error updating question status:', error);
+      alert('An error occurred while updating the question status.');
     }
   };
 

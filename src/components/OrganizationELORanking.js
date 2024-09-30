@@ -29,22 +29,44 @@ const OrganizationELORanking = () => {
   };
 
   const fetchRandomQuestions = async () => {
-    const { data, error } = await supabase
-      .from('organization_questions')
-      .select(`
-        question_id,
-        questions(*)
-      `)
-      .eq('organization_id', organizationId)
-      .limit(100);
+    try {
+      // Fetch questions directly associated with the organization
+      const { data: directQuestions, error: directError } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('organization_id', organizationId);
 
-    if (error) {
+      if (directError) throw directError;
+
+      // Fetch questions from organization_questions table
+      const { data: indirectQuestions, error: indirectError } = await supabase
+        .from('organization_questions')
+        .select(`
+          question_id,
+          questions (*)
+        `)
+        .eq('organization_id', organizationId);
+
+      if (indirectError) throw indirectError;
+
+      // Combine all questions
+      const allQuestions = [
+        ...directQuestions,
+        ...indirectQuestions.map(q => ({ ...q.questions, id: q.question_id }))
+      ];
+
+      // Remove duplicates
+      const uniqueQuestions = Array.from(new Set(allQuestions.map(q => q.id)))
+        .map(id => allQuestions.find(q => q.id === id));
+
+      // Shuffle and select 3 random questions
+      const shuffled = uniqueQuestions.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 3);
+
+      setQuestions(selected);
+    } catch (error) {
       console.error('Error fetching questions:', error);
       alert('An error occurred while fetching questions.');
-    } else {
-      const shuffled = data.sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, 3).map(item => item.questions);
-      setQuestions(selected);
     }
   };
 
@@ -69,6 +91,19 @@ const OrganizationELORanking = () => {
           });
         }
       }
+
+      // Ensure all questions are in the organization_question_rankings table
+      const updates = questions.map((question, index) => ({
+        organization_id: organizationId,
+        question_id: question.id,
+        elo_score: question.elo_rating || 1500, // Default ELO rating if not set
+      }));
+
+      const { error } = await supabase
+        .from('organization_question_rankings')
+        .upsert(updates, { onConflict: ['organization_id', 'question_id'] });
+
+      if (error) throw error;
 
       alert('Ranking submitted successfully!');
       fetchRandomQuestions();

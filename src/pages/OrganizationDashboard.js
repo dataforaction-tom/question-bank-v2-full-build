@@ -1,6 +1,7 @@
 // src/pages/OrganizationDashboard.js
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import {
   Container,
@@ -188,50 +189,61 @@ const OrganizationDashboard = () => {
   };
 
   const handleAddToOrganization = async (questionId) => {
-    const { data: existingEntry, error: checkError } = await supabase
-      .from('organization_questions')
-      .select('*')
-      .eq('organization_id', organization.id)
-      .eq('question_id', questionId)
-      .single();
+    try {
+      // Add to organization_questions table
+      const { error: addError } = await supabase
+        .from('organization_questions')
+        .insert({ organization_id: organization.id, question_id: questionId });
 
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing entry:', checkError);
-      alert('Failed to add question to organization.');
-      return;
-    }
+      if (addError) throw addError;
 
-    if (existingEntry) {
-      alert('This question is already added to your organization.');
-      return;
-    }
+      // Add to organization_question_rankings table
+      const { error: rankError } = await supabase
+        .from('organization_question_rankings')
+        .insert({
+          organization_id: organization.id,
+          question_id: questionId,
+          manual_rank: null,
+          elo_score: 1500, // Default ELO score
+          kanban_status: 'Now', // Default Kanban status
+          kanban_order: 0 // Default Kanban order
+        });
 
-    const { error } = await supabase
-      .from('organization_questions')
-      .insert({ organization_id: organization.id, question_id: questionId });
+      if (rankError) throw rankError;
 
-    if (error) {
-      console.error('Error adding question to organization:', error);
-      alert('Failed to add question to organization.');
-    } else {
+      // Refresh the questions
       await fetchQuestions(organization.id);
       alert('Question added to organization successfully!');
+    } catch (error) {
+      console.error('Error adding question to organization:', error);
+      alert('Failed to add question to organization.');
     }
   };
 
   const handleRemoveFromOrganization = async (questionId) => {
-    const { error } = await supabase
-      .from('organization_questions')
-      .delete()
-      .eq('organization_id', organization.id)
-      .eq('question_id', questionId);
+    try {
+      // Remove from organization_questions table
+      const { error: removeError } = await supabase
+        .from('organization_questions')
+        .delete()
+        .match({ organization_id: organization.id, question_id: questionId });
 
-    if (error) {
-      console.error('Error removing question from organization:', error);
-      alert('Failed to remove question from organization.');
-    } else {
+      if (removeError) throw removeError;
+
+      // Remove from organization_question_rankings table
+      const { error: rankingError } = await supabase
+        .from('organization_question_rankings')
+        .delete()
+        .match({ organization_id: organization.id, question_id: questionId });
+
+      if (rankingError) throw rankingError;
+
+      // Refresh the questions
       await fetchQuestions(organization.id);
       alert('Question removed from organization successfully!');
+    } catch (error) {
+      console.error('Error removing question from organization:', error);
+      alert('Failed to remove question from organization.');
     }
   };
 
@@ -371,7 +383,11 @@ const OrganizationDashboard = () => {
           </Link>
         </div>
       </div>
-      {renderQuestions(organizationQuestions, true)}
+      {viewMode === 'kanban' ? (
+        <OrganizationKanban organizationId={organization.id} />
+      ) : (
+        renderQuestions(organizationQuestions, true)
+      )}
       {organizationQuestions.length === 0 && (
         <Typography variant='body1'>No questions found for this organization.</Typography>
       )}
