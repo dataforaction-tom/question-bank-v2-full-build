@@ -406,18 +406,20 @@ const OrganizationDashboard = () => {
       {viewMode === 'kanban' ? (
         <OrganizationKanban organizationId={organization.id} />
       ) : (
-        renderQuestions(organizationQuestions, true)
-      )}
-      {organizationQuestions.length === 0 && (
-        <Typography variant='body1'>No questions found for this organization.</Typography>
-      )}
-      <Divider style={{ margin: '2rem 0' }} />
-      <Typography variant='h5' style={{ marginBottom: '1rem' }}>
-        Open Questions
-      </Typography>
-      {renderQuestions(openQuestions)}
-      {openQuestions.length === 0 && (
-        <Typography variant='body1'>No open questions available.</Typography>
+        <>
+          {renderQuestions(organizationQuestions, true)}
+          {organizationQuestions.length === 0 && (
+            <Typography variant='body1'>No questions found for this organization.</Typography>
+          )}
+          <Divider style={{ margin: '2rem 0' }} />
+          <Typography variant='h5' style={{ marginBottom: '1rem' }}>
+            Open Questions
+          </Typography>
+          {renderQuestions(openQuestions)}
+          {openQuestions.length === 0 && (
+            <Typography variant='body1'>No open questions available.</Typography>
+          )}
+        </>
       )}
     </Container>
   );
