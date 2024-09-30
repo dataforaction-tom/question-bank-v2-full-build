@@ -1,6 +1,6 @@
 import React from 'react';
 
-const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion }) => {
+const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion, onMakeQuestionOpen, isAdmin }) => {
   const getCategoryColorClass = (category) => {
     const colorMapping = {
       'Poverty': 'bg-red-200 text-red-800',
@@ -66,6 +66,17 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
               className="bg-red-700 text-white px-2 py-1 rounded"
             >
               Delete Question
+            </button>
+          )}
+          {isAdmin && onMakeQuestionOpen && !question.is_open && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onMakeQuestionOpen();
+              }}
+              className="bg-green-500 text-white px-2 py-1 rounded mr-2"
+            >
+              Make Open
             </button>
           )}
         </div>

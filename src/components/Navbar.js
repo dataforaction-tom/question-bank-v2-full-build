@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../hooks/useAuth'; // Import useAuth hook
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { session } = useAuth(); // Use the useAuth hook to get the session
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -26,30 +28,43 @@ const Navbar = () => {
           </button>
         </div>
         <nav className={`sm:flex sm:items-center ${menuOpen ? 'block' : 'hidden'} w-full sm:w-auto`}>
-          <Link to="/" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
-            Dashboard
-          </Link>
           <Link to="/questions" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
             Questions
           </Link>
-          <Link to="/submit-question" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
-            Submit Question
-          </Link>
-          <Link to="/rank-questions" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
-            Rank Questions
-          </Link>
-          <Link to="/create-organization" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
-            Create Organization
-          </Link>
-          <Link to="/organization-dashboard" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
-            Organization Dashboard
-          </Link>
-          <Link to="/profile" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
-            Profile
-          </Link>
-          <button onClick={handleLogout} className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
-            Logout
-          </button>
+          {session ? (
+            <>
+              <Link to="/" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Dashboard
+              </Link>
+              <Link to="/submit-question" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Submit Question
+              </Link>
+              <Link to="/rank-questions" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Rank Questions
+              </Link>
+              <Link to="/create-organization" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Create Organization
+              </Link>
+              <Link to="/organization-dashboard" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Organization Dashboard
+              </Link>
+              <Link to="/profile" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Profile
+              </Link>
+              <button onClick={handleLogout} className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/signin" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Sign In
+              </Link>
+              <Link to="/signup" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Sign Up
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

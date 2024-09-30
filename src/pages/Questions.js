@@ -11,13 +11,39 @@ const Questions = () => {
   const [viewMode, setViewMode] = useState('cards'); // 'table' or 'cards'
   const [filters, setFilters] = useState({ category: '', is_open: '' });
   const navigate = useNavigate();
+  const [userOrganizationId, setUserOrganizationId] = useState(null);
+
+  useEffect(() => {
+    const fetchUserOrganization = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('organization_users')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .single();
+        if (data) {
+          setUserOrganizationId(data.organization_id);
+        }
+      }
+    };
+
+    fetchUserOrganization();
+  }, []);
 
   useEffect(() => {
     const fetchQuestions = async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('questions')
         .select('*')
+        .eq('is_open', true)
         .order('priority_score', { ascending: false });
+
+      if (userOrganizationId) {
+        query = query.or(`is_open.eq.true,organization_id.eq.${userOrganizationId}`);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching questions:', error);
@@ -29,15 +55,13 @@ const Questions = () => {
     };
 
     fetchQuestions();
-  }, []);
+  }, [userOrganizationId]);
 
   useEffect(() => {
     const filterQuestions = () => {
-      const { category, is_open } = filters;
+      const { category } = filters;
       const filtered = questions.filter(question => {
-        const categoryMatch = category ? question.category === category : true;
-        const statusMatch = is_open !== '' ? question.is_open === (is_open === 'true') : true;
-        return categoryMatch && statusMatch;
+        return category ? question.category === category : true;
       });
       setFilteredQuestions(filtered);
     };

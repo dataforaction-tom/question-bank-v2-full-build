@@ -27,6 +27,7 @@ import OrganizationKanban from '../components/OrganizationKanban';
 const OrganizationDashboard = () => {
   const { session } = useAuth();
   const [organization, setOrganization] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);  // New state to track admin status
   const [members, setMembers] = useState([]);
   const [emailToInvite, setEmailToInvite] = useState('');
   const [organizationQuestions, setOrganizationQuestions] = useState([]);
@@ -40,15 +41,15 @@ const OrganizationDashboard = () => {
         .from('organizations')
         .select('*, organization_users!inner(*)')
         .eq('organization_users.user_id', session.user.id)
-        .eq('organization_users.role', 'admin')
         .single();
 
       if (error || !data) {
         console.error('Error fetching organization:', error);
-        alert('You are not an admin of any organization.');
+        alert('You are not a member of any organization.');
         navigate('/');
       } else {
         setOrganization(data);
+        setIsAdmin(data.organization_users[0].role === 'admin');  // Set admin status
         await fetchMembers(data.id);
         await fetchQuestions(data.id);
       }
@@ -265,6 +266,52 @@ const OrganizationDashboard = () => {
     }
   };
 
+  const handleMakeQuestionOpen = async (questionId) => {
+    if (!isAdmin) {
+      alert('Only admins can make questions open.');
+      return;
+    }
+
+    try {
+      // Update the question to make it open
+      const { error: updateError } = await supabase
+        .from('questions')
+        .update({ is_open: true })
+        .eq('id', questionId);
+
+      if (updateError) throw updateError;
+
+      // Check if the question is already in the organization_questions table
+      const { data: existingEntry, error: checkError } = await supabase
+        .from('organization_questions')
+        .select('*')
+        .eq('organization_id', organization.id)
+        .eq('question_id', questionId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        // PGRST116 means no rows returned, which is fine
+        throw checkError;
+      }
+
+      // If the entry doesn't exist, insert it
+      if (!existingEntry) {
+        const { error: insertError } = await supabase
+          .from('organization_questions')
+          .insert({ organization_id: organization.id, question_id: questionId });
+
+        if (insertError) throw insertError;
+      }
+
+      // Refresh the questions
+      await fetchQuestions(organization.id);
+      alert('Question made open successfully!');
+    } catch (error) {
+      console.error('Error making question open:', error);
+      alert('Failed to make question open. Error: ' + error.message);
+    }
+  };
+
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
     switch (viewMode) {
       case 'table':
@@ -274,7 +321,9 @@ const OrganizationDashboard = () => {
             onQuestionClick={handleQuestionClick}
             onAddToOrganization={isOrganizationQuestion ? null : handleAddToOrganization}
             onRemoveFromOrganization={isOrganizationQuestion ? handleRemoveFromOrganization : null}
-            onDeleteQuestion={isOrganizationQuestion ? handleDeleteDirectQuestion : null}
+            onDeleteQuestion={isOrganizationQuestion && isAdmin ? handleDeleteDirectQuestion : null}
+            onMakeQuestionOpen={isOrganizationQuestion && isAdmin ? handleMakeQuestionOpen : null}
+            isAdmin={isAdmin}
           />
         );
       case 'cards':
@@ -287,7 +336,9 @@ const OrganizationDashboard = () => {
                 onClick={() => handleQuestionClick(question.id)}
                 onAddToOrganization={isOrganizationQuestion ? null : () => handleAddToOrganization(question.id)}
                 onRemoveFromOrganization={isOrganizationQuestion && !question.is_direct ? () => handleRemoveFromOrganization(question.id) : null}
-                onDeleteQuestion={isOrganizationQuestion && question.is_direct ? () => handleDeleteDirectQuestion(question.id) : null}
+                onDeleteQuestion={isOrganizationQuestion && question.is_direct && isAdmin ? () => handleDeleteDirectQuestion(question.id) : null}
+                onMakeQuestionOpen={isOrganizationQuestion && question.is_direct && !question.is_open && isAdmin ? () => handleMakeQuestionOpen(question.id) : null}
+                isAdmin={isAdmin}
               />
             ))}
           </div>

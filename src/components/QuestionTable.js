@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 
-const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion }) => {
+const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion, onMakeQuestionOpen, isAdmin }) => {
   const navigate = useNavigate();
 
   const handleQuestionClick = (questionId) => {
@@ -90,6 +90,17 @@ const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemo
               className="bg-red-700 text-white px-2 py-1 rounded"
             >
               Delete Question
+            </button>
+          )}
+          {isAdmin && onMakeQuestionOpen && !row.original.is_open && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onMakeQuestionOpen(row.original.id);
+              }}
+              className="bg-green-500 text-white px-2 py-1 rounded mr-2"
+            >
+              Make Open
             </button>
           )}
         </>
