@@ -21,6 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useNavigate, Link } from 'react-router-dom';
 import QuestionTable from '../components/QuestionTable';
 import QuestionCard from '../components/QuestionCard';
+import OrganizationKanban from '../components/OrganizationKanban';
 
 const OrganizationDashboard = () => {
   const { session } = useAuth();
@@ -235,29 +236,34 @@ const OrganizationDashboard = () => {
   };
 
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
-    if (viewMode === 'table') {
-      return (
-        <QuestionTable 
-          questions={questions} 
-          onQuestionClick={handleQuestionClick}
-          onAddToOrganization={isOrganizationQuestion ? null : handleAddToOrganization}
-          onRemoveFromOrganization={isOrganizationQuestion ? handleRemoveFromOrganization : null}
-        />
-      );
-    } else {
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {questions.map(question => (
-            <QuestionCard 
-              key={question.id} 
-              question={question} 
-              onClick={() => handleQuestionClick(question.id)}
-              onAddToOrganization={isOrganizationQuestion ? null : () => handleAddToOrganization(question.id)}
-              onRemoveFromOrganization={isOrganizationQuestion && question.is_direct === false ? () => handleRemoveFromOrganization(question.id) : null}
-            />
-          ))}
-        </div>
-      );
+    switch (viewMode) {
+      case 'table':
+        return (
+          <QuestionTable 
+            questions={questions} 
+            onQuestionClick={handleQuestionClick}
+            onAddToOrganization={isOrganizationQuestion ? null : handleAddToOrganization}
+            onRemoveFromOrganization={isOrganizationQuestion ? handleRemoveFromOrganization : null}
+          />
+        );
+      case 'cards':
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {questions.map(question => (
+              <QuestionCard 
+                key={question.id} 
+                question={question} 
+                onClick={() => handleQuestionClick(question.id)}
+                onAddToOrganization={isOrganizationQuestion ? null : () => handleAddToOrganization(question.id)}
+                onRemoveFromOrganization={isOrganizationQuestion && question.is_direct === false ? () => handleRemoveFromOrganization(question.id) : null}
+              />
+            ))}
+          </div>
+        );
+      case 'kanban':
+        return <OrganizationKanban organizationId={organization.id} />;
+      default:
+        return null;
     }
   };
 
@@ -346,6 +352,12 @@ const OrganizationDashboard = () => {
             className={`ml-2 px-4 py-2 ${viewMode === 'cards' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
           >
             Card View
+          </button>
+          <button 
+            onClick={() => setViewMode('kanban')} 
+            className={`ml-2 px-4 py-2 ${viewMode === 'kanban' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
+          >
+            Kanban View
           </button>
           <Link to={`/organization/${organization.id}/elo-ranking`}>
             <button className="ml-2 px-4 py-2 bg-green-600 rounded-lg font-bold text-white transition">
