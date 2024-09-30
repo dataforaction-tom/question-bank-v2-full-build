@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 
-const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemoveFromOrganization }) => {
+const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion }) => {
   const navigate = useNavigate();
 
   const handleQuestionClick = (questionId) => {
@@ -20,7 +20,6 @@ const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemo
       'Education': 'bg-blue-200 text-blue-800',
       'Environment': 'bg-yellow-200 text-yellow-800',
       'Advice': 'bg-purple-200 text-purple-800',
-      // Add more categories as needed
     };
     return colorMapping[category] || 'bg-gray-200 text-gray-800';
   };
@@ -75,9 +74,22 @@ const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemo
                 e.stopPropagation();
                 onRemoveFromOrganization(row.original.id);
               }}
-              className="bg-red-500 text-white px-2 py-1 rounded"
+              className="bg-red-500 text-white px-2 py-1 rounded mr-2"
             >
               Remove from Org
+            </button>
+          )}
+          {onDeleteQuestion && row.original.is_direct && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+                  onDeleteQuestion(row.original.id);
+                }
+              }}
+              className="bg-red-700 text-white px-2 py-1 rounded"
+            >
+              Delete Question
             </button>
           )}
         </>

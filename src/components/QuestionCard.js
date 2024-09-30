@@ -1,6 +1,6 @@
 import React from 'react';
 
-const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrganization }) => {
+const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion }) => {
   const getCategoryColorClass = (category) => {
     const colorMapping = {
       'Poverty': 'bg-red-200 text-red-800',
@@ -50,9 +50,22 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
                 e.stopPropagation();
                 onRemoveFromOrganization();
               }}
-              className="bg-red-500 text-white px-2 py-1 rounded"
+              className="bg-red-500 text-white px-2 py-1 rounded mr-2"
             >
               Remove from Org
+            </button>
+          )}
+          {onDeleteQuestion && question.is_direct && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+                  onDeleteQuestion();
+                }
+              }}
+              className="bg-red-700 text-white px-2 py-1 rounded"
+            >
+              Delete Question
             </button>
           )}
         </div>

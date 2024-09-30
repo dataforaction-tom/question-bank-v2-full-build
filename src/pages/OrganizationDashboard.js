@@ -247,6 +247,24 @@ const OrganizationDashboard = () => {
     }
   };
 
+  const handleDeleteDirectQuestion = async (questionId) => {
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', questionId);
+
+      if (error) throw error;
+
+      // Refresh the questions
+      await fetchQuestions(organization.id);
+      alert('Question deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      alert('Failed to delete question. Error: ' + error.message);
+    }
+  };
+
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
     switch (viewMode) {
       case 'table':
@@ -256,6 +274,7 @@ const OrganizationDashboard = () => {
             onQuestionClick={handleQuestionClick}
             onAddToOrganization={isOrganizationQuestion ? null : handleAddToOrganization}
             onRemoveFromOrganization={isOrganizationQuestion ? handleRemoveFromOrganization : null}
+            onDeleteQuestion={isOrganizationQuestion ? handleDeleteDirectQuestion : null}
           />
         );
       case 'cards':
@@ -267,7 +286,8 @@ const OrganizationDashboard = () => {
                 question={question} 
                 onClick={() => handleQuestionClick(question.id)}
                 onAddToOrganization={isOrganizationQuestion ? null : () => handleAddToOrganization(question.id)}
-                onRemoveFromOrganization={isOrganizationQuestion && question.is_direct === false ? () => handleRemoveFromOrganization(question.id) : null}
+                onRemoveFromOrganization={isOrganizationQuestion && !question.is_direct ? () => handleRemoveFromOrganization(question.id) : null}
+                onDeleteQuestion={isOrganizationQuestion && question.is_direct ? () => handleDeleteDirectQuestion(question.id) : null}
               />
             ))}
           </div>
