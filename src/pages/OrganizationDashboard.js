@@ -33,6 +33,7 @@ const OrganizationDashboard = () => {
   const [organizationQuestions, setOrganizationQuestions] = useState([]);
   const [openQuestions, setOpenQuestions] = useState([]);
   const [viewMode, setViewMode] = useState('cards');
+  const [showMembers, setShowMembers] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -172,6 +173,20 @@ const OrganizationDashboard = () => {
   };
 
   const handleRoleChange = async (memberId, newRole) => {
+    if (!isAdmin) {
+      alert('Only admins can change user roles.');
+      return;
+    }
+
+    // Check if this is the last admin trying to change their role
+    if (newRole === 'member') {
+      const adminCount = members.filter(m => m.role === 'admin').length;
+      if (adminCount === 1 && members.find(m => m.id === memberId).role === 'admin') {
+        alert('Cannot change role. There must be at least one admin in the organization.');
+        return;
+      }
+    }
+
     const { error } = await supabase
       .from('organization_users')
       .update({ role: newRole })
@@ -319,10 +334,10 @@ const OrganizationDashboard = () => {
           <QuestionTable 
             questions={questions} 
             onQuestionClick={handleQuestionClick}
-            onAddToOrganization={isOrganizationQuestion ? null : handleAddToOrganization}
-            onRemoveFromOrganization={isOrganizationQuestion ? handleRemoveFromOrganization : null}
-            onDeleteQuestion={isOrganizationQuestion && isAdmin ? handleDeleteDirectQuestion : null}
-            onMakeQuestionOpen={isOrganizationQuestion && isAdmin ? handleMakeQuestionOpen : null}
+            onAddToOrganization={isAdmin && !isOrganizationQuestion ? handleAddToOrganization : null}
+            onRemoveFromOrganization={isAdmin && isOrganizationQuestion ? handleRemoveFromOrganization : null}
+            onDeleteQuestion={isAdmin && isOrganizationQuestion ? handleDeleteDirectQuestion : null}
+            onMakeQuestionOpen={isAdmin && isOrganizationQuestion ? handleMakeQuestionOpen : null}
             isAdmin={isAdmin}
           />
         );
@@ -334,10 +349,10 @@ const OrganizationDashboard = () => {
                 key={question.id} 
                 question={question} 
                 onClick={() => handleQuestionClick(question.id)}
-                onAddToOrganization={isOrganizationQuestion ? null : () => handleAddToOrganization(question.id)}
-                onRemoveFromOrganization={isOrganizationQuestion && !question.is_direct ? () => handleRemoveFromOrganization(question.id) : null}
-                onDeleteQuestion={isOrganizationQuestion && question.is_direct && isAdmin ? () => handleDeleteDirectQuestion(question.id) : null}
-                onMakeQuestionOpen={isOrganizationQuestion && question.is_direct && !question.is_open && isAdmin ? () => handleMakeQuestionOpen(question.id) : null}
+                onAddToOrganization={isAdmin && !isOrganizationQuestion ? () => handleAddToOrganization(question.id) : null}
+                onRemoveFromOrganization={isAdmin && isOrganizationQuestion && !question.is_direct ? () => handleRemoveFromOrganization(question.id) : null}
+                onDeleteQuestion={isAdmin && isOrganizationQuestion && question.is_direct ? () => handleDeleteDirectQuestion(question.id) : null}
+                onMakeQuestionOpen={isAdmin && isOrganizationQuestion && question.is_direct && !question.is_open ? () => handleMakeQuestionOpen(question.id) : null}
                 isAdmin={isAdmin}
               />
             ))}
@@ -348,6 +363,10 @@ const OrganizationDashboard = () => {
       default:
         return null;
     }
+  };
+
+  const toggleMembersSection = () => {
+    setShowMembers(!showMembers);
   };
 
   if (!organization) {
@@ -363,63 +382,79 @@ const OrganizationDashboard = () => {
   return (
     <Container>
       <Typography variant='h4'>{organization.name} Dashboard</Typography>
-      <Typography variant='h6'>Members:</Typography>
-      <List>
-        {members.map((member) => {
-          const user = member.users;
-          const name = user ? user.name || user.email : 'Unknown User';
-          const bio = user ? user.bio : null;
-
-          return (
-            <ListItem key={member.id}>
-              <ListItemText
-                primary={name}
-                secondary={
-                  <>
-                    <Typography component='span' variant='body2' color='textPrimary'>
-                      Role: {member.role}
-                    </Typography>
-                    {bio && (
-                      <>
-                        {' - '}
-                        <Typography component='span' variant='body2' color='textSecondary'>
-                          {bio}
-                        </Typography>
-                      </>
-                    )}
-                  </>
-                }
-              />
-              {member.user_id !== session.user.id && (
-                <FormControl variant='outlined' size='small' style={{ minWidth: 120 }}>
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    value={member.role}
-                    onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                    label='Role'
-                  >
-                    <MenuItem value='member'>Member</MenuItem>
-                    <MenuItem value='admin'>Admin</MenuItem>
-                  </Select>
-                </FormControl>
-              )}
-            </ListItem>
-          );
-        })}
-      </List>
-      <Typography variant='h6' style={{ marginTop: '2rem' }}>
-        Invite a User:
-      </Typography>
-      <TextField
-        label='Invite User by Email'
-        value={emailToInvite}
-        onChange={(e) => setEmailToInvite(e.target.value)}
-        fullWidth
-        style={{ marginBottom: '1rem' }}
-      />
-      <Button variant='contained' color='primary' onClick={handleInvite}>
-        Invite User
+      <Button 
+        variant="contained" 
+        color="primary" 
+        onClick={toggleMembersSection} 
+        style={{ marginTop: '1rem', marginBottom: '1rem' }}
+      >
+        {showMembers ? 'Hide Members' : 'Show Members'}
       </Button>
+
+      {showMembers && (
+        <>
+          <Typography variant='h6'>Members:</Typography>
+          <List>
+            {members.map((member) => {
+              const user = member.users;
+              const name = user ? user.name || user.email : 'Unknown User';
+              const bio = user ? user.bio : null;
+              const isLastAdmin = members.filter(m => m.role === 'admin').length === 1 && member.role === 'admin';
+
+              return (
+                <ListItem key={member.id}>
+                  <ListItemText
+                    primary={name}
+                    secondary={
+                      <>
+                        <Typography component='span' variant='body2' color='textPrimary'>
+                          Role: {member.role}
+                        </Typography>
+                        {bio && (
+                          <>
+                            {' - '}
+                            <Typography component='span' variant='body2' color='textSecondary'>
+                              {bio}
+                            </Typography>
+                          </>
+                        )}
+                      </>
+                    }
+                  />
+                  {isAdmin && member.user_id !== session.user.id && (
+                    <FormControl variant='outlined' size='small' style={{ minWidth: 120 }}>
+                      <InputLabel>Role</InputLabel>
+                      <Select
+                        value={member.role}
+                        onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                        label='Role'
+                        disabled={isLastAdmin}
+                      >
+                        <MenuItem value='member'>Member</MenuItem>
+                        <MenuItem value='admin'>Admin</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
+                </ListItem>
+              );
+            })}
+          </List>
+          <Typography variant='h6' style={{ marginTop: '2rem' }}>
+            Invite a User:
+          </Typography>
+          <TextField
+            label='Invite User by Email'
+            value={emailToInvite}
+            onChange={(e) => setEmailToInvite(e.target.value)}
+            fullWidth
+            style={{ marginBottom: '1rem' }}
+          />
+          <Button variant='contained' color='primary' onClick={handleInvite}>
+            Invite User
+          </Button>
+        </>
+      )}
+
       <Divider style={{ margin: '2rem 0' }} />
       <div className="flex justify-between items-center mb-4">
         <Typography variant='h5'>Organization Questions</Typography>
