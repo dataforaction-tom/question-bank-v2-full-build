@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import { v4 as uuidv4 } from 'uuid';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import QuestionTable from '../components/QuestionTable';
 import QuestionCard from '../components/QuestionCard';
 
@@ -347,6 +347,16 @@ const OrganizationDashboard = () => {
           >
             Card View
           </button>
+          <Link to={`/organization/${organization.id}/elo-ranking`}>
+            <button className="ml-2 px-4 py-2 bg-green-600 rounded-lg font-bold text-white transition">
+              ELO Ranking
+            </button>
+          </Link>
+          <Link to={`/organization/${organization.id}/manual-ranking`}>
+            <button className="ml-2 px-4 py-2 bg-yellow-600 rounded-lg font-bold text-white transition">
+              Manual Ranking
+            </button>
+          </Link>
         </div>
       </div>
       {renderQuestions(organizationQuestions, true)}
