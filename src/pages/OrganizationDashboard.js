@@ -413,6 +413,10 @@ const OrganizationDashboard = () => {
     setSortedQuestions(sorted);
   };
 
+  const toggleSortBy = () => {
+    setSortBy(prevSortBy => prevSortBy === 'manual_rank' ? 'elo_score' : 'manual_rank');
+  };
+
   if (!organization) {
     return (
       <Container>
@@ -504,16 +508,14 @@ const OrganizationDashboard = () => {
         <Typography variant='h5'>Organization Questions</Typography>
         <div>
           <button 
-            onClick={() => setSortBy('manual_rank')} 
-            className={`px-4 py-2 ${sortBy === 'manual_rank' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition mr-2`}
+            onClick={toggleSortBy} 
+            className={`px-4 py-2 rounded-lg font-bold text-white transition mr-2 ${
+              sortBy === 'manual_rank' 
+                ? 'bg-blue-600 hover:bg-blue-700' 
+                : 'bg-green-600 hover:bg-green-700'
+            }`}
           >
-            Manual Rank
-          </button>
-          <button 
-            onClick={() => setSortBy('elo_score')} 
-            className={`px-4 py-2 ${sortBy === 'elo_score' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition mr-2`}
-          >
-            ELO Score
+            {sortBy === 'manual_rank' ? 'Manual Rank' : 'ELO Score'}
           </button>
           <button 
             onClick={() => setViewMode('table')} 
