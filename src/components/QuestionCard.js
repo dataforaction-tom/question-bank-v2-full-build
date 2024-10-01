@@ -51,10 +51,10 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
 
   const handleStatusClick = (e) => {
     e.stopPropagation();
-    const rect = statusChipRef.current.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     setDropdownState({
       isOpen: true,
-      position: { top: rect.bottom + window.scrollY, left: rect.left + window.scrollX },
+      position: { top: rect.bottom, left: rect.left },
     });
     setFocusedIndex(0);
   };
