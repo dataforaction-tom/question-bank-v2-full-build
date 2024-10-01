@@ -1,16 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Container, Typography, Button, Card, CardContent } from '@mui/material';
+import { Container, Typography, Button, Card, CardContent, Box } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import ColorTag from './ColorTag';
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
+
+const COLUMN_COLORS = {
+  Now: '#f860b1',
+  Next: '#f3581d',
+  Future: '#9dc131',
+  Parked: '#6a7efc',
+  Done: '#53c4af'
+};
 
 const OrganizationKanban = ({ organizationId }) => {
   const [questions, setQuestions] = useState({});
   const [sortBy, setSortBy] = useState('manual_rank');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (organizationId) {
@@ -34,7 +44,7 @@ const OrganizationKanban = ({ organizationId }) => {
           manual_rank,
           kanban_status,
           kanban_order,
-          questions (id, content, priority_score, organization_id)
+          questions (id, content, priority_score, organization_id, category)
         `)
         .eq('organization_id', organizationId);
 
@@ -43,7 +53,7 @@ const OrganizationKanban = ({ organizationId }) => {
       // Fetch questions directly associated with the organization
       const { data: directQuestions, error: directError } = await supabase
         .from('questions')
-        .select('id, content, priority_score')
+        .select('id, content, priority_score, category')
         .eq('organization_id', organizationId);
 
       if (directError) throw directError;
@@ -56,7 +66,8 @@ const OrganizationKanban = ({ organizationId }) => {
           priority_score: item.questions.priority_score,
           status: item.kanban_status || 'Now',
           order_in_status: item.kanban_order || 0,
-          manual_rank: item.manual_rank
+          manual_rank: item.manual_rank,
+          category: item.questions.category
         })),
         ...directQuestions.map(q => ({
           id: q.id,
@@ -64,7 +75,8 @@ const OrganizationKanban = ({ organizationId }) => {
           priority_score: q.priority_score,
           status: 'Now',
           order_in_status: 0,
-          manual_rank: 0
+          manual_rank: 0,
+          category: q.category
         }))
       ];
 
@@ -133,51 +145,89 @@ const OrganizationKanban = ({ organizationId }) => {
     }
   };
 
+  const handleCardClick = (questionId) => {
+    navigate(`/questions/${questionId}`);
+  };
+
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <Container>
-      <Typography variant="h4" gutterBottom>Organization Kanban Board</Typography>
-      <Button onClick={() => setSortBy(sortBy === 'manual_rank' ? 'priority_score' : 'manual_rank')}>
+    <Container maxWidth="xl" sx={{ backgroundColor: '#1f1d1e', minHeight: '100vh', py: 4 }}>
+      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>Organization Kanban Board</Typography>
+      <Button 
+        onClick={() => setSortBy(sortBy === 'manual_rank' ? 'priority_score' : 'manual_rank')}
+        sx={{ mb: 2, backgroundColor: 'white', color: 'black' }}
+      >
         Sort by: {sortBy === 'manual_rank' ? 'Manual Rank' : 'Priority Score'}
       </Button>
       <DragDropContext onDragEnd={onDragEnd}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
           {KANBAN_STATUSES.map(status => (
             <Droppable droppableId={status} key={status}>
               {(provided) => (
-                <div
+                <Box
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  style={{ width: '18%', minHeight: '300px', border: '1px solid #ccc', padding: '8px' }}
+                  sx={{
+                    width: '19%',
+                    minHeight: '300px',
+                    backgroundColor: '#f4f4f4',
+                    borderRadius: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                  }}
                 >
-                  <Typography variant="h6">{status}</Typography>
-                  {questions[status]?.map((question, index) => (
-                    <Draggable key={question.id} draggableId={question.id} index={index}>
-                      {(provided) => (
-                        <Card
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          style={{ marginBottom: '8px', ...provided.draggableProps.style }}
-                        >
-                          <CardContent>
-                            <Typography>{question.content}</Typography>
-                            <Typography variant="caption">
-                              {sortBy === 'manual_rank' ? `Rank: ${question.manual_rank || 'N/A'}` : `Score: ${question.priority_score || 'N/A'}`}
-                            </Typography>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      color: 'white', 
+                      mb: 2, 
+                      p: 2, 
+                      backgroundColor: COLUMN_COLORS[status],
+                    }}
+                  >
+                    {status}
+                  </Typography>
+                  <Box sx={{ p: 2, flexGrow: 1 }}>
+                    {questions[status]?.map((question, index) => (
+                      <Draggable key={question.id} draggableId={question.id} index={index}>
+                        {(provided) => (
+                          <Card
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            onClick={() => handleCardClick(question.id)}
+                            sx={{
+                              mb: 2,
+                              backgroundColor: 'white',
+                              cursor: 'pointer',
+                              '&:hover': { boxShadow: 3 },
+                              ...provided.draggableProps.style
+                            }}
+                          >
+                            <Box sx={{ height: 8, backgroundColor: COLUMN_COLORS[status] }} />
+                            <CardContent>
+                              <Typography>{question.content}</Typography>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                                {question.category && <ColorTag category={question.category} />}
+                                <Typography variant="caption">
+                                  {sortBy === 'manual_rank' ? `Rank: ${question.manual_rank || 'N/A'}` : `Score: ${question.priority_score || 'N/A'}`}
+                                </Typography>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </Box>
+                </Box>
               )}
             </Droppable>
           ))}
-        </div>
+        </Box>
       </DragDropContext>
     </Container>
   );

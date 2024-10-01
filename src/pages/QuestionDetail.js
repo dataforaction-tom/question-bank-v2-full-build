@@ -5,7 +5,7 @@ import ResponseForm from '../components/ResponseForm';
 import ResponseList from '../components/ResponseList';
 import Modal from '../components/Modal';
 import { FaLinkedin, FaLink, FaEnvelope } from 'react-icons/fa';
-import { colorMapping, defaultColors } from '../utils/colorMapping';
+import ColorTag from '../components/ColorTag';
 
 const QuestionDetail = () => {
   const { id } = useParams();
@@ -55,10 +55,6 @@ const QuestionDetail = () => {
     alert('Link copied to clipboard');
   };
 
-  const getCategoryColorClass = (category) => {
-    return colorMapping[category] || defaultColors[0];
-  };
-
   return (
     <div className="container mx-auto">
       <div className="shadow-md shadow-blue-100 rounded pt-6">
@@ -96,7 +92,7 @@ const QuestionDetail = () => {
         </div>
         
         <div className="flex flex-wrap gap-2 mb-8 py-4">
-          <span className={`px-4 py-2 rounded-xl shadow-sm ${getCategoryColorClass(question.category)}`} aria-label={`Category: ${question.category}`}>{question.category}</span>
+          {question.category && <ColorTag category={question.category} variant="outlined" />}
           <span className={`px-4 py-2 rounded-xl shadow-sm ${question.is_open ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`} aria-label={`Status: ${question.is_open ? 'Open' : 'Closed'}`}>
             {question.is_open ? 'Open' : 'Closed'}
           </span>

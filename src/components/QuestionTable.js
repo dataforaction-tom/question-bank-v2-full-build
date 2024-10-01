@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
+import ColorTag from './ColorTag';
 
 const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion, onMakeQuestionOpen, isAdmin }) => {
   const navigate = useNavigate();
@@ -11,17 +12,6 @@ const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemo
     } else {
       navigate(`/questions/${questionId}`);
     }
-  };
-
-  const getCategoryColorClass = (category) => {
-    const colorMapping = {
-      'Poverty': 'bg-red-200 text-red-800',
-      'Health': 'bg-green-200 text-green-800',
-      'Education': 'bg-blue-200 text-blue-800',
-      'Environment': 'bg-yellow-200 text-yellow-800',
-      'Advice': 'bg-purple-200 text-purple-800',
-    };
-    return colorMapping[category] || 'bg-gray-200 text-gray-800';
   };
 
   const columns = [
@@ -37,20 +27,12 @@ const QuestionTable = ({ questions, onQuestionClick, onAddToOrganization, onRemo
     {
       accessorKey: 'category',
       header: 'Category',
-      cell: info => (
-        <span className={`px-2 py-1 rounded-full text-sm ${getCategoryColorClass(info.getValue())}`}>
-          {info.getValue()}
-        </span>
-      ),
+      cell: info => <ColorTag category={info.getValue()} />,
     },
     {
       accessorKey: 'is_open',
       header: 'Status',
-      cell: info => (
-        <span className={`px-2 py-1 rounded-full text-sm ${info.getValue() ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
-          {info.getValue() ? 'Open' : 'Closed'}
-        </span>
-      ),
+      cell: info => <ColorTag category={info.getValue() ? 'Open' : 'Closed'} />,
     },
     {
       id: 'actions',

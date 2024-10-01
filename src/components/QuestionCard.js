@@ -1,17 +1,7 @@
 import React from 'react';
+import ColorTag from './ColorTag';
 
 const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion, onMakeQuestionOpen, isAdmin }) => {
-  const getCategoryColorClass = (category) => {
-    const colorMapping = {
-      'Poverty': 'bg-red-200 text-red-800',
-      'Health': 'bg-green-200 text-green-800',
-      'Education': 'bg-blue-200 text-blue-800',
-      'Environment': 'bg-yellow-200 text-yellow-800',
-      'Advice': 'bg-purple-200 text-purple-800',
-    };
-    return colorMapping[category] || 'bg-gray-200 text-gray-800';
-  };
-
   return (
     <div 
       onClick={onClick}
@@ -25,12 +15,8 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
           <i className="fas fa-calendar-alt" aria-hidden="true"></i> {new Date(question.created_at).toLocaleDateString()}
         </p>
         <div className="flex flex-wrap gap-2 mt-auto">
-          <span className={`px-2 py-1 text-sm rounded-xl shadow-sm ${getCategoryColorClass(question.category)}`}>
-            {question.category}
-          </span>
-          <span className={`px-2 py-1 text-sm rounded-xl shadow-sm ${question.is_open ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
-            {question.is_open ? 'Open' : 'Closed'}
-          </span>
+          <ColorTag category={question.category} />
+          <ColorTag category={question.is_open ? 'Open' : 'Closed'} />
         </div>
         <div className="mt-4">
           {onAddToOrganization && (
