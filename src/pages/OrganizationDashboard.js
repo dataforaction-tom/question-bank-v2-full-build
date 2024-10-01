@@ -116,7 +116,7 @@ const OrganizationDashboard = () => {
 
     const { data: rankings, error: rankingsError } = await supabase
       .from('organization_question_rankings')
-      .select('question_id, manual_rank, elo_score')
+      .select('question_id, manual_rank, elo_score, kanban_status')
       .eq('organization_id', organizationId);
 
     if (rankingsError) {
@@ -128,7 +128,8 @@ const OrganizationDashboard = () => {
       return {
         ...question,
         manual_rank: ranking.manual_rank || 0,
-        elo_score: ranking.elo_score || 1500 // Default ELO score
+        elo_score: ranking.elo_score || 1500, // Default ELO score
+        kanban_status: ranking.kanban_status || 'Now' // Default Kanban status
       };
     });
 
@@ -354,6 +355,23 @@ const OrganizationDashboard = () => {
     }
   };
 
+  const handleUpdateKanbanStatus = async (questionId, newStatus) => {
+    try {
+      const { error } = await supabase
+        .from('organization_question_rankings')
+        .update({ kanban_status: newStatus })
+        .match({ organization_id: organization.id, question_id: questionId });
+
+      if (error) throw error;
+
+      // Refresh the questions
+      await fetchQuestions(organization.id);
+    } catch (error) {
+      console.error('Error updating Kanban status:', error);
+      alert('Failed to update Kanban status. Error: ' + error.message);
+    }
+  };
+
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
     const displayQuestions = isOrganizationQuestion ? sortedQuestions : questions;
   
@@ -371,6 +389,7 @@ const OrganizationDashboard = () => {
             sortBy={isOrganizationQuestion ? sortBy : 'priority_score'}
             onSortChange={isOrganizationQuestion ? setSortBy : null}
             isOrganizationQuestion={isOrganizationQuestion}
+            onUpdateKanbanStatus={handleUpdateKanbanStatus}
           />
         );
       case 'cards':
@@ -387,6 +406,7 @@ const OrganizationDashboard = () => {
                 onMakeQuestionOpen={isAdmin && isOrganizationQuestion && question.is_direct && !question.is_open ? () => handleMakeQuestionOpen(question.id) : null}
                 isAdmin={isAdmin}
                 isOrganizationQuestion={isOrganizationQuestion}
+                onUpdateKanbanStatus={handleUpdateKanbanStatus}
               />
             ))}
           </div>
