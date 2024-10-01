@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import ResponseForm from '../components/ResponseForm';
 import ResponseList from '../components/ResponseList';
 import Modal from '../components/Modal';
-import { FaLinkedin, FaLink, FaEnvelope } from 'react-icons/fa';
+import { FaLinkedin, FaLink, FaEnvelope, FaThumbsUp, FaBell } from 'react-icons/fa';
 import ColorTag from '../components/ColorTag';
 import { styled } from '@mui/material';
 import { createPortal } from 'react-dom';
@@ -59,23 +59,66 @@ const QuestionDetail = () => {
   const statusChipRef = useRef(null);
   const dropdownRef = useRef(null);
   const itemRefs = useRef([]);
+  const [endorsements, setEndorsements] = useState(0);
+  const [isEndorsed, setIsEndorsed] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     const fetchQuestion = async () => {
-      const { data, error } = await supabase
-        .from('questions')
-        .select('*, organization_question_rankings!inner(*)')
-        .eq('id', id)
-        .single();
+      try {
+        // First, fetch the question without the inner join
+        const { data: questionData, error: questionError } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-      if (error) {
+        if (questionError) throw questionError;
+
+        if (!questionData) {
+          setError('Question not found');
+          return;
+        }
+
+        // Then, fetch the organization ranking separately
+        const { data: rankingData, error: rankingError } = await supabase
+          .from('organization_question_rankings')
+          .select('*')
+          .eq('question_id', id)
+          .maybeSingle();
+
+        if (rankingError) {
+          console.error('Error fetching ranking:', rankingError);
+          // Don't throw here, we can still show the question without ranking info
+        }
+
+        // Combine the data
+        const combinedData = {
+          ...questionData,
+          organization_question_rankings: rankingData || null
+        };
+
+        setQuestion(combinedData);
+
+        // Fetch additional data (responses, etc.) here...
+
+      } catch (error) {
         console.error('Error fetching question:', error);
-        alert('An error occurred while fetching the question.');
-      } else {
-        setQuestion({
-          ...data,
-          kanban_status: data.organization_question_rankings?.kanban_status || 'Now'
-        });
+        setError('Failed to load question. Please try again later.');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -92,9 +135,59 @@ const QuestionDetail = () => {
       }
     };
 
+    const fetchEndorsements = async () => {
+      const { count, error } = await supabase
+        .from('endorsements')
+        .select('*', { count: 'exact' })
+        .eq('question_id', id);
+
+      if (error) {
+        console.error('Error fetching endorsements:', error);
+      } else {
+        setEndorsements(count);
+      }
+    };
+
+    const checkUserEndorsement = async () => {
+      if (currentUser) {
+        const { data, error } = await supabase
+          .from('endorsements')
+          .select('*')
+          .eq('question_id', id)
+          .eq('user_id', currentUser.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error checking user endorsement:', error);
+        } else {
+          setIsEndorsed(!!data);
+        }
+      }
+    };
+
+    const checkUserFollowing = async () => {
+      if (currentUser) {
+        const { data, error } = await supabase
+          .from('question_followers')
+          .select('*')
+          .eq('question_id', id)
+          .eq('user_id', currentUser.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error checking user following:', error);
+        } else {
+          setIsFollowing(!!data);
+        }
+      }
+    };
+
     fetchQuestion();
     fetchResponses();
-  }, [id]);
+    fetchEndorsements();
+    checkUserEndorsement();
+    checkUserFollowing();
+  }, [id, currentUser]);
 
   const handleUpdateKanbanStatus = async (newStatus) => {
     try {
@@ -169,7 +262,79 @@ const QuestionDetail = () => {
     };
   }, [dropdownState.isOpen]);
 
-  if (!question) return <div>Loading...</div>;
+  const handleEndorse = async () => {
+    if (!currentUser) {
+      alert('Please log in to endorse questions.');
+      return;
+    }
+
+    try {
+      if (isEndorsed) {
+        await supabase
+          .from('endorsements')
+          .delete()
+          .eq('question_id', id)
+          .eq('user_id', currentUser.id);
+        setEndorsements(prev => prev - 1);
+      } else {
+        await supabase
+          .from('endorsements')
+          .insert({ question_id: id, user_id: currentUser.id });
+        setEndorsements(prev => prev + 1);
+      }
+      setIsEndorsed(!isEndorsed);
+    } catch (error) {
+      console.error('Error updating endorsement:', error);
+      alert('Failed to update endorsement.');
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!currentUser) {
+      alert('Please log in to follow questions.');
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        await supabase
+          .from('question_followers')
+          .delete()
+          .eq('question_id', id)
+          .eq('user_id', currentUser.id);
+      } else {
+        await supabase
+          .from('question_followers')
+          .insert({ question_id: id, user_id: currentUser.id });
+      }
+      setIsFollowing(!isFollowing);
+    } catch (error) {
+      console.error('Error updating follow status:', error);
+      alert('Failed to update follow status.');
+    }
+  };
+
+  const handleResponseSubmit = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('responses')
+      .select('*')
+      .eq('question_id', id);
+
+    if (error) {
+      console.error('Error fetching responses:', error);
+    } else {
+      setResponses(data);
+    }
+    setIsResponseModalOpen(false); // Close the modal after submission
+  }, [id]);
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
+  if (!question) {
+    return <div>Loading...</div>;
+  }
 
   const currentUrl = window.location.href;
 
@@ -238,24 +403,40 @@ const QuestionDetail = () => {
         </div>
       </div>
 
+      <div className="flex items-center mb-4 pl-4">
+        <button
+          onClick={handleEndorse}
+          className={`mr-4 flex items-center ${
+            isEndorsed ? 'text-blue-600' : 'text-gray-600'
+          }`}
+        >
+          <FaThumbsUp className="mr-2" />
+          Endorse ({endorsements})
+        </button>
+        <button
+          onClick={handleFollow}
+          className={`mr-4 flex items-center ${
+            isFollowing ? 'text-blue-600' : 'text-gray-600'
+          }`}
+        >
+          <FaBell className="mr-2" />
+          {isFollowing ? 'Following' : 'Follow'}
+        </button>
+      </div>
+
       <button
         onClick={() => setIsResponseModalOpen(true)}
-        className="bg-gradient-to-r from-gray-900 to-blue-800 text-white text-2xl font-bold hover:bg-blue-700 py-2 px-4 rounded focus:outline-none focus:shadow-outline transition"
+        className="bg-gradient-to-r from-gray-900 to-blue-800 text-white text-2xl font-bold hover:bg-blue-700 py-2 px-4 rounded focus:outline-none focus:shadow-outline transition mb-8"
         aria-label="Respond to question"
       >
         Respond
       </button>
 
       <Modal isOpen={isResponseModalOpen} onClose={() => setIsResponseModalOpen(false)}>
-        <ResponseForm questionId={question.id} />
+        <ResponseForm questionId={id} onSubmit={handleResponseSubmit} />
       </Modal>
 
-      {responses.length > 0 && (
-        <>
-          <h2 className="text-3xl font-bold mt-8 mb-4">Responses to this Question</h2>
-          <ResponseList questionId={question.id} />
-        </>
-      )}
+      <ResponseList questionId={id} currentUserId={currentUser?.id} />
 
       {dropdownState.isOpen && createPortal(
         <Dropdown 

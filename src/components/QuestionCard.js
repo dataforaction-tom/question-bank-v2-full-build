@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ColorTag from './ColorTag';
 import { styled } from '@mui/material';
 import { createPortal } from 'react-dom';
+import { FaThumbsUp, FaBell, FaComment } from 'react-icons/fa';
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -43,6 +44,8 @@ const DropdownItem = styled('div')(({ status }) => ({
 }));
 
 const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion, onMakeQuestionOpen, isAdmin, onUpdateKanbanStatus }) => {
+  console.log('Question received in QuestionCard:', question);
+  
   const [dropdownState, setDropdownState] = useState({ isOpen: false, position: null });
   const [focusedIndex, setFocusedIndex] = useState(0);
   const statusChipRef = useRef(null);
@@ -146,53 +149,69 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
             </div>
           )}
         </div>
-        <div className="mt-4">
-          {onAddToOrganization && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToOrganization(question.id);
-              }}
-              className="bg-blue-500 text-white px-2 py-1 rounded mr-2"
-            >
-              Add to Org
-            </button>
-          )}
-          {onRemoveFromOrganization && question.is_direct === false && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemoveFromOrganization(question.id);
-              }}
-              className="bg-red-500 text-white px-2 py-1 rounded mr-2"
-            >
-              Remove from Org
-            </button>
-          )}
-          {onDeleteQuestion && question.is_direct && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
-                  onDeleteQuestion(question.id);
-                }
-              }}
-              className="bg-red-700 text-white px-2 py-1 rounded"
-            >
-              Delete Question
-            </button>
-          )}
-          {isAdmin && onMakeQuestionOpen && !question.is_open && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onMakeQuestionOpen(question.id);
-              }}
-              className="bg-green-500 text-white px-2 py-1 rounded mr-2"
-            >
-              Make Open
-            </button>
-          )}
+        <div className="flex justify-between items-center mt-4">
+          <div className="flex space-x-4">
+            <span className="flex items-center">
+              <FaThumbsUp className="mr-1 text-blue-500" />
+              {question.endorsements_count || 0}
+            </span>
+            <span className="flex items-center">
+              <FaBell className="mr-1 text-green-500" />
+              {question.followers_count || 0}
+            </span>
+            <span className="flex items-center">
+              <FaComment className="mr-1 text-yellow-500" />
+              {question.responses_count || 0}
+            </span>
+          </div>
+          <div>
+            {onAddToOrganization && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToOrganization(question.id);
+                }}
+                className="bg-blue-500 text-white px-2 py-1 rounded mr-2"
+              >
+                Add to Org
+              </button>
+            )}
+            {onRemoveFromOrganization && question.is_direct === false && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveFromOrganization(question.id);
+                }}
+                className="bg-red-500 text-white px-2 py-1 rounded mr-2"
+              >
+                Remove from Org
+              </button>
+            )}
+            {onDeleteQuestion && question.is_direct && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+                    onDeleteQuestion(question.id);
+                  }
+                }}
+                className="bg-red-700 text-white px-2 py-1 rounded"
+              >
+                Delete Question
+              </button>
+            )}
+            {isAdmin && onMakeQuestionOpen && !question.is_open && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMakeQuestionOpen(question.id);
+                }}
+                className="bg-green-500 text-white px-2 py-1 rounded mr-2"
+              >
+                Make Open
+              </button>
+            )}
+          </div>
         </div>
       </div>
       {dropdownState.isOpen && createPortal(

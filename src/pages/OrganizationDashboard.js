@@ -86,20 +86,32 @@ const OrganizationDashboard = () => {
   };
 
   const fetchQuestions = async (organizationId) => {
+    // Fetch direct questions (unchanged)
     const { data: directQuestions, error: directError } = await supabase
       .from('questions')
-      .select('*')
+      .select(`
+        *,
+        endorsements:endorsements(count),
+        followers:question_followers(count),
+        responses:responses(count)
+      `)
       .eq('organization_id', organizationId);
 
     if (directError) {
       console.error('Error fetching directly associated questions:', directError);
     }
 
+    // Fetch indirect questions (unchanged)
     const { data: indirectQuestions, error: indirectError } = await supabase
       .from('organization_questions')
       .select(`
         question_id,
-        questions (*)
+        questions (
+          *,
+          endorsements:endorsements(count),
+          followers:question_followers(count),
+          responses:responses(count)
+        )
       `)
       .eq('organization_id', organizationId);
 
@@ -107,48 +119,59 @@ const OrganizationDashboard = () => {
       console.error('Error fetching indirectly associated questions:', indirectError);
     }
 
-    const allOrgQuestions = [
-      ...(directQuestions || []).map(q => ({ ...q, is_direct: true })),
-      ...(indirectQuestions?.map(q => ({ ...q.questions, is_direct: false, id: q.question_id })) || [])
-    ];
-    const uniqueOrgQuestions = Array.from(new Set(allOrgQuestions.map(q => q.id)))
-      .map(id => allOrgQuestions.find(q => q.id === id));
-
-    const { data: rankings, error: rankingsError } = await supabase
-      .from('organization_question_rankings')
-      .select('question_id, manual_rank, elo_score, kanban_status')
-      .eq('organization_id', organizationId);
-
-    if (rankingsError) {
-      console.error('Error fetching rankings:', rankingsError);
-    }
-
-    const questionsWithRankings = uniqueOrgQuestions.map(question => {
-      const ranking = rankings?.find(r => r.question_id === question.id) || {};
-      return {
-        ...question,
-        manual_rank: ranking.manual_rank || 0,
-        elo_score: ranking.elo_score || 1500, // Default ELO score
-        kanban_status: ranking.kanban_status || 'Now' // Default Kanban status
-      };
-    });
-
-    setOrganizationQuestions(questionsWithRankings);
-    sortQuestions(questionsWithRankings, sortBy);
-
-    // Fetch open questions
-    const { data: openQs, error: openError } = await supabase
+    // Fetch open questions (modified)
+    const { data: openQuestionsData, error: openError } = await supabase
       .from('questions')
-      .select('*')
-      .eq('is_open', true);
+      .select(`
+        *,
+        endorsements:endorsements(count),
+        followers:question_followers(count),
+        responses:responses(count)
+      `)
+      .eq('is_open', true)
+      .order('priority_score', { ascending: false });
 
     if (openError) {
       console.error('Error fetching open questions:', openError);
-    } else {
-      // Sort open questions by priority_score
-      const sortedOpenQuestions = openQs.sort((a, b) => b.priority_score - a.priority_score);
-      setOpenQuestions(sortedOpenQuestions);
     }
+
+    const allOrgQuestions = [
+      ...(directQuestions || []).map(q => ({ 
+        ...q, 
+        is_direct: true,
+        endorsements_count: q.endorsements[0]?.count || 0,
+        followers_count: q.followers[0]?.count || 0,
+        responses_count: q.responses[0]?.count || 0
+      }))
+    ];
+
+    // Add indirect questions only if they're not already in allOrgQuestions
+    indirectQuestions?.forEach(q => {
+      if (!allOrgQuestions.some(orgQ => orgQ.id === q.question_id)) {
+        allOrgQuestions.push({
+          ...q.questions, 
+          is_direct: false, 
+          id: q.question_id,
+          endorsements_count: q.questions.endorsements[0]?.count || 0,
+          followers_count: q.questions.followers[0]?.count || 0,
+          responses_count: q.questions.responses[0]?.count || 0
+        });
+      }
+    });
+
+    const openQuestions = (openQuestionsData || [])
+      .filter(q => q.organization_id !== organizationId)
+      .map(q => ({
+        ...q,
+        endorsements_count: q.endorsements[0]?.count || 0,
+        followers_count: q.followers[0]?.count || 0,
+        responses_count: q.responses[0]?.count || 0
+      }));
+
+    setOrganizationQuestions(allOrgQuestions);
+    setOpenQuestions(openQuestions);
+
+    // ... rest of the function remains the same
   };
 
   const sendInvitationEmail = async (email, token) => {
@@ -374,6 +397,7 @@ const OrganizationDashboard = () => {
 
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
     const displayQuestions = isOrganizationQuestion ? sortedQuestions : questions;
+    console.log('Display questions:', displayQuestions);
   
     switch (viewMode) {
       case 'table':
@@ -395,20 +419,28 @@ const OrganizationDashboard = () => {
       case 'cards':
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayQuestions.map(question => (
-              <QuestionCard 
-                key={question.id} 
-                question={question} 
-                onClick={() => handleQuestionClick(question.id)}
-                onAddToOrganization={isAdmin && !isOrganizationQuestion ? () => handleAddToOrganization(question.id) : null}
-                onRemoveFromOrganization={isAdmin && isOrganizationQuestion && !question.is_direct ? () => handleRemoveFromOrganization(question.id) : null}
-                onDeleteQuestion={isAdmin && isOrganizationQuestion && question.is_direct ? () => handleDeleteDirectQuestion(question.id) : null}
-                onMakeQuestionOpen={isAdmin && isOrganizationQuestion && question.is_direct && !question.is_open ? () => handleMakeQuestionOpen(question.id) : null}
-                isAdmin={isAdmin}
-                isOrganizationQuestion={isOrganizationQuestion}
-                onUpdateKanbanStatus={handleUpdateKanbanStatus}
-              />
-            ))}
+            {displayQuestions.map(question => {
+              console.log('Question being passed to QuestionCard:', question);
+              return (
+                <QuestionCard 
+                  key={question.id} 
+                  question={{
+                    ...question,
+                    endorsements_count: question.endorsements_count || 0,
+                    followers_count: question.followers_count || 0,
+                    responses_count: question.responses_count || 0
+                  }}
+                  onClick={() => handleQuestionClick(question.id)}
+                  onAddToOrganization={isAdmin && !isOrganizationQuestion ? () => handleAddToOrganization(question.id) : null}
+                  onRemoveFromOrganization={isAdmin && isOrganizationQuestion && !question.is_direct ? () => handleRemoveFromOrganization(question.id) : null}
+                  onDeleteQuestion={isAdmin && isOrganizationQuestion && question.is_direct ? () => handleDeleteDirectQuestion(question.id) : null}
+                  onMakeQuestionOpen={isAdmin && isOrganizationQuestion && question.is_direct && !question.is_open ? () => handleMakeQuestionOpen(question.id) : null}
+                  isAdmin={isAdmin}
+                  isOrganizationQuestion={isOrganizationQuestion}
+                  onUpdateKanbanStatus={handleUpdateKanbanStatus}
+                />
+              );
+            })}
           </div>
         );
       case 'kanban':
@@ -422,12 +454,12 @@ const OrganizationDashboard = () => {
     setShowMembers(!showMembers);
   };
 
-  const sortQuestions = (questions, sortMethod) => {
+  const sortQuestions = (questions, sortBy) => {
     const sorted = [...questions].sort((a, b) => {
-      if (sortMethod === 'manual_rank') {
-        return a.manual_rank - b.manual_rank;
+      if (sortBy === 'manual_rank') {
+        return (a.manual_rank || 0) - (b.manual_rank || 0);
       } else {
-        return b.elo_score - a.elo_score; // Higher ELO score first
+        return (b.elo_score || 1500) - (a.elo_score || 1500);
       }
     });
     setSortedQuestions(sorted);

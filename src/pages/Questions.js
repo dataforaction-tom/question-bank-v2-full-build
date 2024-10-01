@@ -35,7 +35,12 @@ const Questions = () => {
     const fetchQuestions = async () => {
       let query = supabase
         .from('questions')
-        .select('*')
+        .select(`
+          *,
+          endorsements:endorsements(count),
+          followers:question_followers(count),
+          responses:responses(count)
+        `)
         .eq('is_open', true)
         .order('priority_score', { ascending: false });
 
@@ -49,8 +54,14 @@ const Questions = () => {
         console.error('Error fetching questions:', error);
         alert('An error occurred while fetching questions.');
       } else {
-        setQuestions(data);
-        setFilteredQuestions(data);
+        const questionsWithCounts = data.map(q => ({
+          ...q,
+          endorsements_count: q.endorsements[0]?.count || 0,
+          followers_count: q.followers[0]?.count || 0,
+          responses_count: q.responses[0]?.count || 0
+        }));
+        setQuestions(questionsWithCounts);
+        setFilteredQuestions(questionsWithCounts);
       }
     };
 
