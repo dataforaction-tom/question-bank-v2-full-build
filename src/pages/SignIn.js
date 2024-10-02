@@ -22,7 +22,9 @@ const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSignIn = async () => {
+  const handleSignIn = async (e) => {
+    e.preventDefault(); // Prevent default form submission
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -42,31 +44,35 @@ const SignIn = () => {
       <Typography variant='h4' gutterBottom>
         Sign In
       </Typography>
-      <TextField
-        label='Email'
-        type='email'
-        fullWidth
-        margin='normal'
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <TextField
-        label='Password'
-        type='password'
-        fullWidth
-        margin='normal'
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <Button
-        variant='contained'
-        color='primary'
-        fullWidth
-        onClick={handleSignIn}
-        style={{ marginTop: '1rem' }}
-      >
-        Sign In
-      </Button>
+      <form onSubmit={handleSignIn}>
+        <TextField
+          label='Email'
+          type='email'
+          fullWidth
+          margin='normal'
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <TextField
+          label='Password'
+          type='password'
+          fullWidth
+          margin='normal'
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <Button
+          type='submit'
+          variant='contained'
+          color='primary'
+          fullWidth
+          style={{ marginTop: '1rem' }}
+        >
+          Sign In
+        </Button>
+      </form>
       <Typography variant='body2' style={{ marginTop: '1rem' }}>
         Don't have an account?{' '}
         <MuiLink

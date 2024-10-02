@@ -28,19 +28,23 @@ const StatusChip = styled.div(({ status }) => ({
 const Dropdown = styled.div`
   position: fixed;
   background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
   z-index: 1000;
+  overflow: hidden;
 `;
 
-const DropdownItem = styled.div`
-  padding: 8px 12px;
-  cursor: pointer;
-  &:hover, &:focus {
-    background-color: #f0f0f0;
-    outline: none;
-  }
-`;
+const DropdownItem = styled.div(({ status, isFocused }) => ({
+  padding: '8px 16px',
+  cursor: 'pointer',
+  backgroundColor: isFocused ? COLUMN_COLORS[status] : 'white',
+  color: isFocused ? 'white' : 'black',
+  '&:hover': {
+    backgroundColor: COLUMN_COLORS[status],
+    color: 'white',
+  },
+  outline: 'none',
+}));
 
 const QuestionTable = ({ 
   questions, 
@@ -52,7 +56,7 @@ const QuestionTable = ({
   isAdmin,
   isOrganizationQuestion,
   onUpdateKanbanStatus,
-  setQuestions  // Add this line
+  setQuestions
 }) => {
   const navigate = useNavigate();
   const [dropdownState, setDropdownState] = useState({ isOpen: false, position: null, rowId: null });
@@ -85,43 +89,47 @@ const QuestionTable = ({
       
       // Update the local state
       setQuestions(prevQuestions => {
-        const updatedQuestions = { ...prevQuestions };
-        Object.keys(updatedQuestions).forEach(prevStatus => {
-          const questionIndex = updatedQuestions[prevStatus].findIndex(q => q.id === dropdownState.rowId);
-          if (questionIndex !== -1) {
-            const [question] = updatedQuestions[prevStatus].splice(questionIndex, 1);
-            question.kanban_status = status;
-            updatedQuestions[status] = [...(updatedQuestions[status] || []), question];
-          }
-        });
-        return updatedQuestions;
+        if (!Array.isArray(prevQuestions)) {
+          console.error('prevQuestions is not an array:', prevQuestions);
+          return prevQuestions; // Return the original state if it's not an array
+        }
+        return prevQuestions.map(q => 
+          q.id === dropdownState.rowId ? { ...q, kanban_status: status } : q
+        );
       });
     }
     setDropdownState({ isOpen: false, position: null, rowId: null });
   };
 
   const handleKeyDown = (event) => {
-    if (!dropdownState.isOpen) return;
+    if (dropdownState.isOpen) {
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          setFocusedIndex((prevIndex) => (prevIndex + 1) % KANBAN_STATUSES.length);
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setFocusedIndex((prevIndex) => (prevIndex - 1 + KANBAN_STATUSES.length) % KANBAN_STATUSES.length);
+          break;
+        case 'Enter':
+          event.preventDefault();
+          handleStatusChange(KANBAN_STATUSES[focusedIndex]);
+          break;
+        case 'Escape':
+          event.preventDefault();
+          setDropdownState({ isOpen: false, position: null, rowId: null });
+          break;
+        default:
+          break;
+      }
+    }
+  };
 
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        setFocusedIndex((prevIndex) => (prevIndex + 1) % KANBAN_STATUSES.length);
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        setFocusedIndex((prevIndex) => (prevIndex - 1 + KANBAN_STATUSES.length) % KANBAN_STATUSES.length);
-        break;
-      case 'Enter':
-        event.preventDefault();
-        handleStatusChange(KANBAN_STATUSES[focusedIndex]);
-        break;
-      case 'Escape':
-        event.preventDefault();
-        setDropdownState({ isOpen: false, position: null, rowId: null });
-        break;
-      default:
-        break;
+  const handleRowKeyDown = (event, questionId) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleQuestionClick(questionId);
     }
   };
 
@@ -179,6 +187,7 @@ const QuestionTable = ({
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
                   handleStatusClick(e, row.original.id);
                 }
               }}
@@ -271,7 +280,11 @@ const QuestionTable = ({
               <tr 
                 key={row.id} 
                 onClick={() => handleQuestionClick(row.original.id)}
+                onKeyDown={(e) => handleRowKeyDown(e, row.original.id)}
                 className="cursor-pointer hover:bg-gray-100"
+                tabIndex={0}
+                role="button"
+                aria-label={`Question: ${row.original.content}`}
               >
                 {row.getVisibleCells().map(cell => (
                   <td key={cell.id} className="px-4 py-2 border">
@@ -291,11 +304,14 @@ const QuestionTable = ({
           {KANBAN_STATUSES.map((status, index) => (
             <DropdownItem 
               key={status} 
+              status={status}
+              isFocused={index === focusedIndex}
               onClick={() => handleStatusChange(status)}
               ref={el => itemRefs.current[index] = el}
-              tabIndex={0}
+              tabIndex={index === focusedIndex ? 0 : -1}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
                   handleStatusChange(status);
                 }
               }}
@@ -310,4 +326,4 @@ const QuestionTable = ({
   );
 };
 
-export default QuestionTable;
+export default QuestionTable; 

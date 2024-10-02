@@ -33,14 +33,16 @@ const Dropdown = styled('div')({
   overflow: 'hidden',
 });
 
-const DropdownItem = styled('div')(({ status }) => ({
+const DropdownItem = styled('div')(({ status, isFocused }) => ({
   padding: '8px 16px',
   cursor: 'pointer',
-  '&:hover, &:focus': {
+  backgroundColor: isFocused ? COLUMN_COLORS[status] : 'white',
+  color: isFocused ? 'white' : 'black',
+  '&:hover': {
     backgroundColor: COLUMN_COLORS[status],
     color: 'white',
-    outline: 'none',
   },
+  outline: 'none',
 }));
 
 const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion, onMakeQuestionOpen, isAdmin, onUpdateKanbanStatus }) => {
@@ -72,27 +74,30 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
   };
 
   const handleKeyDown = (event) => {
-    if (!dropdownState.isOpen) return;
-
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        setFocusedIndex((prevIndex) => (prevIndex + 1) % KANBAN_STATUSES.length);
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        setFocusedIndex((prevIndex) => (prevIndex - 1 + KANBAN_STATUSES.length) % KANBAN_STATUSES.length);
-        break;
-      case 'Enter':
-        event.preventDefault();
-        handleStatusChange(KANBAN_STATUSES[focusedIndex]);
-        break;
-      case 'Escape':
-        event.preventDefault();
-        setDropdownState({ isOpen: false, position: null });
-        break;
-      default:
-        break;
+    if (dropdownState.isOpen) {
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          setFocusedIndex((prevIndex) => (prevIndex + 1) % KANBAN_STATUSES.length);
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setFocusedIndex((prevIndex) => (prevIndex - 1 + KANBAN_STATUSES.length) % KANBAN_STATUSES.length);
+          break;
+        case 'Enter':
+          event.preventDefault();
+          handleStatusChange(KANBAN_STATUSES[focusedIndex]);
+          break;
+        case 'Escape':
+          event.preventDefault();
+          setDropdownState({ isOpen: false, position: null });
+          break;
+        default:
+          break;
+      }
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onClick();
     }
   };
 
@@ -110,17 +115,19 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [dropdownState.isOpen]);
+  }, []);
 
   return (
     <div 
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       className="flex flex-col h-full rounded overflow-hidden shadow-lg cursor-pointer hover:bg-zinc-50 transition duration-300"
+      tabIndex={0}
+      role="button"
+      aria-label={`Question: ${question.content}`}
     >
       <div className="bg-blue-900 font-bold text-xl mb-2 text-white p-4 flex-grow">
         {question.content}
@@ -140,6 +147,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
                     handleStatusClick(e);
                   }
                 }}
@@ -223,14 +231,16 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
             <DropdownItem 
               key={status} 
               status={status}
+              isFocused={index === focusedIndex}
               onClick={(e) => {
                 e.stopPropagation();
                 handleStatusChange(status);
               }}
               ref={el => itemRefs.current[index] = el}
-              tabIndex={0}
+              tabIndex={index === focusedIndex ? 0 : -1}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
                   handleStatusChange(status);
                 }
               }}
