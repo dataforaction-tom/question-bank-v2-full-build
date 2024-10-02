@@ -10,11 +10,9 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
-  Card,
-  CardContent,
-  Grid,
 } from '@mui/material';
 import * as Yup from 'yup';
+import SimilarQuestionsModal from '../components/SimilarQuestionsModal';
 
 const QuestionSchema = Yup.object().shape({
   content: Yup.string().required('Question content is required'),
@@ -24,6 +22,8 @@ const QuestionSchema = Yup.object().shape({
 
 const SubmitQuestion = () => {
   const [similarQuestions, setSimilarQuestions] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [submissionData, setSubmissionData] = useState(null);
 
   const checkSimilarQuestions = async (content) => {
     try {
@@ -75,6 +75,140 @@ const SubmitQuestion = () => {
     }
   };
 
+  const handleSubmit = async (values, { setSubmitting, resetForm }) => {
+    try {
+      const { embedding, category } = await checkSimilarQuestions(values.content);
+
+      if (similarQuestions.length > 0) {
+        setSubmissionData({ values, embedding, category });
+        setShowModal(true);
+        setSubmitting(false);
+        return;
+      }
+
+      await submitQuestion(values, embedding, category);
+      resetForm();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('An unexpected error occurred.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitQuestion = async (values, embedding, category) => {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error('Error fetching user:', userError);
+      alert('Error fetching user information.');
+      return;
+    }
+
+    let organizationId = null;
+    if (!values.is_open) {
+      const { data: orgUsers, error: orgError } = await supabase
+        .from('organization_users')
+        .select('organization_id')
+        .eq('user_id', user.id);
+
+      if (orgError) {
+        console.error('Error fetching organization:', orgError);
+        alert('Error fetching organization information.');
+        return;
+      }
+
+      if (orgUsers.length === 0) {
+        alert('You are not associated with any organization.');
+        return;
+      }
+
+      organizationId = orgUsers[0].organization_id;
+    }
+
+    const { data, error } = await supabase.from('questions').insert([
+      {
+        content: values.content,
+        answer: values.answer,
+        is_open: values.is_open,
+        organization_id: organizationId,
+        created_by: user.id,
+        embedding: embedding,
+        category: category,
+      },
+    ]);
+
+    if (error) {
+      console.error('Error submitting question:', error);
+      alert(error.message);
+    } else {
+      console.log('Question submitted:', data);
+      alert('Question submitted successfully!');
+      setSimilarQuestions([]);
+    }
+  };
+
+  const handleSelectSimilarQuestion = async (selectedQuestion) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Add endorsement
+      const { error: endorsementError } = await supabase
+        .from('endorsements')
+        .insert([
+          { user_id: user.id, question_id: selectedQuestion.id }
+        ]);
+
+      if (endorsementError) {
+        throw endorsementError;
+      }
+
+      // Add follow
+      const { error: followError } = await supabase
+        .from('question_followers')
+        .insert([
+          { user_id: user.id, question_id: selectedQuestion.id }
+        ]);
+
+      if (followError) {
+        throw followError;
+      }
+
+      // Create alternative question record
+      const { error: alternativeError } = await supabase
+        .from('alternative_questions')
+        .insert([
+          {
+            original_question_id: selectedQuestion.id,
+            alternative_content: submissionData.values.content,
+            alternative_answer: submissionData.values.answer,
+            user_id: user.id,
+          }
+        ]);
+
+      if (alternativeError) {
+        throw alternativeError;
+      }
+
+      setShowModal(false);
+      setSubmissionData(null);
+      alert('You have successfully endorsed and followed the existing question.');
+    } catch (error) {
+      console.error('Error processing similar question selection:', error);
+      alert(`An error occurred: ${error.message}`);
+    }
+  };
+
+  const handleSubmitOriginal = async () => {
+    await submitQuestion(submissionData.values, submissionData.embedding, submissionData.category);
+    setShowModal(false);
+    setSubmissionData(null);
+  };
+
   return (
     <Container maxWidth="md">
       <Typography variant="h4" component="h1" gutterBottom>
@@ -83,80 +217,7 @@ const SubmitQuestion = () => {
       <Formik
         initialValues={{ content: '', answer: '', is_open: true }}
         validationSchema={QuestionSchema}
-        onSubmit={async (values, { setSubmitting, resetForm }) => {
-          try {
-            console.log('Submitting question:', values);
-
-            const { embedding, category } = await checkSimilarQuestions(values.content);
-
-            // Get the current user
-            const {
-              data: { user },
-              error: userError,
-            } = await supabase.auth.getUser();
-
-            if (userError) {
-              console.error('Error fetching user:', userError);
-              alert('Error fetching user information.');
-              setSubmitting(false);
-              return;
-            }
-
-            // Determine the organization ID if the question is not open
-            let organizationId = null;
-            if (!values.is_open) {
-              // Fetch the user's organization ID(s)
-              const { data: orgUsers, error: orgError } = await supabase
-                .from('organization_users')
-                .select('organization_id')
-                .eq('user_id', user.id);
-
-              if (orgError) {
-                console.error('Error fetching organization:', orgError);
-                alert('Error fetching organization information.');
-                setSubmitting(false);
-                return;
-              }
-
-              if (orgUsers.length === 0) {
-                alert('You are not associated with any organization.');
-                setSubmitting(false);
-                return;
-              }
-
-              // Assuming the user can select or defaults to the first organization
-              organizationId = orgUsers[0].organization_id;
-            }
-
-            // Insert the new question
-            const { data, error } = await supabase.from('questions').insert([
-              {
-                content: values.content,
-                answer: values.answer,
-                is_open: values.is_open,
-                organization_id: organizationId,
-                created_by: user.id,
-                embedding: embedding,
-                category: category,
-              },
-            ]);
-
-            if (error) {
-              console.error('Error submitting question:', error);
-              alert(error.message);
-            } else {
-              console.log('Question submitted:', data);
-              alert('Question submitted successfully!');
-              resetForm();
-              setSimilarQuestions([]);
-            }
-          } catch (error) {
-            console.error('Unexpected error:', error);
-            alert('An unexpected error occurred.');
-          } finally {
-            setSubmitting(false);
-          }
-        }}
+        onSubmit={handleSubmit}
       >
         {({
           isSubmitting,
@@ -217,27 +278,13 @@ const SubmitQuestion = () => {
         )}
       </Formik>
 
-      {similarQuestions.length > 0 && (
-        <div style={{ marginTop: '2rem' }}>
-          <Typography variant="h5" gutterBottom>
-            Similar Questions
-          </Typography>
-          <Grid container spacing={2}>
-            {similarQuestions.map((question) => (
-              <Grid item xs={12} sm={6} md={4} key={question.id}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="body1">{question.content}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      Similarity: {(question.similarity * 100).toFixed(2)}%
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </div>
-      )}
+      <SimilarQuestionsModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        similarQuestions={similarQuestions}
+        onSelectQuestion={handleSelectSimilarQuestion}
+        onSubmitOriginal={handleSubmitOriginal}
+      />
     </Container>
   );
 };
