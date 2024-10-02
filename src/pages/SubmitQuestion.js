@@ -1,6 +1,6 @@
 // src/pages/SubmitQuestion.js
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Formik, Form } from 'formik';
 import { supabase } from '../supabaseClient';
 import {
@@ -24,6 +24,10 @@ const SubmitQuestion = () => {
   const [similarQuestions, setSimilarQuestions] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [submissionData, setSubmissionData] = useState(null);
+
+  useEffect(() => {
+    console.log('similarQuestions updated:', similarQuestions);
+  }, [similarQuestions]);
 
   const checkSimilarQuestions = async (content) => {
     try {

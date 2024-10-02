@@ -12,6 +12,9 @@ import {
 } from '@mui/material';
 
 const SimilarQuestionsModal = ({ open, onClose, similarQuestions, onSelectQuestion, onSubmitOriginal }) => {
+  console.log('Modal open:', open);
+  console.log('Similar questions in modal:', similarQuestions);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Similar Questions Found</DialogTitle>
