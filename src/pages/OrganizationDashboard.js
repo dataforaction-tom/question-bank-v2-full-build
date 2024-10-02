@@ -517,7 +517,7 @@ const OrganizationDashboard = () => {
         const rankA = a.manual_rank !== undefined ? a.manual_rank : 0;
         const rankB = b.manual_rank !== undefined ? b.manual_rank : 0;
         console.log(`Comparing manual_rank: ${rankA} vs ${rankB}`);
-        return rankB - rankA; // Sort in descending order
+        return rankA - rankB; // Sort in descending order
       } else {
         const scoreA = a.elo_score !== undefined ? a.elo_score : 1500;
         const scoreB = b.elo_score !== undefined ? b.elo_score : 1500;
