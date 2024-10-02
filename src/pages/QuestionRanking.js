@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import {
-  Container,
   Typography,
   Button,
   List,
   ListItem,
   ListItemText,
+  Dialog,
+  DialogContent,
+  DialogTitle,
 } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
-const QuestionRanking = () => {
+const QuestionRanking = ({ open, onClose, onSubmit }) => {
   const [questions, setQuestions] = useState([]);
 
   useEffect(() => {
@@ -66,6 +68,9 @@ const QuestionRanking = () => {
       });
 
       alert('Ranking submitted successfully!');
+      if (typeof onSubmit === 'function') {
+        onSubmit();
+      }
     } catch (error) {
       console.error('Error submitting ranking:', error);
       alert('An error occurred while submitting your ranking.');
@@ -73,58 +78,58 @@ const QuestionRanking = () => {
   };
 
   return (
-    <Container>
-      <Typography variant='h4' component='h1' gutterBottom>
-        Rank the Questions
-      </Typography>
-      <Typography variant='body1' gutterBottom>
-        Drag and drop the questions to rank them from most important (top) to
-        least important (bottom).
-      </Typography>
-      <DragDropContext onDragEnd={handleOnDragEnd}>
-        <Droppable droppableId='questions'>
-          {(provided) => (
-            <List
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              style={{ backgroundColor: '#f0f0f0', padding: '1rem' }}
-            >
-              {questions.map((question, index) => (
-                <Draggable
-                  key={question.id}
-                  draggableId={question.id}
-                  index={index}
-                >
-                  {(provided) => (
-                    <ListItem
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      style={{
-                        ...provided.draggableProps.style,
-                        marginBottom: '0.5rem',
-                        backgroundColor: 'white',
-                      }}
-                    >
-                      <ListItemText primary={question.content} />
-                    </ListItem>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </List>
-          )}
-        </Droppable>
-      </DragDropContext>
-      <Button
-        variant='contained'
-        color='primary'
-        onClick={handleSubmitRanking}
-        style={{ marginTop: '1rem' }}
-      >
-        Submit Ranking
-      </Button>
-    </Container>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle>Rank the Questions</DialogTitle>
+      <DialogContent>
+        <Typography variant='body1' gutterBottom>
+          Drag and drop the questions to rank them from most important (top) to
+          least important (bottom).
+        </Typography>
+        <DragDropContext onDragEnd={handleOnDragEnd}>
+          <Droppable droppableId='questions'>
+            {(provided) => (
+              <List
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                style={{ backgroundColor: '#f0f0f0', padding: '1rem' }}
+              >
+                {questions.map((question, index) => (
+                  <Draggable
+                    key={question.id}
+                    draggableId={question.id}
+                    index={index}
+                  >
+                    {(provided) => (
+                      <ListItem
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        style={{
+                          ...provided.draggableProps.style,
+                          marginBottom: '0.5rem',
+                          backgroundColor: 'white',
+                        }}
+                      >
+                        <ListItemText primary={question.content} />
+                      </ListItem>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </List>
+            )}
+          </Droppable>
+        </DragDropContext>
+        <Button
+          variant='contained'
+          color='primary'
+          onClick={handleSubmitRanking}
+          style={{ marginTop: '1rem' }}
+        >
+          Submit Ranking
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 };
 

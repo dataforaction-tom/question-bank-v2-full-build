@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { supabase } from './supabaseClient'; // Add this import
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
@@ -19,9 +20,42 @@ import { ThemeProvider } from './theme-context';
 import './index.css';
 import OrganizationELORanking from './components/OrganizationELORanking';
 import OrganizationManualRanking from './components/OrganizationManualRanking';
+import QuestionRankingModal from './components/QuestionRankingModal';
 
 const App = () => {
   const { session } = useAuth();
+  const [showRankingModal, setShowRankingModal] = useState(false);
+
+  useEffect(() => {
+    const checkUserSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setShowRankingModal(true);
+      }
+    };
+
+    checkUserSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        setShowRankingModal(true);
+      }
+    });
+
+    return () => {
+      if (authListener && authListener.unsubscribe) {
+        authListener.unsubscribe();
+      }
+    };
+  }, []);
+
+  const handleRankingModalClose = () => {
+    setShowRankingModal(false);
+  };
+
+  const handleRankingSubmitted = () => {
+    setShowRankingModal(false);
+  };
 
   return (
     <ThemeProvider>
@@ -61,6 +95,11 @@ const App = () => {
           {/* Catch all route for any undefined paths */}
           <Route path="*" element={<Navigate replace to="/questions" />} />
         </Routes>
+        <QuestionRankingModal 
+          open={showRankingModal} 
+          onClose={handleRankingModalClose}
+          onSubmit={handleRankingSubmitted}
+        />
       </Router>
     </ThemeProvider>
   );
