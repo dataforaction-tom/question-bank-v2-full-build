@@ -170,26 +170,55 @@ const SubmitQuestion = () => {
         throw new Error('User not authenticated');
       }
 
-      // Add endorsement
-      const { error: endorsementError } = await supabase
+      // Check if user has already endorsed the question
+      const { data: existingEndorsement } = await supabase
         .from('endorsements')
-        .insert([
-          { user_id: user.id, question_id: selectedQuestion.id }
-        ]);
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('question_id', selectedQuestion.id)
+        .single();
 
-      if (endorsementError) {
-        throw endorsementError;
+      // Check if user has already followed the question
+      const { data: existingFollow } = await supabase
+        .from('question_followers')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('question_id', selectedQuestion.id)
+        .single();
+
+      let message = '';
+
+      if (existingEndorsement && existingFollow) {
+        message = 'You have already endorsed and followed this question.';
+      } else if (existingEndorsement) {
+        message = 'You have already endorsed this question.';
+      } else if (existingFollow) {
+        message = 'You have already followed this question.';
       }
 
-      // Add follow
-      const { error: followError } = await supabase
-        .from('question_followers')
-        .insert([
-          { user_id: user.id, question_id: selectedQuestion.id }
-        ]);
+      if (message) {
+        const confirmContinue = window.confirm(`${message} Do you still want to add your question as an alternative?`);
+        if (!confirmContinue) {
+          return;
+        }
+      }
 
-      if (followError) {
-        throw followError;
+      // Add endorsement if not exists
+      if (!existingEndorsement) {
+        const { error: endorsementError } = await supabase
+          .from('endorsements')
+          .insert([{ user_id: user.id, question_id: selectedQuestion.id }]);
+
+        if (endorsementError) throw endorsementError;
+      }
+
+      // Add follow if not exists
+      if (!existingFollow) {
+        const { error: followError } = await supabase
+          .from('question_followers')
+          .insert([{ user_id: user.id, question_id: selectedQuestion.id }]);
+
+        if (followError) throw followError;
       }
 
       // Create alternative question record
@@ -204,14 +233,12 @@ const SubmitQuestion = () => {
           }
         ]);
 
-      if (alternativeError) {
-        throw alternativeError;
-      }
+      if (alternativeError) throw alternativeError;
 
       setShowModal(false);
       setSimilarQuestions([]);
       setSubmissionData(null);
-      alert('You have successfully endorsed and followed the existing question.');
+      alert('Your question has been successfully added as an alternative.');
     } catch (error) {
       console.error('Error processing similar question selection:', error);
       alert(`An error occurred: ${error.message}`);
