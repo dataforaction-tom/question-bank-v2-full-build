@@ -3,17 +3,19 @@ import { supabase } from '../supabaseClient';
 import QuestionRanking from '../pages/QuestionRanking';
 
 const QuestionRankingModal = ({ open, onClose, onSubmit }) => {
-  const [isOpen, setIsOpen] = useState(open);
-
-  useEffect(() => {
-    setIsOpen(open);
-  }, [open]);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const checkUserSession = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        setIsOpen(true);
+        const lastShown = localStorage.getItem('questionRankingModalLastShown');
+        const currentTime = new Date().getTime();
+        
+        if (!lastShown || currentTime - parseInt(lastShown) > 24 * 60 * 60 * 1000) {
+          setIsOpen(true);
+          localStorage.setItem('questionRankingModalLastShown', currentTime.toString());
+        }
       }
     };
 
@@ -21,7 +23,7 @@ const QuestionRankingModal = ({ open, onClose, onSubmit }) => {
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
-        setIsOpen(true);
+        checkUserSession();
       }
     });
 
