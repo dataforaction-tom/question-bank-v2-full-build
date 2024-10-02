@@ -51,7 +51,8 @@ const QuestionTable = ({
   onMakeQuestionOpen, 
   isAdmin,
   isOrganizationQuestion,
-  onUpdateKanbanStatus
+  onUpdateKanbanStatus,
+  setQuestions  // Add this line
 }) => {
   const navigate = useNavigate();
   const [dropdownState, setDropdownState] = useState({ isOpen: false, position: null, rowId: null });
@@ -81,6 +82,20 @@ const QuestionTable = ({
   const handleStatusChange = (status) => {
     if (dropdownState.rowId !== null) {
       onUpdateKanbanStatus(dropdownState.rowId, status);
+      
+      // Update the local state
+      setQuestions(prevQuestions => {
+        const updatedQuestions = { ...prevQuestions };
+        Object.keys(updatedQuestions).forEach(prevStatus => {
+          const questionIndex = updatedQuestions[prevStatus].findIndex(q => q.id === dropdownState.rowId);
+          if (questionIndex !== -1) {
+            const [question] = updatedQuestions[prevStatus].splice(questionIndex, 1);
+            question.kanban_status = status;
+            updatedQuestions[status] = [...(updatedQuestions[status] || []), question];
+          }
+        });
+        return updatedQuestions;
+      });
     }
     setDropdownState({ isOpen: false, position: null, rowId: null });
   };

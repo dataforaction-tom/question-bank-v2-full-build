@@ -15,8 +15,7 @@ const COLUMN_COLORS = {
   Done: '#53c4af'
 };
 
-const OrganizationKanban = ({ organizationId }) => {
-  const [questions, setQuestions] = useState({});
+const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
   const [sortBy, setSortBy] = useState('manual_rank');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);

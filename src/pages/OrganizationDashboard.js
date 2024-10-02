@@ -30,6 +30,9 @@ import QuestionTable from '../components/QuestionTable';
 import QuestionCard from '../components/QuestionCard';
 import OrganizationKanban from '../components/OrganizationKanban';
 
+// Add this near the top of the file, after the imports
+const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
+
 const OrganizationDashboard = () => {
   const { session } = useAuth();
   const [organizations, setOrganizations] = useState([]);
@@ -45,6 +48,7 @@ const OrganizationDashboard = () => {
   const [sortBy, setSortBy] = useState('manual_rank'); // 'manual_rank' or 'elo_score'
   const [sortedQuestions, setSortedQuestions] = useState([]);
   const [showOrgSelector, setShowOrgSelector] = useState(false);
+  const [questions, setQuestions] = useState({});
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -101,25 +105,18 @@ const OrganizationDashboard = () => {
     try {
       console.log('Fetching questions for organization:', organizationId);
 
-      // Fetch direct questions
-      const { data: directQuestions, error: directError } = await supabase
+      // Fetch all questions associated with the organization
+      const { data: allQuestions, error: allQuestionsError } = await supabase
         .from('questions')
         .select(`
           *,
           endorsements:endorsements(count),
           followers:question_followers(count),
-          responses:responses(count),
-          organization_question_rankings!inner(manual_rank, elo_score, kanban_status)
+          responses:responses(count)
         `)
-        .eq('organization_id', organizationId)
-        .eq('organization_question_rankings.organization_id', organizationId);
+        .eq('organization_id', organizationId);
 
-      if (directError) {
-        console.error('Error fetching direct questions:', directError);
-        throw directError;
-      }
-
-      console.log('Direct questions:', directQuestions);
+      if (allQuestionsError) throw allQuestionsError;
 
       // Fetch indirect questions (from organization_questions)
       const { data: indirectQuestions, error: indirectError } = await supabase
@@ -135,27 +132,58 @@ const OrganizationDashboard = () => {
         `)
         .eq('organization_id', organizationId);
 
-      if (indirectError) {
-        console.error('Error fetching indirect questions:', indirectError);
-        throw indirectError;
-      }
+      if (indirectError) throw indirectError;
 
-      console.log('Indirect questions:', indirectQuestions);
-
-      // Fetch rankings for indirect questions
-      const indirectQuestionIds = indirectQuestions.map(q => q.question_id);
-      const { data: indirectRankings, error: rankingsError } = await supabase
+      // Fetch rankings separately
+      const { data: rankings, error: rankingsError } = await supabase
         .from('organization_question_rankings')
         .select('*')
-        .eq('organization_id', organizationId)
-        .in('question_id', indirectQuestionIds);
+        .eq('organization_id', organizationId);
 
-      if (rankingsError) {
-        console.error('Error fetching rankings for indirect questions:', rankingsError);
-        throw rankingsError;
-      }
+      if (rankingsError) throw rankingsError;
 
-      console.log('Indirect rankings:', indirectRankings);
+      // Create a map of rankings for quick lookup
+      const rankingsMap = rankings.reduce((acc, rank) => {
+        acc[rank.question_id] = rank;
+        return acc;
+      }, {});
+
+      // Combine and format all questions
+      const formattedQuestions = [
+        ...allQuestions.map(q => ({
+          ...q,
+          is_direct: true,
+          endorsements_count: q.endorsements?.[0]?.count || 0,
+          followers_count: q.followers?.[0]?.count || 0,
+          responses_count: q.responses?.[0]?.count || 0,
+          manual_rank: rankingsMap[q.id]?.manual_rank ?? 0,
+          elo_score: rankingsMap[q.id]?.elo_score ?? 1500,
+          kanban_status: rankingsMap[q.id]?.kanban_status ?? 'Now'
+        })),
+        ...indirectQuestions.map(q => ({
+          ...q.questions,
+          is_direct: false,
+          endorsements_count: q.questions?.endorsements?.[0]?.count || 0,
+          followers_count: q.questions?.followers?.[0]?.count || 0,
+          responses_count: q.questions?.responses?.[0]?.count || 0,
+          manual_rank: rankingsMap[q.question_id]?.manual_rank ?? 0,
+          elo_score: rankingsMap[q.question_id]?.elo_score ?? 1500,
+          kanban_status: rankingsMap[q.question_id]?.kanban_status ?? 'Now'
+        }))
+      ];
+
+      // Remove duplicates
+      const uniqueQuestions = Array.from(new Set(formattedQuestions.map(q => q.id)))
+        .map(id => formattedQuestions.find(q => q.id === id));
+
+      // Group questions by Kanban status
+      const groupedQuestions = KANBAN_STATUSES.reduce((acc, status) => {
+        acc[status] = uniqueQuestions.filter(q => q.kanban_status === status);
+        return acc;
+      }, {});
+
+      setQuestions(groupedQuestions);
+      setOrganizationQuestions(uniqueQuestions);
 
       // Fetch open questions
       const { data: openQuestionsData, error: openError } = await supabase
@@ -168,54 +196,17 @@ const OrganizationDashboard = () => {
         `)
         .eq('is_open', true);
 
-      if (openError) {
-        console.error('Error fetching open questions:', openError);
-        throw openError;
-      }
+      if (openError) throw openError;
 
-      console.log('Open questions:', openQuestionsData);
-
-      // Combine and map all questions
-      const directQuestionsFormatted = (directQuestions || []).map(q => ({
+      const openQuestions = openQuestionsData.map(q => ({
         ...q,
-        is_direct: true,
-        endorsements_count: q.endorsements[0]?.count || 0,
-        followers_count: q.followers[0]?.count || 0,
-        responses_count: q.responses[0]?.count || 0,
-        manual_rank: q.organization_question_rankings[0]?.manual_rank ?? 0,
-        elo_score: q.organization_question_rankings[0]?.elo_score ?? 1500,
-        kanban_status: q.organization_question_rankings[0]?.kanban_status ?? 'Now'
+        endorsements_count: q.endorsements?.[0]?.count || 0,
+        followers_count: q.followers?.[0]?.count || 0,
+        responses_count: q.responses?.[0]?.count || 0
       }));
 
-      const indirectQuestionsFormatted = indirectQuestions.map(q => {
-        const ranking = indirectRankings.find(r => r.question_id === q.question_id) || {};
-        return {
-          ...q.questions,
-          is_direct: false,
-          endorsements_count: q.questions.endorsements[0]?.count || 0,
-          followers_count: q.questions.followers[0]?.count || 0,
-          responses_count: q.questions.responses[0]?.count || 0,
-          manual_rank: ranking.manual_rank ?? 0,
-          elo_score: ranking.elo_score ?? 1500,
-          kanban_status: ranking.kanban_status ?? 'Now'
-        };
-      });
-
-      const allQuestions = [...directQuestionsFormatted, ...indirectQuestionsFormatted];
-
-      const openQuestions = (openQuestionsData || []).map(q => ({
-        ...q,
-        endorsements_count: q.endorsements[0]?.count || 0,
-        followers_count: q.followers[0]?.count || 0,
-        responses_count: q.responses[0]?.count || 0
-      }));
-
-      console.log('All questions:', allQuestions);
-      console.log('Open questions:', openQuestions);
-
-      setOrganizationQuestions(allQuestions);
       setOpenQuestions(openQuestions);
-      sortQuestions(allQuestions, sortBy);
+      sortQuestions(uniqueQuestions, sortBy);
 
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -388,42 +379,34 @@ const OrganizationDashboard = () => {
     }
 
     try {
-      // Update the question to make it open
-      const { error: updateError } = await supabase
-        .from('questions')
-        .update({ is_open: true })
-        .eq('id', questionId);
+      // Start a Supabase transaction
+      const { data, error } = await supabase.rpc('make_question_open', {
+        input_question_id: questionId,
+        input_org_id: selectedOrganization.id
+      });
 
-      if (updateError) throw updateError;
-
-      // Check if the question is already in the organization_questions table
-      const { data: existingEntry, error: checkError } = await supabase
-        .from('organization_questions')
-        .select('*')
-        .eq('organization_id', selectedOrganization.id)
-        .eq('question_id', questionId)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        // PGRST116 means no rows returned, which is fine
-        throw checkError;
+      if (error) {
+        console.error('Supabase RPC error:', error);
+        throw error;
       }
 
-      // If the entry doesn't exist, insert it
-      if (!existingEntry) {
-        const { error: insertError } = await supabase
-          .from('organization_questions')
-          .insert({ organization_id: selectedOrganization.id, question_id: questionId });
+      // Update local state
+      setOrganizationQuestions(prevQuestions => 
+        prevQuestions.filter(q => q.id !== questionId)
+      );
 
-        if (insertError) throw insertError;
-      }
+      setOpenQuestions(prevOpenQuestions => [
+        ...prevOpenQuestions,
+        organizationQuestions.find(q => q.id === questionId)
+      ]);
 
-      // Refresh the questions
+      // Refresh the questions to ensure consistency
       await fetchQuestions(selectedOrganization.id);
+
       alert('Question made open successfully!');
     } catch (error) {
       console.error('Error making question open:', error);
-      alert('Failed to make question open. Error: ' + error.message);
+      alert('Failed to make question open. Error: ' + (error.message || JSON.stringify(error)));
     }
   };
 
@@ -437,6 +420,20 @@ const OrganizationDashboard = () => {
       if (error) throw error;
 
       // Update the local state
+      setQuestions(prevQuestions => {
+        const updatedQuestions = { ...prevQuestions };
+        Object.keys(updatedQuestions).forEach(status => {
+          const questionIndex = updatedQuestions[status].findIndex(q => q.id === questionId);
+          if (questionIndex !== -1) {
+            const [question] = updatedQuestions[status].splice(questionIndex, 1);
+            question.kanban_status = newStatus;
+            updatedQuestions[newStatus] = [...(updatedQuestions[newStatus] || []), question];
+          }
+        });
+        return updatedQuestions;
+      });
+
+      // Update organizationQuestions as well
       setOrganizationQuestions(prevQuestions => 
         prevQuestions.map(q => 
           q.id === questionId ? { ...q, kanban_status: newStatus } : q
@@ -470,6 +467,7 @@ const OrganizationDashboard = () => {
             onSortChange={isOrganizationQuestion ? setSortBy : null}
             isOrganizationQuestion={isOrganizationQuestion}
             onUpdateKanbanStatus={handleUpdateKanbanStatus}
+            setQuestions={setQuestions}  // Add this line
           />
         );
       case 'cards':
@@ -739,7 +737,11 @@ const OrganizationDashboard = () => {
             </div>
           </div>
           {viewMode === 'kanban' ? (
-            <OrganizationKanban organizationId={selectedOrganization.id} />
+            <OrganizationKanban 
+              organizationId={selectedOrganization.id}
+              questions={questions}
+              setQuestions={setQuestions}
+            />
           ) : (
             <>
               {renderQuestions(sortedQuestions, true)}
