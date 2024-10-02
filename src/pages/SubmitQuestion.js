@@ -29,6 +29,10 @@ const SubmitQuestion = () => {
     console.log('similarQuestions updated:', similarQuestions);
   }, [similarQuestions]);
 
+  useEffect(() => {
+    console.log('Modal state changed:', showModal);
+  }, [showModal]);
+
   const checkSimilarQuestions = async (content) => {
     try {
       console.log('Sending request to generate embedding');
@@ -70,8 +74,11 @@ const SubmitQuestion = () => {
       }
 
       console.log('Similar questions:', similarData);
-      setSimilarQuestions(similarData);
-      return data;
+      return { 
+        embedding: data.embedding, 
+        category: data.category,
+        similarQuestions: similarData
+      };
     } catch (error) {
       console.error('Error checking similar questions:', error);
       alert(`Failed to check for similar questions: ${error.message}`);
@@ -81,17 +88,19 @@ const SubmitQuestion = () => {
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
-      const { embedding, category } = await checkSimilarQuestions(values.content);
+      const { embedding, category, similarQuestions } = await checkSimilarQuestions(values.content);
+      console.log('Similar questions found:', similarQuestions);
 
       if (similarQuestions.length > 0) {
+        console.log('Showing modal for similar questions');
         setSubmissionData({ values, embedding, category });
+        setSimilarQuestions(similarQuestions);
         setShowModal(true);
-        setSubmitting(false);
-        return;
+      } else {
+        console.log('No similar questions found, submitting original question');
+        await submitQuestion(values, embedding, category);
+        resetForm();
       }
-
-      await submitQuestion(values, embedding, category);
-      resetForm();
     } catch (error) {
       console.error('Unexpected error:', error);
       alert('An unexpected error occurred.');
@@ -149,6 +158,7 @@ const SubmitQuestion = () => {
       console.log('Question submitted:', data);
       alert('Question submitted successfully!');
       setSimilarQuestions([]);
+      setShowModal(false);
     }
   };
 
@@ -199,6 +209,7 @@ const SubmitQuestion = () => {
       }
 
       setShowModal(false);
+      setSimilarQuestions([]);
       setSubmissionData(null);
       alert('You have successfully endorsed and followed the existing question.');
     } catch (error) {
@@ -210,6 +221,7 @@ const SubmitQuestion = () => {
   const handleSubmitOriginal = async () => {
     await submitQuestion(submissionData.values, submissionData.embedding, submissionData.category);
     setShowModal(false);
+    setSimilarQuestions([]);
     setSubmissionData(null);
   };
 
