@@ -10,6 +10,7 @@ import {
   Typography,
   FormControlLabel,
   Checkbox,
+  MenuItem,
 } from '@mui/material';
 import * as Yup from 'yup';
 import SimilarQuestionsModal from '../components/SimilarQuestionsModal';
@@ -18,12 +19,19 @@ const QuestionSchema = Yup.object().shape({
   content: Yup.string().required('Question content is required'),
   answer: Yup.string().required('Answer is required'),
   is_open: Yup.boolean(),
+  organization_id: Yup.string().when('is_open', {
+    is: false,
+    then: () => Yup.string().required('Organization is required for closed questions'),
+    otherwise: () => Yup.string().notRequired(),
+  }),
 });
 
 const SubmitQuestion = () => {
   const [similarQuestions, setSimilarQuestions] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [submissionData, setSubmissionData] = useState(null);
+  const [userOrganizations, setUserOrganizations] = useState([]);
+  const [selectedOrganization, setSelectedOrganization] = useState('');
 
   useEffect(() => {
     console.log('similarQuestions updated:', similarQuestions);
@@ -32,6 +40,32 @@ const SubmitQuestion = () => {
   useEffect(() => {
     console.log('Modal state changed:', showModal);
   }, [showModal]);
+
+  useEffect(() => {
+    const fetchUserOrganizations = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('organization_users')
+          .select('organization_id, organizations(id, name)')
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error('Error fetching user organizations:', error);
+        } else {
+          setUserOrganizations(data.map(item => ({
+            id: item.organizations.id,
+            name: item.organizations.name
+          })));
+          if (data.length > 0) {
+            setSelectedOrganization(data[0].organizations.id);
+          }
+        }
+      }
+    };
+
+    fetchUserOrganizations();
+  }, []);
 
   const checkSimilarQuestions = async (content, isOpen) => {
     try {
@@ -57,44 +91,43 @@ const SubmitQuestion = () => {
         throw new Error('No embedding returned from API');
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: orgUser } = await supabase
-        .from('organization_users')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
-
-      const { data: matchedQuestions, error: matchError } = await supabase
-        .rpc('match_questions', { 
-          query_embedding: data.embedding, 
-          match_threshold: 0.8,
-          match_count: 10
-        });
-
-      if (matchError) throw matchError;
-
       let similarData;
-
       if (isOpen) {
-        // Filter for open questions
-        similarData = matchedQuestions.filter(q => q.is_open);
-      } else if (orgUser) {
-        // Filter for questions in the user's organization
-        const { data: orgQuestions, error: orgError } = await supabase
-          .from('organization_questions')
-          .select('question_id')
-          .eq('organization_id', orgUser.organization_id);
+        // Search for similar open questions
+        const { data: openSimilarData, error: openSearchError } = await supabase
+          .rpc('match_questions', { 
+            query_embedding: data.embedding, 
+            match_threshold: 0.8,
+            match_count: 5
+          })
+          .eq('is_open', true);
 
-        if (orgError) throw orgError;
-
-        const orgQuestionIds = new Set(orgQuestions.map(q => q.question_id));
-        similarData = matchedQuestions.filter(q => orgQuestionIds.has(q.id));
+        if (openSearchError) throw openSearchError;
+        similarData = openSimilarData;
       } else {
-        similarData = [];
-      }
+        // Search for similar questions within the user's organization
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: orgUser } = await supabase
+          .from('organization_users')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .single();
 
-      // Limit to top 5 matches
-      similarData = similarData.slice(0, 5);
+        if (orgUser) {
+          const { data: orgSimilarData, error: orgSearchError } = await supabase
+            .rpc('match_organization_questions', { 
+              query_embedding: data.embedding, 
+              match_threshold: 0.8,
+              match_count: 5,
+              org_id: orgUser.organization_id
+            });
+
+          if (orgSearchError) throw orgSearchError;
+          similarData = orgSimilarData;
+        } else {
+          similarData = [];
+        }
+      }
 
       console.log('Similar questions:', similarData);
       return { 
@@ -141,26 +174,7 @@ const SubmitQuestion = () => {
       return;
     }
 
-    let organizationId = null;
-    if (!values.is_open) {
-      const { data: orgUsers, error: orgError } = await supabase
-        .from('organization_users')
-        .select('organization_id')
-        .eq('user_id', user.id);
-
-      if (orgError) {
-        console.error('Error fetching organization:', orgError);
-        alert('Error fetching organization information.');
-        return;
-      }
-
-      if (orgUsers.length === 0) {
-        alert('You are not associated with any organization.');
-        return;
-      }
-
-      organizationId = orgUsers[0].organization_id;
-    }
+    const organizationId = values.is_open ? null : values.organization_id;
 
     const { data, error } = await supabase.from('questions').insert([
       {
@@ -303,7 +317,7 @@ const SubmitQuestion = () => {
         Submit a Question
       </Typography>
       <Formik
-        initialValues={{ content: '', answer: '', is_open: true }}
+        initialValues={{ content: '', answer: '', is_open: true, organization_id: '' }}
         validationSchema={QuestionSchema}
         onSubmit={handleSubmit}
       >
@@ -314,6 +328,7 @@ const SubmitQuestion = () => {
           errors,
           touched,
           handleBlur,
+          setFieldValue,
         }) => (
           <Form>
             <TextField
@@ -347,11 +362,37 @@ const SubmitQuestion = () => {
                 <Checkbox
                   name='is_open'
                   checked={values.is_open}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    handleChange(e);
+                    if (!e.target.checked && userOrganizations.length > 0) {
+                      setFieldValue('organization_id', userOrganizations[0].id);
+                    } else {
+                      setFieldValue('organization_id', '');
+                    }
+                  }}
                 />
               }
               label='Make this question public'
             />
+            {!values.is_open && (
+              <TextField
+                select
+                label="Select Organization"
+                name="organization_id"
+                value={values.organization_id}
+                onChange={handleChange}
+                fullWidth
+                margin="normal"
+                error={touched.organization_id && Boolean(errors.organization_id)}
+                helperText={touched.organization_id && errors.organization_id}
+              >
+                {userOrganizations.map((org) => (
+                  <MenuItem key={org.id} value={org.id}>
+                    {org.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
             <Button
               variant='contained'
               color='secondary'

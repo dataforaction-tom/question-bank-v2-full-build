@@ -16,6 +16,12 @@ import {
   FormControl,
   InputLabel,
   Divider,
+  Modal,
+  Card,
+  CardContent,
+  CardActionArea,
+  Grid,
+  Box,
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,7 +32,8 @@ import OrganizationKanban from '../components/OrganizationKanban';
 
 const OrganizationDashboard = () => {
   const { session } = useAuth();
-  const [organization, setOrganization] = useState(null);
+  const [organizations, setOrganizations] = useState([]);
+  const [selectedOrganization, setSelectedOrganization] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);  // New state to track admin status
   const [members, setMembers] = useState([]);
   const [emailToInvite, setEmailToInvite] = useState('');
@@ -37,28 +44,33 @@ const OrganizationDashboard = () => {
   const navigate = useNavigate();
   const [sortBy, setSortBy] = useState('manual_rank'); // 'manual_rank' or 'elo_score'
   const [sortedQuestions, setSortedQuestions] = useState([]);
+  const [showOrgSelector, setShowOrgSelector] = useState(false);
 
   useEffect(() => {
-    const fetchOrganization = async () => {
+    const fetchOrganizations = async () => {
       const { data, error } = await supabase
         .from('organizations')
         .select('*, organization_users!inner(*)')
-        .eq('organization_users.user_id', session.user.id)
-        .single();
+        .eq('organization_users.user_id', session.user.id);
 
-      if (error || !data) {
-        console.error('Error fetching organization:', error);
+      if (error) {
+        console.error('Error fetching organizations:', error);
+        alert('Error fetching your organizations.');
+        navigate('/');
+      } else if (data.length === 0) {
         alert('You are not a member of any organization.');
         navigate('/');
       } else {
-        setOrganization(data);
-        setIsAdmin(data.organization_users[0].role === 'admin');  // Set admin status
-        await fetchMembers(data.id);
-        await fetchQuestions(data.id);
+        setOrganizations(data);
+        if (data.length === 1) {
+          handleOrganizationSelect(data[0]);
+        } else {
+          setShowOrgSelector(true);
+        }
       }
     };
 
-    fetchOrganization();
+    fetchOrganizations();
   }, [session.user.id, navigate]);
 
   useEffect(() => {
@@ -184,7 +196,7 @@ const OrganizationDashboard = () => {
         body: JSON.stringify({
           to: email,
           subject: 'You are invited to join our organization',
-          text: `You have been invited to join ${organization.name}. Click the link to accept the invitation: ${invitationLink}`,
+          text: `You have been invited to join ${selectedOrganization.name}. Click the link to accept the invitation: ${invitationLink}`,
         }),
       });
 
@@ -208,7 +220,7 @@ const OrganizationDashboard = () => {
     const { error } = await supabase.from('invitations').insert([
       {
         email: emailToInvite,
-        organization_id: organization.id,
+        organization_id: selectedOrganization.id,
         token: invitationToken,
       },
     ]);
@@ -247,7 +259,7 @@ const OrganizationDashboard = () => {
       console.error('Error updating role:', error);
       alert('Error updating user role.');
     } else {
-      await fetchMembers(organization.id);
+      await fetchMembers(selectedOrganization.id);
     }
   };
 
@@ -260,7 +272,7 @@ const OrganizationDashboard = () => {
       // Add to organization_questions table
       const { error: addError } = await supabase
         .from('organization_questions')
-        .insert({ organization_id: organization.id, question_id: questionId });
+        .insert({ organization_id: selectedOrganization.id, question_id: questionId });
 
       if (addError) throw addError;
 
@@ -268,7 +280,7 @@ const OrganizationDashboard = () => {
       const { error: rankError } = await supabase
         .from('organization_question_rankings')
         .insert({
-          organization_id: organization.id,
+          organization_id: selectedOrganization.id,
           question_id: questionId,
           manual_rank: null,
           elo_score: 1500, // Default ELO score
@@ -279,7 +291,7 @@ const OrganizationDashboard = () => {
       if (rankError) throw rankError;
 
       // Refresh the questions
-      await fetchQuestions(organization.id);
+      await fetchQuestions(selectedOrganization.id);
       alert('Question added to organization successfully!');
     } catch (error) {
       console.error('Error adding question to organization:', error);
@@ -293,7 +305,7 @@ const OrganizationDashboard = () => {
       const { error: removeError } = await supabase
         .from('organization_questions')
         .delete()
-        .match({ organization_id: organization.id, question_id: questionId });
+        .match({ organization_id: selectedOrganization.id, question_id: questionId });
 
       if (removeError) throw removeError;
 
@@ -301,12 +313,12 @@ const OrganizationDashboard = () => {
       const { error: rankingError } = await supabase
         .from('organization_question_rankings')
         .delete()
-        .match({ organization_id: organization.id, question_id: questionId });
+        .match({ organization_id: selectedOrganization.id, question_id: questionId });
 
       if (rankingError) throw rankingError;
 
       // Refresh the questions
-      await fetchQuestions(organization.id);
+      await fetchQuestions(selectedOrganization.id);
       alert('Question removed from organization successfully!');
     } catch (error) {
       console.error('Error removing question from organization:', error);
@@ -324,7 +336,7 @@ const OrganizationDashboard = () => {
       if (error) throw error;
 
       // Refresh the questions
-      await fetchQuestions(organization.id);
+      await fetchQuestions(selectedOrganization.id);
       alert('Question deleted successfully!');
     } catch (error) {
       console.error('Error deleting question:', error);
@@ -351,7 +363,7 @@ const OrganizationDashboard = () => {
       const { data: existingEntry, error: checkError } = await supabase
         .from('organization_questions')
         .select('*')
-        .eq('organization_id', organization.id)
+        .eq('organization_id', selectedOrganization.id)
         .eq('question_id', questionId)
         .single();
 
@@ -364,13 +376,13 @@ const OrganizationDashboard = () => {
       if (!existingEntry) {
         const { error: insertError } = await supabase
           .from('organization_questions')
-          .insert({ organization_id: organization.id, question_id: questionId });
+          .insert({ organization_id: selectedOrganization.id, question_id: questionId });
 
         if (insertError) throw insertError;
       }
 
       // Refresh the questions
-      await fetchQuestions(organization.id);
+      await fetchQuestions(selectedOrganization.id);
       alert('Question made open successfully!');
     } catch (error) {
       console.error('Error making question open:', error);
@@ -383,12 +395,12 @@ const OrganizationDashboard = () => {
       const { error } = await supabase
         .from('organization_question_rankings')
         .update({ kanban_status: newStatus })
-        .match({ organization_id: organization.id, question_id: questionId });
+        .match({ organization_id: selectedOrganization.id, question_id: questionId });
 
       if (error) throw error;
 
       // Refresh the questions
-      await fetchQuestions(organization.id);
+      await fetchQuestions(selectedOrganization.id);
     } catch (error) {
       console.error('Error updating Kanban status:', error);
       alert('Failed to update Kanban status. Error: ' + error.message);
@@ -444,7 +456,7 @@ const OrganizationDashboard = () => {
           </div>
         );
       case 'kanban':
-        return <OrganizationKanban organizationId={organization.id} />;
+        return <OrganizationKanban organizationId={selectedOrganization.id} />;
       default:
         return null;
     }
@@ -469,151 +481,225 @@ const OrganizationDashboard = () => {
     setSortBy(prevSortBy => prevSortBy === 'manual_rank' ? 'elo_score' : 'manual_rank');
   };
 
-  if (!organization) {
+  const handleOrganizationSelect = async (org) => {
+    setSelectedOrganization(org);
+    setIsAdmin(org.organization_users[0].role === 'admin');
+    setShowOrgSelector(false);
+    await fetchMembers(org.id);
+    await fetchQuestions(org.id);
+  };
+
+  const OrganizationSelectorModal = ({ open, organizations, onSelect }) => {
+    const COLUMN_COLORS = {
+      0: '#f860b1',
+      1: '#f3581d',
+      2: '#9dc131',
+      3: '#6a7efc',
+      4: '#53c4af'
+    };
+
     return (
-      <Container>
-        <Typography variant='h5'>
-          You are not an admin of any organization.
-        </Typography>
-      </Container>
+      <Modal
+        open={open}
+        aria-labelledby="organization-selector-title"
+        aria-describedby="organization-selector-description"
+      >
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '80%',
+          maxWidth: 800,
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 2,
+          maxHeight: '90vh',
+          overflow: 'auto',
+        }}>
+          <Typography id="organization-selector-title" variant="h6" component="h2" gutterBottom>
+            Select an Organization
+          </Typography>
+          <Grid container spacing={2}>
+            {organizations.map((org, index) => (
+              <Grid item xs={12} sm={6} md={4} key={org.id}>
+                <Card 
+                  sx={{ 
+                    cursor: 'pointer',
+                    '&:hover': { boxShadow: 6 },
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <Box sx={{ height: 8, backgroundColor: COLUMN_COLORS[index % 5] }} />
+                  <CardActionArea 
+                    onClick={() => onSelect(org)}
+                    sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }}
+                  >
+                    <CardContent>
+                      <Typography variant="h5" component="div" gutterBottom>
+                        {org.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Role: {org.organization_users[0].role}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      </Modal>
     );
-  }
+  };
 
   return (
     <Container>
-      <Typography variant='h4'>{organization.name} Dashboard</Typography>
-      <Button 
-        variant="contained" 
-        color="primary" 
-        onClick={toggleMembersSection} 
-        style={{ marginTop: '1rem', marginBottom: '1rem' }}
-      >
-        {showMembers ? 'Hide Members' : 'Show Members'}
-      </Button>
-
-      {showMembers && (
+      <OrganizationSelectorModal
+        open={showOrgSelector}
+        organizations={organizations}
+        onSelect={handleOrganizationSelect}
+      />
+      {selectedOrganization && (
         <>
-          <Typography variant='h6'>Members:</Typography>
-          <List>
-            {members.map((member) => {
-              const user = member.users;
-              const name = user ? user.name || user.email : 'Unknown User';
-              const bio = user ? user.bio : null;
-              const isLastAdmin = members.filter(m => m.role === 'admin').length === 1 && member.role === 'admin';
-
-              return (
-                <ListItem key={member.id}>
-                  <ListItemText
-                    primary={name}
-                    secondary={
-                      <>
-                        <Typography component='span' variant='body2' color='textPrimary'>
-                          Role: {member.role}
-                        </Typography>
-                        {bio && (
-                          <>
-                            {' - '}
-                            <Typography component='span' variant='body2' color='textSecondary'>
-                              {bio}
-                            </Typography>
-                          </>
-                        )}
-                      </>
-                    }
-                  />
-                  {isAdmin && member.user_id !== session.user.id && (
-                    <FormControl variant='outlined' size='small' style={{ minWidth: 120 }}>
-                      <InputLabel>Role</InputLabel>
-                      <Select
-                        value={member.role}
-                        onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                        label='Role'
-                        disabled={isLastAdmin}
-                      >
-                        <MenuItem value='member'>Member</MenuItem>
-                        <MenuItem value='admin'>Admin</MenuItem>
-                      </Select>
-                    </FormControl>
-                  )}
-                </ListItem>
-              );
-            })}
-          </List>
-          <Typography variant='h6' style={{ marginTop: '2rem' }}>
-            Invite a User:
-          </Typography>
-          <TextField
-            label='Invite User by Email'
-            value={emailToInvite}
-            onChange={(e) => setEmailToInvite(e.target.value)}
-            fullWidth
-            style={{ marginBottom: '1rem' }}
-          />
-          <Button variant='contained' color='primary' onClick={handleInvite}>
-            Invite User
+          <Typography variant='h4'>{selectedOrganization.name} Dashboard</Typography>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={toggleMembersSection} 
+            style={{ marginTop: '1rem', marginBottom: '1rem' }}
+          >
+            {showMembers ? 'Hide Members' : 'Show Members'}
           </Button>
-        </>
-      )}
 
-      <Divider style={{ margin: '2rem 0' }} />
-      <div className="flex justify-between items-center mb-4">
-        <Typography variant='h5'>Organization Questions</Typography>
-        <div>
-          <button 
-            onClick={toggleSortBy} 
-            className={`px-4 py-2 rounded-lg font-bold text-white transition mr-2 ${
-              sortBy === 'manual_rank' 
-                ? 'bg-blue-600 hover:bg-blue-700' 
-                : 'bg-green-600 hover:bg-green-700'
-            }`}
-          >
-            {sortBy === 'manual_rank' ? 'Manual Rank' : 'ELO Score'}
-          </button>
-          <button 
-            onClick={() => setViewMode('table')} 
-            className={`px-4 py-2 ${viewMode === 'table' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
-          >
-            Table View
-          </button>
-          <button 
-            onClick={() => setViewMode('cards')} 
-            className={`ml-2 px-4 py-2 ${viewMode === 'cards' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
-          >
-            Card View
-          </button>
-          <button 
-            onClick={() => setViewMode('kanban')} 
-            className={`ml-2 px-4 py-2 ${viewMode === 'kanban' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
-          >
-            Kanban View
-          </button>
-          <Link to={`/organization/${organization.id}/elo-ranking`}>
-            <button className="ml-2 px-4 py-2 bg-green-600 rounded-lg font-bold text-white transition">
-              ELO Ranking
-            </button>
-          </Link>
-          <Link to={`/organization/${organization.id}/manual-ranking`}>
-            <button className="ml-2 px-4 py-2 bg-yellow-600 rounded-lg font-bold text-white transition">
-              Manual Ranking
-            </button>
-          </Link>
-        </div>
-      </div>
-      {viewMode === 'kanban' ? (
-        <OrganizationKanban organizationId={organization.id} />
-      ) : (
-        <>
-          {renderQuestions(organizationQuestions, true)}
-          {organizationQuestions.length === 0 && (
-            <Typography variant='body1'>No questions found for this organization.</Typography>
+          {showMembers && (
+            <>
+              <Typography variant='h6'>Members:</Typography>
+              <List>
+                {members.map((member) => {
+                  const user = member.users;
+                  const name = user ? user.name || user.email : 'Unknown User';
+                  const bio = user ? user.bio : null;
+                  const isLastAdmin = members.filter(m => m.role === 'admin').length === 1 && member.role === 'admin';
+
+                  return (
+                    <ListItem key={member.id}>
+                      <ListItemText
+                        primary={name}
+                        secondary={
+                          <>
+                            <Typography component='span' variant='body2' color='textPrimary'>
+                              Role: {member.role}
+                            </Typography>
+                            {bio && (
+                              <>
+                                {' - '}
+                                <Typography component='span' variant='body2' color='textSecondary'>
+                                  {bio}
+                                </Typography>
+                              </>
+                            )}
+                          </>
+                        }
+                      />
+                      {isAdmin && member.user_id !== session.user.id && (
+                        <FormControl variant='outlined' size='small' style={{ minWidth: 120 }}>
+                          <InputLabel>Role</InputLabel>
+                          <Select
+                            value={member.role}
+                            onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                            label='Role'
+                            disabled={isLastAdmin}
+                          >
+                            <MenuItem value='member'>Member</MenuItem>
+                            <MenuItem value='admin'>Admin</MenuItem>
+                          </Select>
+                        </FormControl>
+                      )}
+                    </ListItem>
+                  );
+                })}
+              </List>
+              <Typography variant='h6' style={{ marginTop: '2rem' }}>
+                Invite a User:
+              </Typography>
+              <TextField
+                label='Invite User by Email'
+                value={emailToInvite}
+                onChange={(e) => setEmailToInvite(e.target.value)}
+                fullWidth
+                style={{ marginBottom: '1rem' }}
+              />
+              <Button variant='contained' color='primary' onClick={handleInvite}>
+                Invite User
+              </Button>
+            </>
           )}
+
           <Divider style={{ margin: '2rem 0' }} />
-          <Typography variant='h5' style={{ marginBottom: '1rem' }}>
-            Open Questions
-          </Typography>
-          {renderQuestions(openQuestions)}
-          {openQuestions.length === 0 && (
-            <Typography variant='body1'>No open questions available.</Typography>
+          <div className="flex justify-between items-center mb-4">
+            <Typography variant='h5'>Organization Questions</Typography>
+            <div>
+              <button 
+                onClick={toggleSortBy} 
+                className={`px-4 py-2 rounded-lg font-bold text-white transition mr-2 ${
+                  sortBy === 'manual_rank' 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {sortBy === 'manual_rank' ? 'Manual Rank' : 'ELO Score'}
+              </button>
+              <button 
+                onClick={() => setViewMode('table')} 
+                className={`px-4 py-2 ${viewMode === 'table' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
+              >
+                Table View
+              </button>
+              <button 
+                onClick={() => setViewMode('cards')} 
+                className={`ml-2 px-4 py-2 ${viewMode === 'cards' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
+              >
+                Card View
+              </button>
+              <button 
+                onClick={() => setViewMode('kanban')} 
+                className={`ml-2 px-4 py-2 ${viewMode === 'kanban' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
+              >
+                Kanban View
+              </button>
+              <Link to={`/organization/${selectedOrganization.id}/elo-ranking`}>
+                <button className="ml-2 px-4 py-2 bg-green-600 rounded-lg font-bold text-white transition">
+                  ELO Ranking
+                </button>
+              </Link>
+              <Link to={`/organization/${selectedOrganization.id}/manual-ranking`}>
+                <button className="ml-2 px-4 py-2 bg-yellow-600 rounded-lg font-bold text-white transition">
+                  Manual Ranking
+                </button>
+              </Link>
+            </div>
+          </div>
+          {viewMode === 'kanban' ? (
+            <OrganizationKanban organizationId={selectedOrganization.id} />
+          ) : (
+            <>
+              {renderQuestions(organizationQuestions, true)}
+              {organizationQuestions.length === 0 && (
+                <Typography variant='body1'>No questions found for this organization.</Typography>
+              )}
+              <Divider style={{ margin: '2rem 0' }} />
+              <Typography variant='h5' style={{ marginBottom: '1rem' }}>
+                Open Questions
+              </Typography>
+              {renderQuestions(openQuestions)}
+              {openQuestions.length === 0 && (
+                <Typography variant='body1'>No open questions available.</Typography>
+              )}
+            </>
           )}
         </>
       )}
