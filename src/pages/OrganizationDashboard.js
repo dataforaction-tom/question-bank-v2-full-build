@@ -98,92 +98,129 @@ const OrganizationDashboard = () => {
   };
 
   const fetchQuestions = async (organizationId) => {
-    // Fetch direct questions (unchanged)
-    const { data: directQuestions, error: directError } = await supabase
-      .from('questions')
-      .select(`
-        *,
-        endorsements:endorsements(count),
-        followers:question_followers(count),
-        responses:responses(count)
-      `)
-      .eq('organization_id', organizationId);
+    try {
+      console.log('Fetching questions for organization:', organizationId);
 
-    if (directError) {
-      console.error('Error fetching directly associated questions:', directError);
-    }
+      // Fetch direct questions
+      const { data: directQuestions, error: directError } = await supabase
+        .from('questions')
+        .select(`
+          *,
+          endorsements:endorsements(count),
+          followers:question_followers(count),
+          responses:responses(count),
+          organization_question_rankings!inner(manual_rank, elo_score, kanban_status)
+        `)
+        .eq('organization_id', organizationId)
+        .eq('organization_question_rankings.organization_id', organizationId);
 
-    // Fetch indirect questions (unchanged)
-    const { data: indirectQuestions, error: indirectError } = await supabase
-      .from('organization_questions')
-      .select(`
-        question_id,
-        questions (
+      if (directError) {
+        console.error('Error fetching direct questions:', directError);
+        throw directError;
+      }
+
+      console.log('Direct questions:', directQuestions);
+
+      // Fetch indirect questions (from organization_questions)
+      const { data: indirectQuestions, error: indirectError } = await supabase
+        .from('organization_questions')
+        .select(`
+          question_id,
+          questions (
+            *,
+            endorsements:endorsements(count),
+            followers:question_followers(count),
+            responses:responses(count)
+          )
+        `)
+        .eq('organization_id', organizationId);
+
+      if (indirectError) {
+        console.error('Error fetching indirect questions:', indirectError);
+        throw indirectError;
+      }
+
+      console.log('Indirect questions:', indirectQuestions);
+
+      // Fetch rankings for indirect questions
+      const indirectQuestionIds = indirectQuestions.map(q => q.question_id);
+      const { data: indirectRankings, error: rankingsError } = await supabase
+        .from('organization_question_rankings')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .in('question_id', indirectQuestionIds);
+
+      if (rankingsError) {
+        console.error('Error fetching rankings for indirect questions:', rankingsError);
+        throw rankingsError;
+      }
+
+      console.log('Indirect rankings:', indirectRankings);
+
+      // Fetch open questions
+      const { data: openQuestionsData, error: openError } = await supabase
+        .from('questions')
+        .select(`
           *,
           endorsements:endorsements(count),
           followers:question_followers(count),
           responses:responses(count)
-        )
-      `)
-      .eq('organization_id', organizationId);
+        `)
+        .eq('is_open', true);
 
-    if (indirectError) {
-      console.error('Error fetching indirectly associated questions:', indirectError);
-    }
+      if (openError) {
+        console.error('Error fetching open questions:', openError);
+        throw openError;
+      }
 
-    // Fetch open questions (modified)
-    const { data: openQuestionsData, error: openError } = await supabase
-      .from('questions')
-      .select(`
-        *,
-        endorsements:endorsements(count),
-        followers:question_followers(count),
-        responses:responses(count)
-      `)
-      .eq('is_open', true)
-      .order('priority_score', { ascending: false });
+      console.log('Open questions:', openQuestionsData);
 
-    if (openError) {
-      console.error('Error fetching open questions:', openError);
-    }
-
-    const allOrgQuestions = [
-      ...(directQuestions || []).map(q => ({ 
-        ...q, 
+      // Combine and map all questions
+      const directQuestionsFormatted = (directQuestions || []).map(q => ({
+        ...q,
         is_direct: true,
         endorsements_count: q.endorsements[0]?.count || 0,
         followers_count: q.followers[0]?.count || 0,
-        responses_count: q.responses[0]?.count || 0
-      }))
-    ];
+        responses_count: q.responses[0]?.count || 0,
+        manual_rank: q.organization_question_rankings[0]?.manual_rank ?? 0,
+        elo_score: q.organization_question_rankings[0]?.elo_score ?? 1500,
+        kanban_status: q.organization_question_rankings[0]?.kanban_status ?? 'Now'
+      }));
 
-    // Add indirect questions only if they're not already in allOrgQuestions
-    indirectQuestions?.forEach(q => {
-      if (!allOrgQuestions.some(orgQ => orgQ.id === q.question_id)) {
-        allOrgQuestions.push({
-          ...q.questions, 
-          is_direct: false, 
-          id: q.question_id,
+      const indirectQuestionsFormatted = indirectQuestions.map(q => {
+        const ranking = indirectRankings.find(r => r.question_id === q.question_id) || {};
+        return {
+          ...q.questions,
+          is_direct: false,
           endorsements_count: q.questions.endorsements[0]?.count || 0,
           followers_count: q.questions.followers[0]?.count || 0,
-          responses_count: q.questions.responses[0]?.count || 0
-        });
-      }
-    });
+          responses_count: q.questions.responses[0]?.count || 0,
+          manual_rank: ranking.manual_rank ?? 0,
+          elo_score: ranking.elo_score ?? 1500,
+          kanban_status: ranking.kanban_status ?? 'Now'
+        };
+      });
 
-    const openQuestions = (openQuestionsData || [])
-      .filter(q => q.organization_id !== organizationId)
-      .map(q => ({
+      const allQuestions = [...directQuestionsFormatted, ...indirectQuestionsFormatted];
+
+      const openQuestions = (openQuestionsData || []).map(q => ({
         ...q,
         endorsements_count: q.endorsements[0]?.count || 0,
         followers_count: q.followers[0]?.count || 0,
         responses_count: q.responses[0]?.count || 0
       }));
 
-    setOrganizationQuestions(allOrgQuestions);
-    setOpenQuestions(openQuestions);
+      console.log('All questions:', allQuestions);
+      console.log('Open questions:', openQuestions);
 
-    // ... rest of the function remains the same
+      setOrganizationQuestions(allQuestions);
+      setOpenQuestions(openQuestions);
+      sortQuestions(allQuestions, sortBy);
+
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      alert('An error occurred while fetching questions. Please check the console for more details.');
+    }
   };
 
   const sendInvitationEmail = async (email, token) => {
@@ -399,8 +436,15 @@ const OrganizationDashboard = () => {
 
       if (error) throw error;
 
-      // Refresh the questions
-      await fetchQuestions(selectedOrganization.id);
+      // Update the local state
+      setOrganizationQuestions(prevQuestions => 
+        prevQuestions.map(q => 
+          q.id === questionId ? { ...q, kanban_status: newStatus } : q
+        )
+      );
+
+      // Re-sort the questions
+      sortQuestions(organizationQuestions, sortBy);
     } catch (error) {
       console.error('Error updating Kanban status:', error);
       alert('Failed to update Kanban status. Error: ' + error.message);
@@ -467,13 +511,24 @@ const OrganizationDashboard = () => {
   };
 
   const sortQuestions = (questions, sortBy) => {
+    console.log('Sorting questions:', questions);
+    console.log('Sort by:', sortBy);
+  
     const sorted = [...questions].sort((a, b) => {
       if (sortBy === 'manual_rank') {
-        return (a.manual_rank || 0) - (b.manual_rank || 0);
+        const rankA = a.manual_rank !== undefined ? a.manual_rank : 0;
+        const rankB = b.manual_rank !== undefined ? b.manual_rank : 0;
+        console.log(`Comparing manual_rank: ${rankA} vs ${rankB}`);
+        return rankB - rankA; // Sort in descending order
       } else {
-        return (b.elo_score || 1500) - (a.elo_score || 1500);
+        const scoreA = a.elo_score !== undefined ? a.elo_score : 1500;
+        const scoreB = b.elo_score !== undefined ? b.elo_score : 1500;
+        console.log(`Comparing elo_score: ${scoreA} vs ${scoreB}`);
+        return scoreB - scoreA; // Sort in descending order
       }
     });
+  
+    console.log('Sorted questions:', sorted);
     setSortedQuestions(sorted);
   };
 
@@ -687,7 +742,7 @@ const OrganizationDashboard = () => {
             <OrganizationKanban organizationId={selectedOrganization.id} />
           ) : (
             <>
-              {renderQuestions(organizationQuestions, true)}
+              {renderQuestions(sortedQuestions, true)}
               {organizationQuestions.length === 0 && (
                 <Typography variant='body1'>No questions found for this organization.</Typography>
               )}
