@@ -41,11 +41,12 @@ const Questions = () => {
           followers:question_followers(count),
           responses:responses(count)
         `)
-        .eq('is_open', true)
+        .eq('is_open', true)  // This ensures we only fetch open questions
         .order('priority_score', { ascending: false });
 
       if (userOrganizationId) {
-        query = query.or(`is_open.eq.true,organization_id.eq.${userOrganizationId}`);
+        // This allows fetching closed questions for the user's organization
+        query = query.or(`is_open.eq.true,and(is_open.eq.false,organization_id.eq.${userOrganizationId})`);
       }
 
       const { data, error } = await query;

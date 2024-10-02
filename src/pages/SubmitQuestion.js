@@ -57,43 +57,44 @@ const SubmitQuestion = () => {
         throw new Error('No embedding returned from API');
       }
 
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: orgUser } = await supabase
+        .from('organization_users')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+
+      const { data: matchedQuestions, error: matchError } = await supabase
+        .rpc('match_questions', { 
+          query_embedding: data.embedding, 
+          match_threshold: 0.8,
+          match_count: 10
+        });
+
+      if (matchError) throw matchError;
+
       let similarData;
+
       if (isOpen) {
-        // Search for similar open questions
-        const { data: openSimilarData, error: openSearchError } = await supabase
-          .rpc('match_questions', { 
-            query_embedding: data.embedding, 
-            match_threshold: 0.8,
-            match_count: 5
-          })
-          .eq('is_open', true);
+        // Filter for open questions
+        similarData = matchedQuestions.filter(q => q.is_open);
+      } else if (orgUser) {
+        // Filter for questions in the user's organization
+        const { data: orgQuestions, error: orgError } = await supabase
+          .from('organization_questions')
+          .select('question_id')
+          .eq('organization_id', orgUser.organization_id);
 
-        if (openSearchError) throw openSearchError;
-        similarData = openSimilarData;
+        if (orgError) throw orgError;
+
+        const orgQuestionIds = new Set(orgQuestions.map(q => q.question_id));
+        similarData = matchedQuestions.filter(q => orgQuestionIds.has(q.id));
       } else {
-        // Search for similar questions within the user's organization
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: orgUser } = await supabase
-          .from('organization_users')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .single();
-
-        if (orgUser) {
-          const { data: orgSimilarData, error: orgSearchError } = await supabase
-            .rpc('match_organization_questions', { 
-              query_embedding: data.embedding, 
-              match_threshold: 0.8,
-              match_count: 5,
-              org_id: orgUser.organization_id
-            });
-
-          if (orgSearchError) throw orgSearchError;
-          similarData = orgSimilarData;
-        } else {
-          similarData = [];
-        }
+        similarData = [];
       }
+
+      // Limit to top 5 matches
+      similarData = similarData.slice(0, 5);
 
       console.log('Similar questions:', similarData);
       return { 
