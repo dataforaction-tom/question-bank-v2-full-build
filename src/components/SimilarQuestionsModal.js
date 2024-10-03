@@ -10,6 +10,7 @@ import {
   CardContent,
   Box,
   styled,
+  Chip,
 } from '@mui/material';
 
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -58,7 +59,14 @@ const SimilarQuestionsModal = ({ open, onClose, similarQuestions, onSelectQuesti
           <StyledCard key={question.id} onClick={() => onSelectQuestion(question)}>
             <ColorBand />
             <CardContent>
-              <Typography variant="body1">{question.content}</Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                <Typography variant="body1">{question.content}</Typography>
+                <Chip 
+                  label={question.is_open ? "Open" : "Closed"} 
+                  color={question.is_open ? "primary" : "secondary"}
+                  size="small"
+                />
+              </Box>
               <Typography variant="caption" color="textSecondary">
                 Similarity: {(question.similarity * 100).toFixed(2)}%
               </Typography>

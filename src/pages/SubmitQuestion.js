@@ -104,7 +104,7 @@ const SubmitQuestion = () => {
         .eq('is_open', true);
 
       if (openSearchError) throw openSearchError;
-      similarOpenQuestions = openSimilarData || [];
+      similarOpenQuestions = openSimilarData.map(q => ({ ...q, is_open: true })) || [];
 
       // If it's a closed question, also search within the organization
       if (!isOpen) {
@@ -117,7 +117,7 @@ const SubmitQuestion = () => {
           });
 
         if (orgSearchError) throw orgSearchError;
-        similarOrgQuestions = orgSimilarData || [];
+        similarOrgQuestions = orgSimilarData.map(q => ({ ...q, is_open: false })) || [];
       }
 
       const allSimilarQuestions = [...similarOpenQuestions, ...similarOrgQuestions];
