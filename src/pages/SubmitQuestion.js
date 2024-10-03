@@ -101,7 +101,7 @@ const SubmitQuestion = () => {
         .rpc('match_questions', { 
           query_embedding: data.embedding, 
           match_threshold: 0.8,
-          match_count: 10  // Increased to get more potential matches
+          match_count: 10
         });
 
       if (searchError) throw searchError;
@@ -125,14 +125,21 @@ const SubmitQuestion = () => {
 
           console.log('Organization questions found:', orgQuestions);
 
-          // Filter closed questions for the organization and open questions
-          const relevantOrgQuestions = orgQuestions.filter(q => !q.is_open);
+          // Merge similarity scores with org questions
+          const relevantOrgQuestions = orgQuestions.map(orgQ => {
+            const matchingQ = similarData.find(q => q.id === orgQ.id);
+            return { ...orgQ, similarity: matchingQ ? matchingQ.similarity : 0 };
+          }).filter(q => !q.is_open);
+
+          // Filter open questions and keep their similarity scores
           const openQuestions = similarData.filter(q => q.is_open);
 
           console.log('Relevant org questions:', relevantOrgQuestions);
           console.log('Open questions:', openQuestions);
 
-          allSimilarQuestions = [...relevantOrgQuestions, ...openQuestions];
+          // Combine and sort by similarity
+          allSimilarQuestions = [...relevantOrgQuestions, ...openQuestions]
+            .sort((a, b) => b.similarity - a.similarity);
         }
       }
 
