@@ -204,97 +204,165 @@ const SubmitQuestion = () => {
         throw new Error('User not authenticated');
       }
 
-      // Check if user has already endorsed the question
-      const { data: existingEndorsement } = await supabase
-        .from('endorsements')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('question_id', selectedQuestion.id)
-        .single();
+      // Check if the user is submitting to an organization
+      const isSubmittingToOrganization = !submissionData.values.is_open;
 
-      // Check if user has already followed the question
-      const { data: existingFollow } = await supabase
-        .from('question_followers')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('question_id', selectedQuestion.id)
-        .single();
+      if (isSubmittingToOrganization) {
+        if (selectedQuestion.is_open) {
+          // Handle open question selection for organization submission
+          const confirmAdd = window.confirm(
+            "This question is Public and will remain public, but it will be added to your group's dashboard. Do you want to proceed?"
+          );
 
-      let message = '';
+          if (!confirmAdd) {
+            return;
+          }
 
-      if (existingEndorsement && existingFollow) {
-        message = 'You have already endorsed and followed this question.';
-      } else if (existingEndorsement) {
-        message = 'You have already endorsed this question.';
-      } else if (existingFollow) {
-        message = 'You have already followed this question.';
-      }
+          // Add to organization_questions table
+          const { error: addError } = await supabase
+            .from('organization_questions')
+            .insert({ organization_id: submissionData.values.organization_id, question_id: selectedQuestion.id });
 
-      if (message) {
-        const confirmContinue = window.confirm(`${message} Do you still want to add your question as an alternative?`);
-        if (!confirmContinue) {
-          return;
+          if (addError) throw addError;
         }
-      }
 
-      // Add endorsement if not exists
-      if (!existingEndorsement) {
-        const { error: endorsementError } = await supabase
+        // Common actions for both open and closed questions when submitting to organization
+        // Add endorsement if not exists
+        const { data: existingEndorsement, error: endorsementCheckError } = await supabase
           .from('endorsements')
-          .insert([{ user_id: user.id, question_id: selectedQuestion.id }]);
-
-        if (endorsementError) throw endorsementError;
-      }
-
-      // Add follow if not exists
-      if (!existingFollow) {
-        const { error: followError } = await supabase
-          .from('question_followers')
-          .insert([{ user_id: user.id, question_id: selectedQuestion.id }]);
-
-        if (followError) throw followError;
-      }
-
-      // If the submitted question is closed, add the selected question to the organization
-      if (!submissionData.values.is_open) {
-        const { data: orgUser } = await supabase
-          .from('organization_users')
-          .select('organization_id')
+          .select('*')
           .eq('user_id', user.id)
+          .eq('question_id', selectedQuestion.id)
           .single();
 
-        if (orgUser) {
-          const { error: orgQuestionError } = await supabase
-            .from('organization_questions')
-            .insert([
-              { 
-                organization_id: orgUser.organization_id, 
-                question_id: selectedQuestion.id 
-              }
-            ]);
-
-          if (orgQuestionError) throw orgQuestionError;
+        if (endorsementCheckError && endorsementCheckError.code !== 'PGRST116') {
+          throw endorsementCheckError;
         }
+
+        if (!existingEndorsement) {
+          const { error: endorsementError } = await supabase
+            .from('endorsements')
+            .insert([{ user_id: user.id, question_id: selectedQuestion.id }]);
+
+          if (endorsementError) throw endorsementError;
+        }
+
+        // Add follow if not exists
+        const { data: existingFollow, error: followCheckError } = await supabase
+          .from('question_followers')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('question_id', selectedQuestion.id)
+          .single();
+
+        if (followCheckError && followCheckError.code !== 'PGRST116') {
+          throw followCheckError;
+        }
+
+        if (!existingFollow) {
+          const { error: followError } = await supabase
+            .from('question_followers')
+            .insert([{ user_id: user.id, question_id: selectedQuestion.id }]);
+
+          if (followError) throw followError;
+        }
+
+        // Create alternative question record
+        const { error: alternativeError } = await supabase
+          .from('alternative_questions')
+          .insert([
+            {
+              original_question_id: selectedQuestion.id,
+              alternative_content: submissionData.values.content,
+              alternative_answer: submissionData.values.answer,
+              user_id: user.id,
+            }
+          ]);
+
+        if (alternativeError) throw alternativeError;
+
+        setShowModal(false);
+        setSimilarQuestions([]);
+        setSubmissionData(null);
+
+        if (selectedQuestion.is_open) {
+          alert('The public question has been added to your group\'s dashboard, and your question has been added as an alternative.');
+        } else {
+          alert('Your question has been successfully added as an alternative to the closed question.');
+        }
+      } else {
+        // Existing behavior for public submissions
+        // Check if user has already endorsed the question
+        const { data: existingEndorsement } = await supabase
+          .from('endorsements')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('question_id', selectedQuestion.id)
+          .single();
+
+        // Check if user has already followed the question
+        const { data: existingFollow } = await supabase
+          .from('question_followers')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('question_id', selectedQuestion.id)
+          .single();
+
+        let message = '';
+
+        if (existingEndorsement && existingFollow) {
+          message = 'You have already endorsed and followed this question.';
+        } else if (existingEndorsement) {
+          message = 'You have already endorsed this question.';
+        } else if (existingFollow) {
+          message = 'You have already followed this question.';
+        }
+
+        if (message) {
+          const confirmContinue = window.confirm(`${message} Do you still want to add your question as an alternative?`);
+          if (!confirmContinue) {
+            return;
+          }
+        }
+
+        // Add endorsement if not exists
+        if (!existingEndorsement) {
+          const { error: endorsementError } = await supabase
+            .from('endorsements')
+            .insert([{ user_id: user.id, question_id: selectedQuestion.id }]);
+
+          if (endorsementError) throw endorsementError;
+        }
+
+        // Add follow if not exists
+        if (!existingFollow) {
+          const { error: followError } = await supabase
+            .from('question_followers')
+            .insert([{ user_id: user.id, question_id: selectedQuestion.id }]);
+
+          if (followError) throw followError;
+        }
+
+        // Create alternative question record
+        const { error: alternativeError } = await supabase
+          .from('alternative_questions')
+          .insert([
+            {
+              original_question_id: selectedQuestion.id,
+              alternative_content: submissionData.values.content,
+              alternative_answer: submissionData.values.answer,
+              user_id: user.id,
+            }
+          ]);
+
+        if (alternativeError) throw alternativeError;
+
+        setShowModal(false);
+        setSimilarQuestions([]);
+        setSubmissionData(null);
+        alert('Your question has been successfully added as an alternative.');
       }
 
-      // Create alternative question record
-      const { error: alternativeError } = await supabase
-        .from('alternative_questions')
-        .insert([
-          {
-            original_question_id: selectedQuestion.id,
-            alternative_content: submissionData.values.content,
-            alternative_answer: submissionData.values.answer,
-            user_id: user.id,
-          }
-        ]);
-
-      if (alternativeError) throw alternativeError;
-
-      setShowModal(false);
-      setSimilarQuestions([]);
-      setSubmissionData(null);
-      alert('Your question has been successfully added as an alternative.');
     } catch (error) {
       console.error('Error processing similar question selection:', error);
       alert(`An error occurred: ${error.message}`);
