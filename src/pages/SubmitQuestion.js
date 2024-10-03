@@ -91,42 +91,51 @@ const SubmitQuestion = () => {
         throw new Error('No embedding returned from API');
       }
 
-      let similarOpenQuestions = [];
-      let similarOrgQuestions = [];
+      let allSimilarQuestions = [];
 
-      // Search for similar open questions
-      const { data: openSimilarData, error: openSearchError } = await supabase
+      // Search for all similar questions
+      const { data: similarData, error: searchError } = await supabase
         .rpc('match_questions', { 
           query_embedding: data.embedding, 
           match_threshold: 0.8,
-          match_count: 5
-        })
-        .eq('is_open', true);
+          match_count: 10  // Increased to get more potential matches
+        });
 
-      if (openSearchError) throw openSearchError;
-      similarOpenQuestions = openSimilarData.map(q => ({ ...q, is_open: true })) || [];
+      if (searchError) throw searchError;
 
-      // If it's a closed question, also search within the organization
-      if (!isOpen) {
-        const { data: orgSimilarData, error: orgSearchError } = await supabase
-          .rpc('match_organization_questions', { 
-            query_embedding: data.embedding, 
-            match_threshold: 0.8,
-            match_count: 5,
-            org_id: organizationId
-          });
+      if (similarData) {
+        // Filter and process the results
+        if (isOpen) {
+          // For open submissions, only include open questions
+          allSimilarQuestions = similarData.filter(q => q.is_open);
+        } else {
+          // For closed submissions, prioritize closed questions from the organization, then include open questions
+          const orgClosedQuestions = similarData.filter(q => !q.is_open);
+          const openQuestions = similarData.filter(q => q.is_open);
+          
+          // We need to check if these questions belong to the organization
+          const { data: orgQuestions, error: orgError } = await supabase
+            .from('organization_questions')
+            .select('question_id')
+            .eq('organization_id', organizationId)
+            .in('question_id', orgClosedQuestions.map(q => q.id));
 
-        if (orgSearchError) throw orgSearchError;
-        similarOrgQuestions = orgSimilarData.map(q => ({ ...q, is_open: false })) || [];
+          if (orgError) throw orgError;
+
+          const orgQuestionIds = new Set(orgQuestions.map(q => q.question_id));
+          
+          const relevantOrgQuestions = orgClosedQuestions.filter(q => orgQuestionIds.has(q.id));
+          
+          allSimilarQuestions = [...relevantOrgQuestions, ...openQuestions];
+        }
       }
 
-      const allSimilarQuestions = [...similarOrgQuestions, ...similarOpenQuestions];
       console.log('Similar questions:', allSimilarQuestions);
 
       return { 
         embedding: data.embedding, 
         category: data.category,
-        similarQuestions: allSimilarQuestions
+        similarQuestions: allSimilarQuestions.slice(0, 5)  // Limit to top 5 results
       };
     } catch (error) {
       console.error('Error checking similar questions:', error);
