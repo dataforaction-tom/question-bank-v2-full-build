@@ -109,38 +109,28 @@ const SubmitQuestion = () => {
       console.log('All similar questions:', similarData);
 
       if (similarData) {
-        // Filter and process the results
         if (isOpen) {
           // For open submissions, only include open questions
           allSimilarQuestions = similarData.filter(q => q.is_open);
           console.log('Open questions:', allSimilarQuestions);
         } else {
-          // For closed submissions, prioritize closed questions from the organization, then include open questions
-          const orgClosedQuestions = similarData.filter(q => !q.is_open);
-          const openQuestions = similarData.filter(q => q.is_open);
-          
-          console.log('Potential closed questions:', orgClosedQuestions);
-          console.log('Open questions:', openQuestions);
-
-          // We need to check if these questions belong to the organization
-          console.log('Searching for questions in organization:', organizationId);
-          console.log('Potential closed question IDs:', orgClosedQuestions.map(q => q.id));
-
+          // For closed submissions, filter questions based on the organization
           const { data: orgQuestions, error: orgError } = await supabase
-            .from('organization_questions')
-            .select('question_id')
+            .from('questions')
+            .select('id, content, is_open')
             .eq('organization_id', organizationId)
-            .in('question_id', orgClosedQuestions.map(q => q.id));
+            .in('id', similarData.map(q => q.id));
 
           if (orgError) throw orgError;
 
           console.log('Organization questions found:', orgQuestions);
 
-          const orgQuestionIds = new Set(orgQuestions.map(q => q.question_id));
-          
-          const relevantOrgQuestions = orgClosedQuestions.filter(q => orgQuestionIds.has(q.id));
-          
+          // Filter closed questions for the organization and open questions
+          const relevantOrgQuestions = orgQuestions.filter(q => !q.is_open);
+          const openQuestions = similarData.filter(q => q.is_open);
+
           console.log('Relevant org questions:', relevantOrgQuestions);
+          console.log('Open questions:', openQuestions);
 
           allSimilarQuestions = [...relevantOrgQuestions, ...openQuestions];
         }
