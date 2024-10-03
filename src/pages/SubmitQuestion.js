@@ -70,6 +70,9 @@ const SubmitQuestion = () => {
   const checkSimilarQuestions = async (content, isOpen, organizationId) => {
     try {
       console.log('Sending request to generate embedding');
+      console.log('Is Open:', isOpen);
+      console.log('Organization ID:', organizationId);
+
       const response = await fetch('/api/generateEmbedding', {
         method: 'POST',
         headers: {
@@ -120,6 +123,9 @@ const SubmitQuestion = () => {
           console.log('Open questions:', openQuestions);
 
           // We need to check if these questions belong to the organization
+          console.log('Searching for questions in organization:', organizationId);
+          console.log('Potential closed question IDs:', orgClosedQuestions.map(q => q.id));
+
           const { data: orgQuestions, error: orgError } = await supabase
             .from('organization_questions')
             .select('question_id')
@@ -128,7 +134,7 @@ const SubmitQuestion = () => {
 
           if (orgError) throw orgError;
 
-          console.log('Organization questions:', orgQuestions);
+          console.log('Organization questions found:', orgQuestions);
 
           const orgQuestionIds = new Set(orgQuestions.map(q => q.question_id));
           
