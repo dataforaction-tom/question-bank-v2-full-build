@@ -120,7 +120,7 @@ const SubmitQuestion = () => {
         similarOrgQuestions = orgSimilarData.map(q => ({ ...q, is_open: false })) || [];
       }
 
-      const allSimilarQuestions = [...similarOpenQuestions, ...similarOrgQuestions];
+      const allSimilarQuestions = [...similarOrgQuestions, ...similarOpenQuestions];
       console.log('Similar questions:', allSimilarQuestions);
 
       return { 
