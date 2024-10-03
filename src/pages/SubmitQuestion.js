@@ -103,16 +103,22 @@ const SubmitQuestion = () => {
 
       if (searchError) throw searchError;
 
+      console.log('All similar questions:', similarData);
+
       if (similarData) {
         // Filter and process the results
         if (isOpen) {
           // For open submissions, only include open questions
           allSimilarQuestions = similarData.filter(q => q.is_open);
+          console.log('Open questions:', allSimilarQuestions);
         } else {
           // For closed submissions, prioritize closed questions from the organization, then include open questions
           const orgClosedQuestions = similarData.filter(q => !q.is_open);
           const openQuestions = similarData.filter(q => q.is_open);
           
+          console.log('Potential closed questions:', orgClosedQuestions);
+          console.log('Open questions:', openQuestions);
+
           // We need to check if these questions belong to the organization
           const { data: orgQuestions, error: orgError } = await supabase
             .from('organization_questions')
@@ -122,15 +128,19 @@ const SubmitQuestion = () => {
 
           if (orgError) throw orgError;
 
+          console.log('Organization questions:', orgQuestions);
+
           const orgQuestionIds = new Set(orgQuestions.map(q => q.question_id));
           
           const relevantOrgQuestions = orgClosedQuestions.filter(q => orgQuestionIds.has(q.id));
           
+          console.log('Relevant org questions:', relevantOrgQuestions);
+
           allSimilarQuestions = [...relevantOrgQuestions, ...openQuestions];
         }
       }
 
-      console.log('Similar questions:', allSimilarQuestions);
+      console.log('Final similar questions:', allSimilarQuestions);
 
       return { 
         embedding: data.embedding, 
