@@ -204,7 +204,7 @@ const QuestionTable = ({
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <>
+        <div className="flex flex-wrap gap-2">
           {onAddToOrganization && (
             <Button 
               type="Action"
@@ -212,7 +212,6 @@ const QuestionTable = ({
                 e.stopPropagation();
                 onAddToOrganization(row.original.id);
               }}
-              className="mr-2"
               size="sm"
             >
               Add
@@ -225,7 +224,6 @@ const QuestionTable = ({
                 e.stopPropagation();
                 onRemoveFromOrganization(row.original.id);
               }}
-              className="mr-2"
               size="sm"
             >
               Remove
@@ -252,13 +250,12 @@ const QuestionTable = ({
                 e.stopPropagation();
                 onMakeQuestionOpen(row.original.id);
               }}
-              className="mr-2"
               size="sm"
             >
               Make Public
             </Button>
           )}
-        </>
+        </div>
       ),
     },
   ];
