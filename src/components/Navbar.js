@@ -19,7 +19,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="bg-gradient-to-r from-blue-900 to-purple-800 text-white py-4 shadow-md">
+    <header className="bg-gradient-to-r from-slate-950 to-sky-950 text-white py-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center px-4">
         <h1 className="text-2xl sm:text-4xl font-bold">Question Bank V2</h1>
         <div className="sm:hidden">

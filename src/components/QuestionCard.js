@@ -3,6 +3,7 @@ import ColorTag from './ColorTag';
 import { styled } from '@mui/material';
 import { createPortal } from 'react-dom';
 import { FaThumbsUp, FaBell, FaComment } from 'react-icons/fa';
+import Button from './Button';  // Import the new Button component
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -174,50 +175,57 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
           </div>
           <div>
             {onAddToOrganization && (
-              <button 
+              <Button 
+                type="Action"
                 onClick={(e) => {
                   e.stopPropagation();
                   onAddToOrganization(question.id);
                 }}
-                className="bg-blue-500 text-white px-2 py-1 rounded mr-2"
+                className="mr-2"
+                size="sm"
               >
                 Add to Org
-              </button>
+              </Button>
             )}
             {onRemoveFromOrganization && question.is_direct === false && (
-              <button 
+              <Button 
+                type="Cancel"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemoveFromOrganization(question.id);
                 }}
-                className="bg-red-500 text-white px-2 py-1 rounded mr-2"
+                className="mr-2"
+                size="sm"
               >
-                Remove from Org
-              </button>
+                Remove
+              </Button>
             )}
             {onDeleteQuestion && question.is_direct && (
-              <button 
+              <Button 
+                type="Cancel"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
                     onDeleteQuestion(question.id);
                   }
                 }}
-                className="bg-red-700 text-white px-2 py-1 rounded"
+                size="sm"
               >
-                Delete Question
-              </button>
+                Delete
+              </Button>
             )}
             {isAdmin && onMakeQuestionOpen && !question.is_open && (
-              <button 
+              <Button 
+                type="Submit"
                 onClick={(e) => {
                   e.stopPropagation();
                   onMakeQuestionOpen(question.id);
                 }}
-                className="bg-green-500 text-white px-2 py-1 rounded mr-2"
+                className="mr-2"
+                size="sm"
               >
-                Make Open
-              </button>
+                Make Public
+              </Button>
             )}
           </div>
         </div>

@@ -4,6 +4,9 @@ import QuestionTable from '../components/QuestionTable';
 import QuestionCard from '../components/QuestionCard';
 import Filter from '../components/Filter';
 import { useNavigate } from 'react-router-dom';
+import { Menu, Transition } from '@headlessui/react';
+import { ChevronDownIcon } from '@heroicons/react/20/solid';
+import Button from '../components/Button';  // Import the Button component
 
 const Questions = () => {
   const [questions, setQuestions] = useState([]);
@@ -12,6 +15,7 @@ const Questions = () => {
   const [filters, setFilters] = useState({ category: '', is_open: '' });
   const navigate = useNavigate();
   const [userOrganizationId, setUserOrganizationId] = useState(null);
+  const [groupBy, setGroupBy] = useState(null);
 
   useEffect(() => {
     const fetchUserOrganization = async () => {
@@ -85,26 +89,78 @@ const Questions = () => {
     navigate(`/questions/${questionId}`);
   };
 
+  const GroupingMenu = () => (
+    <Menu as="div" className="relative inline-block text-left">
+      <div>
+        <Menu.Button className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
+          Group by
+          <ChevronDownIcon className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
+        </Menu.Button>
+      </div>
+      <Transition
+        as={React.Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+          <div className="py-1">
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={() => setGroupBy(null)}
+                  className={`${
+                    active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                  } block px-4 py-2 text-sm w-full text-left`}
+                >
+                  None
+                </button>
+              )}
+            </Menu.Item>
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={() => setGroupBy('category')}
+                  className={`${
+                    active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                  } block px-4 py-2 text-sm w-full text-left`}
+                >
+                  Category
+                </button>
+              )}
+            </Menu.Item>
+          </div>
+        </Menu.Items>
+      </Transition>
+    </Menu>
+  );
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8">Questions</h1>
       <Filter filters={filters} setFilters={setFilters} />
       <div className="flex flex-col sm:flex-row justify-end mb-4">
-        <div className="mb-4 sm:mb-0">
-          <button 
+        <div className="mb-4 sm:mb-0 flex space-x-4">
+          <GroupingMenu />
+          <Button 
+            type="ChangeView"
             onClick={() => setViewMode('table')} 
-            className={`px-4 py-2 ${viewMode === 'table' ? 'bg-blue-900 rounded-lg font-bold text-white p-2' : 'bg-gray-300 rounded-lg font-bold text-white p-2'} transition`} 
-            aria-pressed={viewMode === 'table'}
+            active={viewMode === 'table'}
+            className="p-2"
           >
             Table View
-          </button>
-          <button 
+          </Button>
+          <Button 
+            type="ChangeView"
             onClick={() => setViewMode('cards')} 
-            className={`ml-0 sm:ml-2 mt-2 sm:mt-0 px-4 py-2 ${viewMode === 'cards' ? 'bg-blue-900 rounded-lg font-bold text-white p-2' : 'bg-gray-300 rounded-lg font-bold text-white p-2'} transition`} 
-            aria-pressed={viewMode === 'cards'}
+            active={viewMode === 'cards'}
+            className="p-2"
           >
             Card View
-          </button>
+          </Button>
         </div>
       </div>
       {viewMode === 'table' ? (
@@ -112,6 +168,7 @@ const Questions = () => {
           <QuestionTable 
             questions={filteredQuestions} 
             onQuestionClick={handleQuestionClick}
+            groupBy={groupBy}
           />
         </div>
       ) : (

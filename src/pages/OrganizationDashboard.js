@@ -1,6 +1,6 @@
 // src/pages/OrganizationDashboard.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import {
@@ -25,30 +25,54 @@ import {
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import { v4 as uuidv4 } from 'uuid';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import QuestionTable from '../components/QuestionTable';
 import QuestionCard from '../components/QuestionCard';
 import OrganizationKanban from '../components/OrganizationKanban';
+import CustomButton from '../components/Button';
 
-// Add this near the top of the file, after the imports
+
+
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
 const OrganizationDashboard = () => {
   const { session } = useAuth();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrganization, setSelectedOrganization] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);  // New state to track admin status
+  const [isAdmin, setIsAdmin] = useState(false);  
   const [members, setMembers] = useState([]);
   const [emailToInvite, setEmailToInvite] = useState('');
   const [organizationQuestions, setOrganizationQuestions] = useState([]);
   const [openQuestions, setOpenQuestions] = useState([]);
   const [viewMode, setViewMode] = useState('cards');
   const [showMembers, setShowMembers] = useState(false);
-  const navigate = useNavigate();
   const [sortBy, setSortBy] = useState('manual_rank'); // 'manual_rank' or 'elo_score'
   const [sortedQuestions, setSortedQuestions] = useState([]);
   const [showOrgSelector, setShowOrgSelector] = useState(false);
   const [questions, setQuestions] = useState({});
+  const navigate = useNavigate();
+  const location = useLocation(); 
+
+  const handleOrganizationSelect = useCallback(async (org) => {
+    setSelectedOrganization(org);
+    setIsAdmin(org.organization_users[0].role === 'admin');
+    setShowOrgSelector(false);
+    await fetchMembers(org.id);
+    await fetchQuestions(org.id);
+  }, []); 
+  
+  useEffect(() => {
+    if (location.state?.viewMode) {
+      setViewMode(location.state.viewMode);
+    }
+    if (location.state?.organizationId) {
+      const org = organizations.find(org => org.id === location.state.organizationId);
+      if (org) {
+        handleOrganizationSelect(org);
+      }
+    }
+  }, [location.state, organizations, handleOrganizationSelect]);
+  
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -292,7 +316,13 @@ const OrganizationDashboard = () => {
   };
 
   const handleQuestionClick = (id) => {
-    navigate(`/questions/${id}`);
+    navigate(`/questions/${id}`, {
+      state: {
+        previousPath: `/organization/${selectedOrganization.id}`,
+        viewMode: viewMode,
+        organizationId: selectedOrganization.id
+      }
+    });
   };
 
   const handleAddToOrganization = async (questionId) => {
@@ -534,13 +564,7 @@ const OrganizationDashboard = () => {
     setSortBy(prevSortBy => prevSortBy === 'manual_rank' ? 'elo_score' : 'manual_rank');
   };
 
-  const handleOrganizationSelect = async (org) => {
-    setSelectedOrganization(org);
-    setIsAdmin(org.organization_users[0].role === 'admin');
-    setShowOrgSelector(false);
-    await fetchMembers(org.id);
-    await fetchQuestions(org.id);
-  };
+ 
 
   const OrganizationSelectorModal = ({ open, organizations, onSelect }) => {
     const COLUMN_COLORS = {
@@ -696,43 +720,46 @@ const OrganizationDashboard = () => {
           <div className="flex justify-between items-center mb-4">
             <Typography variant='h5'>Organization Questions</Typography>
             <div>
-              <button 
-                onClick={toggleSortBy} 
-                className={`px-4 py-2 rounded-lg font-bold text-white transition mr-2 ${
-                  sortBy === 'manual_rank' 
-                    ? 'bg-blue-600 hover:bg-blue-700' 
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
+              <CustomButton 
+                type="ChangeView"
+                onClick={toggleSortBy}
+                className="mr-2"
               >
                 {sortBy === 'manual_rank' ? 'Manual Rank' : 'ELO Score'}
-              </button>
-              <button 
-                onClick={() => setViewMode('table')} 
-                className={`px-4 py-2 ${viewMode === 'table' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
+              </CustomButton>
+              <CustomButton 
+                type="ChangeView"
+                onClick={() => setViewMode('table')}
+                active={viewMode === 'table'}
+                className="mr-2"
               >
                 Table View
-              </button>
-              <button 
-                onClick={() => setViewMode('cards')} 
-                className={`ml-2 px-4 py-2 ${viewMode === 'cards' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
+              </CustomButton>
+              <CustomButton 
+                type="ChangeView"
+                onClick={() => setViewMode('cards')}
+                active={viewMode === 'cards'}
+                className="mr-2"
               >
                 Card View
-              </button>
-              <button 
-                onClick={() => setViewMode('kanban')} 
-                className={`ml-2 px-4 py-2 ${viewMode === 'kanban' ? 'bg-blue-900 rounded-lg font-bold text-white' : 'bg-gray-300 rounded-lg font-bold text-white'} transition`}
+              </CustomButton>
+              <CustomButton 
+                type="ChangeView"
+                onClick={() => setViewMode('kanban')}
+                active={viewMode === 'kanban'}
+                className="mr-2"
               >
                 Kanban View
-              </button>
+              </CustomButton>
               <Link to={`/organization/${selectedOrganization.id}/elo-ranking`}>
-                <button className="ml-2 px-4 py-2 bg-green-600 rounded-lg font-bold text-white transition">
+                <CustomButton type="Action" className="mr-2">
                   ELO Ranking
-                </button>
+                </CustomButton>
               </Link>
               <Link to={`/organization/${selectedOrganization.id}/manual-ranking`}>
-                <button className="ml-2 px-4 py-2 bg-yellow-600 rounded-lg font-bold text-white transition">
+                <CustomButton type="Action">
                   Manual Ranking
-                </button>
+                </CustomButton>
               </Link>
             </div>
           </div>
