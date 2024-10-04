@@ -96,6 +96,41 @@ const OrganizationELORanking = () => {
     }
   };
 
+  const getItemStyle = (index, questionsLength) => {
+    if (index === 0) {
+      return {
+        backgroundColor: '#e6f7ff',
+        border: '2px solid #1890ff',
+        borderRadius: '4px',
+        padding: '1rem',
+        marginBottom: '0.5rem',
+      };
+    } else if (index === 1) {
+      return {
+        backgroundColor: '#f0f7ff',
+        border: '1px solid #69c0ff',
+        borderRadius: '4px',
+        padding: '1rem',
+        marginBottom: '0.5rem',
+      };
+    } else if (index === questionsLength - 1) {
+      return {
+        backgroundColor: '#fff7e6',
+        border: '1px solid #ffd591',
+        borderRadius: '4px',
+        padding: '1rem',
+        marginBottom: '0.5rem',
+      };
+    } else {
+      return {
+        backgroundColor: 'white',
+        borderRadius: '4px',
+        padding: '1rem',
+        marginBottom: '0.5rem',
+      };
+    }
+  };
+
   return (
     <Container maxWidth="md">
       <Typography variant="h4" component="h1" gutterBottom>
@@ -107,7 +142,11 @@ const OrganizationELORanking = () => {
       <DragDropContext onDragEnd={handleOnDragEnd}>
         <Droppable droppableId="questions">
           {(provided) => (
-            <List {...provided.droppableProps} ref={provided.innerRef}>
+            <List 
+              {...provided.droppableProps} 
+              ref={provided.innerRef}
+              style={{ backgroundColor: '#f0f0f0', padding: '1rem' }}
+            >
               {questions.map((question, index) => (
                 <Draggable key={question.id} draggableId={question.id} index={index}>
                   {(provided) => (
@@ -117,13 +156,50 @@ const OrganizationELORanking = () => {
                       {...provided.dragHandleProps}
                       style={{
                         ...provided.draggableProps.style,
-                        marginBottom: '8px',
-                        backgroundColor: 'white',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
+                        ...getItemStyle(index, questions.length),
                       }}
                     >
-                      <ListItemText primary={question.content} />
+                      <ListItemText 
+                        primary={
+                          <Typography
+                            variant="body1"
+                            style={{ 
+                              fontWeight: index === 0 ? 'bold' : index === 1 ? '500' : 'normal',
+                              color: index === 0 ? '#1890ff' : index === 1 ? '#69c0ff' : 'inherit'
+                            }}
+                          >
+                            {question.content}
+                          </Typography>
+                        }
+                        secondary={
+                          <>
+                            {index === 0 && (
+                              <Typography
+                                variant="caption"
+                                style={{ color: '#1890ff', marginTop: '0.5rem' }}
+                              >
+                                Most Important
+                              </Typography>
+                            )}
+                            {index === 1 && (
+                              <Typography
+                                variant="caption"
+                                style={{ color: '#69c0ff', marginTop: '0.5rem' }}
+                              >
+                                Second Most Important
+                              </Typography>
+                            )}
+                            {index === questions.length - 1 && (
+                              <Typography
+                                variant="caption"
+                                style={{ color: '#ffa940', marginTop: '0.5rem' }}
+                              >
+                                Least Important
+                              </Typography>
+                            )}
+                          </>
+                        }
+                      />
                     </ListItem>
                   )}
                 </Draggable>
@@ -137,7 +213,7 @@ const OrganizationELORanking = () => {
         variant="contained"
         color="primary"
         onClick={handleSubmitRanking}
-        style={{ marginTop: '16px' }}
+        style={{ marginTop: '1rem' }}
       >
         Submit Ranking
       </Button>
