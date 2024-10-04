@@ -130,8 +130,19 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
       role="button"
       aria-label={`Question: ${question.content}`}
     >
-      <div className="bg-blue-900 font-bold text-xl mb-2 text-white p-4 flex-grow">
-        {question.content}
+      <div className="bg-pink-700 font-bold text-lg text-white p-2"></div>
+      <div className='font-bold text-xl text-slate-900 p-4 slate-900'>
+        Question:
+      </div>
+      <div className="font-semibold text-xl text-slate-900 p-4 flex-grow">
+       {question.content}
+      </div>
+      <div className='font-bold text-lg text-slate-900 p-4 slate-900'>
+        What we could do with an answer:
+      </div>
+      <div className=" font-semibold text-l mb-2 text-slate-900 p-4 flex-grow">
+
+       {question.answer}
       </div>
       <div className="px-4 py-2">
         <p className="text-gray-700 text-sm mb-2">
@@ -139,7 +150,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
         </p>
         <div className="flex flex-wrap gap-2 mt-auto">
           <ColorTag category={question.category} />
-          <ColorTag category={question.is_open ? 'Open' : 'Closed'} />
+          <ColorTag category={question.is_open ? 'Public' : 'Private'} />
           {question.kanban_status && (
             <div ref={statusChipRef}>
               <StatusChip 
