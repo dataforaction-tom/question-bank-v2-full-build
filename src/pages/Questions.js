@@ -46,7 +46,7 @@ const Questions = () => {
           responses:responses(count)
         `)
         .eq('is_open', true)  // This ensures we only fetch open questions
-        .order('priority_score', { ascending: false });
+        .order('priority_score', { ascending: false });  // Sort by priority_score descending
 
       if (userOrganizationId) {
         // This allows fetching closed questions for the user's organization
@@ -76,9 +76,9 @@ const Questions = () => {
   useEffect(() => {
     const filterQuestions = () => {
       const { category } = filters;
-      const filtered = questions.filter(question => {
-        return category ? question.category === category : true;
-      });
+      const filtered = questions
+        .filter(question => category ? question.category === category : true)
+        .sort((a, b) => b.priority_score - a.priority_score);  // Ensure filtered questions are also sorted
       setFilteredQuestions(filtered);
     };
 

@@ -37,6 +37,9 @@ module.exports = {
           400: '#953A6A',
         }
       },
+      fontFamily: {
+        sans: ['Figtree', 'sans-serif'],
+      },
     },
   },
   plugins: [],

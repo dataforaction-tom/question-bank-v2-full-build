@@ -79,12 +79,22 @@ const QuestionRanking = ({ open, onClose, onSubmit }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Rank the Questions</DialogTitle>
+      <div className='flex flex-col items-center justify-center'>
+      <DialogTitle style={{ backgroundColor: '#020617', color: 'white'}} variant='h4'>Community priority ranking</DialogTitle>
+      </div>
       <DialogContent>
-        <Typography variant='body1' gutterBottom>
-          Drag and drop the questions to rank them from most important (top) to
-          least important (bottom).
+        <div className='flex flex-col items-center justify-center'>
+        <Typography style={{ fontWeight: 600 }} variant='h6' gutterBottom>
+          We want to know which questions are most important to you. 
         </Typography>
+        </div>
+        <Typography variant='body1' gutterBottom>
+          Our priorities are crowd sourced from everyone who uses the app. By providing a ranking you are helping us to understand which questions are most important, so we can focus our efforts on these. 
+        </Typography>
+        <Typography variant='subtitle1' gutterBottom>
+          Drag and drop the questions to rank them from most important (top) to least important (bottom).
+        </Typography>
+       
         <DragDropContext onDragEnd={handleOnDragEnd}>
           <Droppable droppableId='questions'>
             {(provided) => (
@@ -120,6 +130,7 @@ const QuestionRanking = ({ open, onClose, onSubmit }) => {
             )}
           </Droppable>
         </DragDropContext>
+        
         <Button
           variant='contained'
           color='primary'

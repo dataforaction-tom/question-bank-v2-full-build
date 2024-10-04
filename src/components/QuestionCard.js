@@ -145,9 +145,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
        {question.answer}
       </div>
       <div className="px-4 py-2">
-        <p className="text-gray-700 text-sm mb-2">
-          <i className="fas fa-calendar-alt" aria-hidden="true"></i> {new Date(question.created_at).toLocaleDateString()}
-        </p>
+        
         <div className="flex flex-wrap gap-2 mt-auto">
           <ColorTag category={question.category} />
           <ColorTag category={question.is_open ? 'Public' : 'Private'} />
