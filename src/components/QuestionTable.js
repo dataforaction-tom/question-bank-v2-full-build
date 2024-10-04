@@ -4,6 +4,7 @@ import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-tabl
 import ColorTag from './ColorTag';
 import { createPortal } from 'react-dom';
 import styled from '@emotion/styled';
+import Button from './Button';  // Import the Button component
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -63,6 +64,7 @@ const QuestionTable = ({
   const [focusedIndex, setFocusedIndex] = useState(0);
   const dropdownRef = useRef(null);
   const itemRefs = useRef([]);
+  const [selectedRows, setSelectedRows] = useState({});
 
   const handleQuestionClick = (questionId) => {
     if (onQuestionClick) {
@@ -172,7 +174,7 @@ const QuestionTable = ({
     {
       accessorKey: 'is_open',
       header: 'Status',
-      cell: info => <ColorTag category={info.getValue() ? 'Open' : 'Closed'} />,
+      cell: info => <ColorTag category={info.getValue() ? 'Public' : 'Private'} />,
     },
     ...(isOrganizationQuestion ? [
       {
@@ -204,50 +206,57 @@ const QuestionTable = ({
       cell: ({ row }) => (
         <>
           {onAddToOrganization && (
-            <button 
+            <Button 
+              type="Action"
               onClick={(e) => {
                 e.stopPropagation();
                 onAddToOrganization(row.original.id);
               }}
-              className="bg-blue-500 text-white px-2 py-1 rounded mr-2"
+              className="mr-2"
+              size="sm"
             >
-              Add to Org
-            </button>
+              Add
+            </Button>
           )}
           {onRemoveFromOrganization && row.original.is_direct === false && (
-            <button 
+            <Button 
+              type="Cancel"
               onClick={(e) => {
                 e.stopPropagation();
                 onRemoveFromOrganization(row.original.id);
               }}
-              className="bg-red-500 text-white px-2 py-1 rounded mr-2"
+              className="mr-2"
+              size="sm"
             >
-              Remove from Org
-            </button>
+              Remove
+            </Button>
           )}
           {onDeleteQuestion && row.original.is_direct && (
-            <button 
+            <Button 
+              type="Cancel"
               onClick={(e) => {
                 e.stopPropagation();
                 if (window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
                   onDeleteQuestion(row.original.id);
                 }
               }}
-              className="bg-red-700 text-white px-2 py-1 rounded"
+              size="sm"
             >
-              Delete Question
-            </button>
+              Delete
+            </Button>
           )}
           {isAdmin && onMakeQuestionOpen && !row.original.is_open && (
-            <button 
+            <Button 
+              type="Submit"
               onClick={(e) => {
                 e.stopPropagation();
                 onMakeQuestionOpen(row.original.id);
               }}
-              className="bg-green-500 text-white px-2 py-1 rounded mr-2"
+              className="mr-2"
+              size="sm"
             >
-              Make Open
-            </button>
+              Make Public
+            </Button>
           )}
         </>
       ),
@@ -266,7 +275,7 @@ const QuestionTable = ({
         <table className="min-w-full bg-white shadow-md rounded border border-gray-300">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id} className="bg-blue-900 text-white text-xl">
+              <tr key={headerGroup.id} className="bg-gradient-to-r from-slate-950 to-sky-950 text-white text-xl">
                 {headerGroup.headers.map(header => (
                   <th key={header.id} className="px-4 py-2 border">
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -326,4 +335,4 @@ const QuestionTable = ({
   );
 };
 
-export default QuestionTable; 
+export default QuestionTable;

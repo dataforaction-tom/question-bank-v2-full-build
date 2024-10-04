@@ -130,7 +130,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
       role="button"
       aria-label={`Question: ${question.content}`}
     >
-      <div className="bg-pink-700 font-bold text-lg text-white p-2"></div>
+      <div className="bg-pink-400 font-bold text-lg text-white p-2"></div>
       <div className='font-bold text-xl text-slate-900 p-4 slate-900'>
         Question:
       </div>

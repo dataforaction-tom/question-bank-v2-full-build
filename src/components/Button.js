@@ -2,10 +2,10 @@ import React from 'react';
 
 const buttonTypes = {
   Action: 'bg-blue-600 hover:bg-blue-700 text-white',
-  ChangeView: 'bg-purple-600 hover:bg-purple-700 text-white',
+  ChangeView: 'bg-pink-700 hover:bg-pink-700 text-white',
   Submit: 'bg-green-600 hover:bg-green-700 text-white',
   Confirm: 'bg-yellow-600 hover:bg-yellow-700 text-black',
-  Cancel: 'bg-pink-600 hover:bg-pink-700 text-white',
+  Cancel: 'bg-red-600 hover:bg-red-700 text-white',
 };
 
 const Button = ({ 
@@ -25,7 +25,7 @@ const Button = ({
   const baseClasses = 'font-bold rounded transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-opacity-50';
   const typeClasses = buttonTypes[type];
   const sizeClass = sizeClasses[size];
-  const activeClass = !active ? 'bg-opacity-50' : '';
+  const activeClass = !active ? 'bg-opacity-80 bg-slate-300' : '';
 
   const finalClassName = `${baseClasses} ${typeClasses} ${sizeClass} ${activeClass} ${className}`;
   
