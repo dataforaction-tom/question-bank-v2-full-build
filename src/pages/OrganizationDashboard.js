@@ -30,6 +30,8 @@ import QuestionTable from '../components/QuestionTable';
 import QuestionCard from '../components/QuestionCard';
 import OrganizationKanban from '../components/OrganizationKanban';
 import CustomButton from '../components/Button';
+import MenuIcon from '@mui/icons-material/Menu';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 
 
@@ -52,6 +54,7 @@ const OrganizationDashboard = () => {
   const [questions, setQuestions] = useState({});
   const navigate = useNavigate();
   const location = useLocation(); 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const handleOrganizationSelect = useCallback(async (org) => {
     setSelectedOrganization(org);
@@ -564,7 +567,9 @@ const OrganizationDashboard = () => {
     setSortBy(prevSortBy => prevSortBy === 'manual_rank' ? 'elo_score' : 'manual_rank');
   };
 
- 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   const OrganizationSelectorModal = ({ open, organizations, onSelect }) => {
     const COLUMN_COLORS = {
@@ -634,161 +639,178 @@ const OrganizationDashboard = () => {
   };
 
   return (
-    <Container>
-      <OrganizationSelectorModal
-        open={showOrgSelector}
-        organizations={organizations}
-        onSelect={handleOrganizationSelect}
-      />
-      {selectedOrganization && (
-        <>
-          <Typography variant='h4'>{selectedOrganization.name} Dashboard</Typography>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={toggleMembersSection} 
-            style={{ marginTop: '1rem', marginBottom: '1rem' }}
+    <div className="flex">
+      {/* Sidebar */}
+      <div className={`bg-gray-100 h-screen fixed left-0 top-0 overflow-y-auto transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
+        <div className="flex justify-between items-center p-4">
+          {sidebarOpen && <Typography variant="h6">View Options</Typography>}
+          <button onClick={toggleSidebar} className="p-2 rounded-full hover:bg-gray-200">
+            {sidebarOpen ? <ChevronLeftIcon /> : <MenuIcon />}
+          </button>
+        </div>
+        <div className={`flex flex-col space-y-2 ${sidebarOpen ? 'px-4' : 'px-2'}`}>
+          <CustomButton 
+            type="ChangeView"
+            onClick={toggleSortBy}
+            className="w-full"
           >
-            {showMembers ? 'Hide Members' : 'Show Members'}
-          </Button>
+            {sidebarOpen ? (sortBy === 'manual_rank' ? 'Manual Rank' : 'ELO Score') : 'S'}
+          </CustomButton>
+          <CustomButton 
+            type="ChangeView"
+            onClick={() => setViewMode('table')}
+            active={viewMode === 'table'}
+            className="w-full"
+          >
+            {sidebarOpen ? 'Table View' : 'T'}
+          </CustomButton>
+          <CustomButton 
+            type="ChangeView"
+            onClick={() => setViewMode('cards')}
+            active={viewMode === 'cards'}
+            className="w-full"
+          >
+            {sidebarOpen ? 'Card View' : 'C'}
+          </CustomButton>
+          <CustomButton 
+            type="ChangeView"
+            onClick={() => setViewMode('kanban')}
+            active={viewMode === 'kanban'}
+            className="w-full"
+          >
+            {sidebarOpen ? 'Kanban View' : 'K'}
+          </CustomButton>
+          <Link to={`/organization/${selectedOrganization?.id}/elo-ranking`} className="w-full">
+            <CustomButton type="Action" className="w-full">
+              {sidebarOpen ? 'ELO Ranking' : 'E'}
+            </CustomButton>
+          </Link>
+          <Link to={`/organization/${selectedOrganization?.id}/manual-ranking`} className="w-full">
+            <CustomButton type="Action" className="w-full">
+              {sidebarOpen ? 'Manual Ranking' : 'M'}
+            </CustomButton>
+          </Link>
+        </div>
+      </div>
 
-          {showMembers && (
+      {/* Main Content */}
+      <div className={`flex-grow transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'} p-8`}>
+        <Container maxWidth="xl">
+          <OrganizationSelectorModal
+            open={showOrgSelector}
+            organizations={organizations}
+            onSelect={handleOrganizationSelect}
+          />
+          {selectedOrganization && (
             <>
-              <Typography variant='h6'>Members:</Typography>
-              <List>
-                {members.map((member) => {
-                  const user = member.users;
-                  const name = user ? user.name || user.email : 'Unknown User';
-                  const bio = user ? user.bio : null;
-                  const isLastAdmin = members.filter(m => m.role === 'admin').length === 1 && member.role === 'admin';
-
-                  return (
-                    <ListItem key={member.id}>
-                      <ListItemText
-                        primary={name}
-                        secondary={
-                          <>
-                            <Typography component='span' variant='body2' color='textPrimary'>
-                              Role: {member.role}
-                            </Typography>
-                            {bio && (
-                              <>
-                                {' - '}
-                                <Typography component='span' variant='body2' color='textSecondary'>
-                                  {bio}
-                                </Typography>
-                              </>
-                            )}
-                          </>
-                        }
-                      />
-                      {isAdmin && member.user_id !== session.user.id && (
-                        <FormControl variant='outlined' size='small' style={{ minWidth: 120 }}>
-                          <InputLabel>Role</InputLabel>
-                          <Select
-                            value={member.role}
-                            onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                            label='Role'
-                            disabled={isLastAdmin}
-                          >
-                            <MenuItem value='member'>Member</MenuItem>
-                            <MenuItem value='admin'>Admin</MenuItem>
-                          </Select>
-                        </FormControl>
-                      )}
-                    </ListItem>
-                  );
-                })}
-              </List>
-              <Typography variant='h6' style={{ marginTop: '2rem' }}>
-                Invite a User:
-              </Typography>
-              <TextField
-                label='Invite User by Email'
-                value={emailToInvite}
-                onChange={(e) => setEmailToInvite(e.target.value)}
-                fullWidth
-                style={{ marginBottom: '1rem' }}
-              />
-              <Button variant='contained' color='primary' onClick={handleInvite}>
-                Invite User
+              <Typography variant='h4'>{selectedOrganization.name} Dashboard</Typography>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={toggleMembersSection} 
+                style={{ marginTop: '1rem', marginBottom: '1rem' }}
+              >
+                {showMembers ? 'Hide Members' : 'Show Members'}
               </Button>
-            </>
-          )}
 
-          <Divider style={{ margin: '2rem 0' }} />
-          <div className="flex justify-between items-center mb-4">
-            <Typography variant='h5'>Organization Questions</Typography>
-            <div>
-              <CustomButton 
-                type="ChangeView"
-                onClick={toggleSortBy}
-                className="mr-2"
-              >
-                {sortBy === 'manual_rank' ? 'Manual Rank' : 'ELO Score'}
-              </CustomButton>
-              <CustomButton 
-                type="ChangeView"
-                onClick={() => setViewMode('table')}
-                active={viewMode === 'table'}
-                className="mr-2"
-              >
-                Table View
-              </CustomButton>
-              <CustomButton 
-                type="ChangeView"
-                onClick={() => setViewMode('cards')}
-                active={viewMode === 'cards'}
-                className="mr-2"
-              >
-                Card View
-              </CustomButton>
-              <CustomButton 
-                type="ChangeView"
-                onClick={() => setViewMode('kanban')}
-                active={viewMode === 'kanban'}
-                className="mr-2"
-              >
-                Kanban View
-              </CustomButton>
-              <Link to={`/organization/${selectedOrganization.id}/elo-ranking`}>
-                <CustomButton type="Action" className="mr-2">
-                  ELO Ranking
-                </CustomButton>
-              </Link>
-              <Link to={`/organization/${selectedOrganization.id}/manual-ranking`}>
-                <CustomButton type="Action">
-                  Manual Ranking
-                </CustomButton>
-              </Link>
-            </div>
+              {showMembers && (
+                <>
+                  <Typography variant='h6'>Members:</Typography>
+                  <List>
+                    {members.map((member) => {
+                      const user = member.users;
+                      const name = user ? user.name || user.email : 'Unknown User';
+                      const bio = user ? user.bio : null;
+                      const isLastAdmin = members.filter(m => m.role === 'admin').length === 1 && member.role === 'admin';
+
+                      return (
+                        <ListItem key={member.id}>
+                          <ListItemText
+                            primary={name}
+                            secondary={
+                              <>
+                                <Typography component='span' variant='body2' color='textPrimary'>
+                                  Role: {member.role}
+                                </Typography>
+                                {bio && (
+                                  <>
+                                    {' - '}
+                                    <Typography component='span' variant='body2' color='textSecondary'>
+                                      {bio}
+                                    </Typography>
+                                  </>
+                                )}
+                              </>
+                            }
+                          />
+                          {isAdmin && member.user_id !== session.user.id && (
+                            <FormControl variant='outlined' size='small' style={{ minWidth: 120 }}>
+                              <InputLabel>Role</InputLabel>
+                              <Select
+                                value={member.role}
+                                onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                                label='Role'
+                                disabled={isLastAdmin}
+                              >
+                                <MenuItem value='member'>Member</MenuItem>
+                                <MenuItem value='admin'>Admin</MenuItem>
+                              </Select>
+                            </FormControl>
+                          )}
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                  <Typography variant='h6' style={{ marginTop: '2rem' }}>
+                    Invite a User:
+                  </Typography>
+                  <TextField
+                    label='Invite User by Email'
+                    value={emailToInvite}
+                    onChange={(e) => setEmailToInvite(e.target.value)}
+                    fullWidth
+                    style={{ marginBottom: '1rem' }}
+                  />
+                  <Button variant='contained' color='primary' onClick={handleInvite}>
+                    Invite User
+                  </Button>
+                </>
+              )}
+
+<Divider style={{ margin: '2rem 0' }} />
+                <div className="mb-4">
+                  <Typography style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }} variant='h5'>Group Questions</Typography>
+                </div>
+                {viewMode === 'kanban' ? (
+                  <OrganizationKanban 
+                    organizationId={selectedOrganization.id}
+                    questions={questions}
+                    setQuestions={setQuestions}
+                  />
+                ) : (
+                  <>
+                    {renderQuestions(sortedQuestions, true)}
+                    {organizationQuestions.length === 0 && (
+                      <Typography variant='body1'>No questions found for this group.</Typography>
+                    )}
+                    
+                    <Divider style={{ margin: '2rem 0', backgroundColor: '#075985' }} />
+                    <Typography variant='h5' style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }}>
+                      Public Questions
+                    </Typography>
+                    {renderQuestions(openQuestions)}
+                    {openQuestions.length === 0 && (
+                      <Typography variant='body1'>No open questions available.</Typography>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+            </Container>
           </div>
-          {viewMode === 'kanban' ? (
-            <OrganizationKanban 
-              organizationId={selectedOrganization.id}
-              questions={questions}
-              setQuestions={setQuestions}
-            />
-          ) : (
-            <>
-              {renderQuestions(sortedQuestions, true)}
-              {organizationQuestions.length === 0 && (
-                <Typography variant='body1'>No questions found for this organization.</Typography>
-              )}
-              <Divider style={{ margin: '2rem 0' }} />
-              <Typography variant='h5' style={{ marginBottom: '1rem' }}>
-                Open Questions
-              </Typography>
-              {renderQuestions(openQuestions)}
-              {openQuestions.length === 0 && (
-                <Typography variant='body1'>No open questions available.</Typography>
-              )}
-            </>
-          )}
-        </>
-      )}
-    </Container>
-  );
+        </div>
+      
+    );
 };
 
 export default OrganizationDashboard;
