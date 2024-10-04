@@ -480,7 +480,7 @@ const OrganizationDashboard = () => {
 
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
     const displayQuestions = isOrganizationQuestion ? sortedQuestions : questions;
-    console.log('Display questions:', displayQuestions);
+    
   
     switch (viewMode) {
       case 'table':
@@ -493,7 +493,7 @@ const OrganizationDashboard = () => {
             onDeleteQuestion={isAdmin && isOrganizationQuestion ? handleDeleteDirectQuestion : null}
             onMakeQuestionOpen={isAdmin && isOrganizationQuestion ? handleMakeQuestionOpen : null}
             isAdmin={isAdmin}
-            sortBy={isOrganizationQuestion ? sortBy : 'priority_score'}
+            sortBy={isOrganizationQuestion ? sortBy : 'elo_score'}
             onSortChange={isOrganizationQuestion ? setSortBy : null}
             isOrganizationQuestion={isOrganizationQuestion}
             onUpdateKanbanStatus={handleUpdateKanbanStatus}
@@ -504,7 +504,7 @@ const OrganizationDashboard = () => {
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {displayQuestions.map(question => {
-              console.log('Question being passed to QuestionCard:', question);
+              
               return (
                 <QuestionCard 
                   key={question.id} 
@@ -556,7 +556,7 @@ const OrganizationDashboard = () => {
       }
     });
   
-    console.log('Sorted questions:', sorted);
+    
     setSortedQuestions(sorted);
   };
 

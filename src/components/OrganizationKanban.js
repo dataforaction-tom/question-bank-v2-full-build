@@ -43,16 +43,18 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
           manual_rank,
           kanban_status,
           kanban_order,
-          questions (id, content, priority_score, organization_id, category)
+          elo_score,
+          questions (id, content, organization_id, category)
         `)
         .eq('organization_id', organizationId);
+        console.log(rankingsData);
 
       if (rankingsError) throw rankingsError;
 
       // Fetch questions directly associated with the organization
       const { data: directQuestions, error: directError } = await supabase
         .from('questions')
-        .select('id, content, priority_score, category')
+        .select('id, content, category')
         .eq('organization_id', organizationId);
 
       if (directError) throw directError;
@@ -62,7 +64,7 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
         ...rankingsData.map(item => ({
           id: item.question_id,
           content: item.questions.content,
-          priority_score: item.questions.priority_score,
+          elo_score: item.elo_score,
           status: item.kanban_status || 'Now',
           order_in_status: item.kanban_order || 0,
           manual_rank: item.manual_rank,
@@ -71,7 +73,7 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
         ...directQuestions.map(q => ({
           id: q.id,
           content: q.content,
-          priority_score: q.priority_score,
+          elo_score: 1500, // Default ELO score for new questions
           status: 'Now',
           order_in_status: 0,
           manual_rank: 0,
@@ -95,7 +97,7 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
           if (sortBy === 'manual_rank') {
             return (b.manual_rank || 0) - (a.manual_rank || 0);
           } else {
-            return (b.priority_score || 0) - (a.priority_score || 0);
+            return (b.elo_score || 0) - (a.elo_score || 0);
           }
         });
       });
@@ -155,10 +157,10 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
     <Container maxWidth="xl" sx={{ backgroundColor: '#1f1d1e', minHeight: '100vh', py: 4 }}>
       <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>Organization Kanban Board</Typography>
       <Button 
-        onClick={() => setSortBy(sortBy === 'manual_rank' ? 'priority_score' : 'manual_rank')}
+        onClick={() => setSortBy(sortBy === 'manual_rank' ? 'elo_score' : 'manual_rank')}
         sx={{ mb: 2, backgroundColor: 'white', color: 'black' }}
       >
-        Sort by: {sortBy === 'manual_rank' ? 'Manual Rank' : 'Priority Score'}
+        Sort by: {sortBy === 'manual_rank' ? 'Manual Rank' : 'Elo Score'}
       </Button>
       <DragDropContext onDragEnd={onDragEnd}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
@@ -212,7 +214,7 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
                                 {question.category && <ColorTag category={question.category} />}
                                 <Typography variant="caption">
-                                  {sortBy === 'manual_rank' ? `Rank: ${question.manual_rank || 'N/A'}` : `Score: ${question.priority_score || 'N/A'}`}
+                                  {sortBy === 'manual_rank' ? `Rank: ${question.manual_rank || 'N/A'}` : `Score: ${question.elo_score || 'N/A'}`}
                                 </Typography>
                               </Box>
                             </CardContent>

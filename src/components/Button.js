@@ -29,8 +29,7 @@ const Button = ({
 
   const finalClassName = `${baseClasses} ${typeClasses} ${sizeClass} ${activeClass} ${className}`;
   
-  // Log the final className
-  console.log('Button classes:', finalClassName);
+  
 
   return (
     <button

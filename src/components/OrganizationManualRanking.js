@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Container, Typography, Button, List, ListItem, ListItemText } from '@mui/material';
+import { Container, Typography, Button as MuiButton } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { colorMapping, defaultColors } from '../utils/colorMapping';
+import Button from '../components/Button';
 
 const OrganizationManualRanking = () => {
   const { organizationId } = useParams();
   const [questions, setQuestions] = useState([]);
   const [organization, setOrganization] = useState(null);
+  const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
 
   useEffect(() => {
     fetchOrganization();
@@ -132,6 +135,33 @@ const OrganizationManualRanking = () => {
     }
   };
 
+  const getColorForCategory = (category) => {
+    return colorMapping[category] || defaultColors[Math.floor(Math.random() * defaultColors.length)];
+  };
+
+  const QuestionCard = ({ question, index }) => {
+    const colors = getColorForCategory(question.category);
+    return (
+      <Draggable key={question.id} draggableId={question.id} index={index}>
+        {(provided) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            className="bg-white shadow-md rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 mb-4"
+          >
+            <div style={{ backgroundColor: colors.border }} className="h-2"></div>
+            <div className="p-4">
+              <h4 className="text-lg font-semibold mb-2 wrap">{question.content}</h4>
+              <p className="text-sm text-gray-600">Current Rank: {question.manual_rank || 'Not ranked'}</p>
+              <p className="text-sm text-gray-600">Category: {question.category}</p>
+            </div>
+          </div>
+        )}
+      </Draggable>
+    );
+  };
+
   return (
     <Container maxWidth="md">
       <Typography variant="h4" component="h1" gutterBottom>
@@ -140,56 +170,67 @@ const OrganizationManualRanking = () => {
       <Typography variant="body1" gutterBottom>
         Drag and drop the questions to set their manual ranking order.
       </Typography>
-      {questions.some(q => q.manual_rank === null) && (
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={applyInitialRanks}
-          style={{ marginBottom: '16px' }}
-        >
-          Apply Initial Ranks
-        </Button>
-      )}
+      
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          {questions.some(q => q.manual_rank === null) && (
+            <MuiButton
+              variant="contained"
+              color="secondary"
+              onClick={applyInitialRanks}
+            >
+              Apply Initial Ranks
+            </MuiButton>
+          )}
+        </div>
+        <div className="flex space-x-2">
+          
+        </div>
+      </div>
+
       <DragDropContext onDragEnd={handleOnDragEnd}>
         <Droppable droppableId="questions">
           {(provided) => (
-            <List {...provided.droppableProps} ref={provided.innerRef}>
-              {questions.map((question, index) => (
-                <Draggable key={question.id} draggableId={question.id} index={index}>
-                  {(provided) => (
-                    <ListItem
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      style={{
-                        ...provided.draggableProps.style,
-                        marginBottom: '8px',
-                        backgroundColor: 'white',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
-                      }}
-                    >
-                      <ListItemText 
-                        primary={question.content}
-                        secondary={`Current Rank: ${question.manual_rank || 'Not ranked'}`}
-                      />
-                    </ListItem>
-                  )}
-                </Draggable>
-              ))}
+            <div {...provided.droppableProps} ref={provided.innerRef}>
+              {viewMode === 'card' ? (
+                questions.map((question, index) => (
+                  <QuestionCard key={question.id} question={question} index={index} />
+                ))
+              ) : (
+                <ul className="space-y-2 bg-gray-100 rounded-lg p-4">
+                  {questions.map((question, index) => (
+                    <Draggable key={question.id} draggableId={question.id} index={index}>
+                      {(provided) => (
+                        <li
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="bg-white shadow rounded-lg p-3 hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                        >
+                          <p className="font-medium truncate">{question.content}</p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Current Rank: {question.manual_rank || 'Not ranked'}
+                          </p>
+                        </li>
+                      )}
+                    </Draggable>
+                  ))}
+                </ul>
+              )}
               {provided.placeholder}
-            </List>
+            </div>
           )}
         </Droppable>
       </DragDropContext>
-      <Button
+
+      <MuiButton
         variant="contained"
         color="primary"
         onClick={handleSubmitRanking}
         style={{ marginTop: '16px' }}
       >
         Save Ranking
-      </Button>
+      </MuiButton>
     </Container>
   );
 };

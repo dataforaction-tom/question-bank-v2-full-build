@@ -47,7 +47,7 @@ const DropdownItem = styled('div')(({ status, isFocused }) => ({
 }));
 
 const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion, onMakeQuestionOpen, isAdmin, onUpdateKanbanStatus }) => {
-  console.log('Question received in QuestionCard:', question);
+ 
   
   const [dropdownState, setDropdownState] = useState({ isOpen: false, position: null });
   const [focusedIndex, setFocusedIndex] = useState(0);
