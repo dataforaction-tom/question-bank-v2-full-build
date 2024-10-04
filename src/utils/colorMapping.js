@@ -8,7 +8,16 @@ const colorMapping = {
   Private: { bg: '#FEE2E2', border: '#EF4444', text: '#991B1B' },
   'High Priority': { bg: '#FEF3C7', border: '#F59E0B', text: '#92400E' },
   'Medium Priority': { bg: '#FFEDD5', border: '#F97316', text: '#9A3412' },
-  'Low Priority': { bg: '#DBEAFE', border: '#3B82F6', text: '#1E40AF' }
+  'Low Priority': { bg: '#DBEAFE', border: '#3B82F6', text: '#1E40AF' },
+  // Additional colors for new categories
+  Technology: { bg: '#FDF2F8', border: '#EC4899', text: '#9D174D' },
+  Finance: { bg: '#ECFDF5', border: '#10B981', text: '#065F46' },
+  Politics: { bg: '#EFF6FF', border: '#3B82F6', text: '#1E40AF' },
+  Science: { bg: '#F0FDFA', border: '#14B8A6', text: '#115E59' },
+  Culture: { bg: '#FDF4FF', border: '#A855F7', text: '#6B21A8' },
+  Sports: { bg: '#FEF2F2', border: '#EF4444', text: '#991B1B' },
+  Business: { bg: '#FFFBEB', border: '#F59E0B', text: '#92400E' },
+  'Uncategorized/General Inquiry': { bg: '#F5F3FF', border: '#8B5CF6', text: '#5B21B6' },
 };
 
 const defaultColors = [

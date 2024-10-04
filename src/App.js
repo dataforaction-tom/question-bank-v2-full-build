@@ -20,6 +20,7 @@ import './index.css';
 import OrganizationELORanking from './components/OrganizationELORanking';
 import OrganizationManualRanking from './components/OrganizationManualRanking';
 import QuestionRankingModal from './components/QuestionRankingModal';
+import QuestionOverview from './pages/QuestionOverview';
 
 const App = () => {
   const { session } = useAuth();
@@ -61,6 +62,7 @@ const App = () => {
           <Route path="/" element={<Navigate replace to="/questions" />} />
           
           <Route path="*" element={<Navigate replace to="/questions" />} />
+          <Route path="/question-overview" element={<QuestionOverview />} />
         </Routes>
         <QuestionRankingModal />
       </Router>
