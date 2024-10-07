@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import ColorTag from '../components/ColorTag';
+import Modal from '../components/Modal';
 import ResponseForm from '../components/ResponseForm';
 import ResponseList from '../components/ResponseList';
-import Modal from '../components/Modal';
-import { FaLinkedin, FaLink, FaEnvelope, FaThumbsUp, FaBell } from 'react-icons/fa';
-import ColorTag from '../components/ColorTag';
+import Button from '../components/Button';
+import { FaThumbsUp, FaBell, FaComment, FaLinkedin, FaLink, FaEnvelope } from 'react-icons/fa';
 import { styled } from '@mui/material';
 import { createPortal } from 'react-dom';
 
@@ -65,6 +66,18 @@ const QuestionDetail = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
+const location = useLocation();
+const { previousPath, viewMode, organizationId } = location.state || {};
+
+const handleGoBack = () => {
+  if (previousPath && previousPath.startsWith('/organization/')) {
+    navigate(previousPath, { state: { viewMode, organizationId } });
+  } else {
+    navigate('/questions');
+  }
+};
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -344,93 +357,106 @@ const QuestionDetail = () => {
   };
 
   return (
-    <div className="container mx-auto">
-      <div className="shadow-md shadow-blue-100 rounded pt-6">
-        <h1 className="bg-blue-900 rounded-lg font-bold text-4xl mb-2 text-white pl-2 pb-4 pt-4">{question.content}</h1>
-        <div className="flex items-center text-gray-700 mb-4 pl-4">
-          <i className="fas fa-calendar-alt mr-2" aria-hidden="true"></i> 
-          <span>{new Date(question.created_at).toLocaleDateString()}</span>
+    <div className="container mx-auto px-4 py-8">
+      
+      
+      <div className="shadow-md shadow-blue-100 rounded overflow-hidden">
+        <div className="bg-pink-700 font-bold text-lg text-white p-2"></div>
+        <div className='font-bold text-xl text-slate-900 p-4'>
+          Question:
         </div>
-        <div className="flex items-center mb-4 pl-4">
-          <span className="mr-4">SHARE:</span>
-          <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${currentUrl}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 text-2xl mr-2" aria-label="Share on LinkedIn">
-            <FaLinkedin />
-          </a>
-          <button onClick={handleCopyLink} className="text-gray-700 text-2xl mr-2" aria-label="Copy link">
-            <FaLink />
-          </button>
-          <a href={`mailto:?subject=Check out this question&body=Check out this question I found: ${currentUrl}`} className="text-green-600 text-2xl" aria-label="Share via email">
-            <FaEnvelope />
-          </a>
+        <h1 className="font-semibold text-xl text-slate-900 p-4">{question.content}</h1>
+        
+        <div className='font-bold text-lg text-slate-900 p-4'>
+          What we could do with an answer:
+        </div>
+        <div className="font-semibold text-l mb-2 text-slate-900 p-4">
+          {question.answer}
         </div>
         
-        <div className="text-slate-700 mb-8 pl-4">
-          {question.answer && (
-            <>
-              <h2 className="text-2xl font-bold mb-2">Answer</h2>
-              <p className="text-gray-700 text-base mb-4">{question.answer}</p>
-            </>
-          )}
-          {question.details && (
-            <>
-              <h2 className="text-2xl font-bold mb-2">Details</h2>
-              <p className="text-gray-700 text-base mb-4">{question.details}</p>
-            </>
-          )}
-        </div>
-        
-        <div className="flex flex-wrap gap-2 mb-8 py-4">
-          {question.category && <ColorTag category={question.category} variant="outlined" />}
-          <span className={`px-4 py-2 rounded-xl shadow-sm ${question.is_open ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`} aria-label={`Status: ${question.is_open ? 'Open' : 'Closed'}`}>
-            {question.is_open ? 'Open' : 'Closed'}
-          </span>
-          {question.kanban_status && (
-            <div ref={statusChipRef}>
-              <StatusChip 
-                status={question.kanban_status} 
-                onClick={handleStatusClick}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    handleStatusClick(e);
-                  }
-                }}
-              >
-                {question.kanban_status}
-              </StatusChip>
+        {question.details && (
+          <>
+            <div className='font-bold text-lg text-slate-900 p-4'>
+              Details:
             </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center mb-4 pl-4">
-        <button
-          onClick={handleEndorse}
-          className={`mr-4 flex items-center ${
-            isEndorsed ? 'text-blue-600' : 'text-gray-600'
-          }`}
-        >
-          <FaThumbsUp className="mr-2" />
-          Endorse ({endorsements})
-        </button>
-        <button
-          onClick={handleFollow}
-          className={`mr-4 flex items-center ${
-            isFollowing ? 'text-blue-600' : 'text-gray-600'
-          }`}
-        >
-          <FaBell className="mr-2" />
-          {isFollowing ? 'Following' : 'Follow'}
-        </button>
-      </div>
-
-      <button
+            <div className="font-semibold text-l mb-2 text-slate-900 p-4">
+              {question.details}
+            </div>
+          </>
+        )}
+        
+        <div className="px-4 py-2">
+          <p className="text-gray-700 text-sm mb-2">
+            <i className="fas fa-calendar-alt" aria-hidden="true"></i> {new Date(question.created_at).toLocaleDateString()}
+          </p>
+          
+          <div className="flex flex-wrap gap-2 mt-4">
+            {question.category && <ColorTag category={question.category} />}
+            <ColorTag category={question.is_open ? 'Public' : 'Private'} />
+            {question.kanban_status && (
+              <div ref={statusChipRef}>
+                <StatusChip 
+                  status={question.kanban_status} 
+                  onClick={handleStatusClick}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleStatusClick(e);
+                    }
+                  }}
+                >
+                  {question.kanban_status}
+                </StatusChip>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-between items-center mt-4">
+            <div className="flex space-x-4">
+              <Button
+                type="Action"
+                onClick={handleEndorse}
+                className={`flex items-center ${isEndorsed ? 'bg-blue-700' : ''}`}
+              >
+                <FaThumbsUp className="mr-2" />
+                Endorse ({endorsements})
+              </Button>
+              <Button
+                type="Action"
+                onClick={handleFollow}
+                className={`flex items-center ${isFollowing ? 'bg-blue-700' : ''}`}
+              >
+                <FaBell className="mr-2" />
+                {isFollowing ? 'Following' : 'Follow'}
+              </Button>
+              <Button
+        type="Submit"
         onClick={() => setIsResponseModalOpen(true)}
-        className="bg-gradient-to-r from-gray-900 to-blue-800 text-white text-2xl font-bold hover:bg-blue-700 py-2 px-4 rounded focus:outline-none focus:shadow-outline transition mb-8"
-        aria-label="Respond to question"
+        className={`flex items-center `}
       >
         Respond
-      </button>
+      </Button>
+            </div>
+            
+            
+            <div className="flex items-center">
+              <span className="mr-4">SHARE:</span>
+              <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${currentUrl}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 text-2xl mr-2" aria-label="Share on LinkedIn">
+                <FaLinkedin />
+              </a>
+              <button onClick={handleCopyLink} className="text-gray-700 text-2xl mr-2" aria-label="Copy link">
+                <FaLink />
+              </button>
+              <a href={`mailto:?subject=Check out this question&body=Check out this question I found: ${currentUrl}`} className="text-green-600 text-2xl" aria-label="Share via email">
+                <FaEnvelope />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      
 
       <Modal isOpen={isResponseModalOpen} onClose={() => setIsResponseModalOpen(false)}>
         <ResponseForm questionId={id} onSubmit={handleResponseSubmit} />
@@ -447,14 +473,16 @@ const QuestionDetail = () => {
             <DropdownItem 
               key={status} 
               status={status}
+              isFocused={index === focusedIndex}
               onClick={(e) => {
                 e.stopPropagation();
                 handleUpdateKanbanStatus(status);
               }}
               ref={el => itemRefs.current[index] = el}
-              tabIndex={0}
+              tabIndex={index === focusedIndex ? 0 : -1}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
                   handleUpdateKanbanStatus(status);
                 }
               }}
