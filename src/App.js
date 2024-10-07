@@ -21,6 +21,7 @@ import OrganizationELORanking from './components/OrganizationELORanking';
 import OrganizationManualRanking from './components/OrganizationManualRanking';
 import QuestionRankingModal from './components/QuestionRankingModal';
 import QuestionOverview from './pages/QuestionOverview';
+import GroupMembers from './pages/GroupMembers';
 
 const App = () => {
   const { session } = useAuth();
@@ -42,6 +43,7 @@ const App = () => {
           <Route path='/my-questions' element={<AuthRoute><MyQuestions /></AuthRoute>} />
           <Route path='/rank-questions' element={<AuthRoute><QuestionRanking /></AuthRoute>} />
           <Route path='/profile' element={<AuthRoute><UserProfile /></AuthRoute>} />
+          <Route path='/group-members/:organizationId' element={<AuthRoute><GroupMembers /></AuthRoute>} />
           <Route 
             path="/organization/:organizationId/elo-ranking" 
             element={

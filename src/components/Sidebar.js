@@ -1,8 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Typography } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import MenuIcon from '@mui/icons-material/Menu';
+import PeopleIcon from '@mui/icons-material/People';
 import CustomButton from './Button';
 
 const Sidebar = ({ 
@@ -14,6 +15,14 @@ const Sidebar = ({
   setViewMode, 
   selectedOrganizationId 
 }) => {
+  const navigate = useNavigate();
+
+  const goToMembersPage = () => {
+    if (selectedOrganizationId) {
+      navigate(`/group-members/${selectedOrganizationId}`);
+    }
+  };
+
   return (
     <div className={`bg-gray-100 h-screen fixed left-0 top-0 overflow-y-auto transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
       <div className="flex justify-between items-center p-4">
@@ -69,6 +78,26 @@ const Sidebar = ({
           className="w-full"
         >
           {sidebarOpen ? 'Manual Ranking' : 'M'}
+        </CustomButton>
+        
+        {/* Add a spacer */}
+        <div className="flex-grow"></div>
+        
+        {/* Add the Manage Members button */}
+        <CustomButton 
+          type="ChangeView"
+          onClick={goToMembersPage}
+          className="w-full mt-auto"
+          disabled={!selectedOrganizationId}
+        >
+          {sidebarOpen ? (
+            <div className="flex items-center">
+              <PeopleIcon className="mr-2" />
+              Manage Members
+            </div>
+          ) : (
+            <PeopleIcon />
+          )}
         </CustomButton>
       </div>
     </div>
