@@ -29,9 +29,10 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import QuestionTable from '../components/QuestionTable';
 import QuestionCard from '../components/QuestionCard';
 import OrganizationKanban from '../components/OrganizationKanban';
-import CustomButton from '../components/Button';
-import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import Sidebar from '../components/Sidebar';
+import OrganizationELORanking from '../components/OrganizationELORanking';
+import OrganizationManualRanking from '../components/OrganizationManualRanking';
+
 
 
 
@@ -530,12 +531,20 @@ const OrganizationDashboard = () => {
             })}
           </div>
         );
-      case 'kanban':
-        return <OrganizationKanban organizationId={selectedOrganization.id} />;
-      default:
-        return null;
-    }
-  };
+        case 'kanban':
+          return <OrganizationKanban 
+            organizationId={selectedOrganization.id}
+            questions={questions}
+            setQuestions={setQuestions}
+          />;
+        case 'elo-ranking':
+          return <OrganizationELORanking organizationId={selectedOrganization.id} />;
+        case 'manual-ranking':
+          return <OrganizationManualRanking organizationId={selectedOrganization.id} />;
+        default:
+          return null;
+      }
+    };
 
   const toggleMembersSection = () => {
     setShowMembers(!showMembers);
@@ -640,58 +649,15 @@ const OrganizationDashboard = () => {
 
   return (
     <div className="flex">
-      {/* Sidebar */}
-      <div className={`bg-gray-100 h-screen fixed left-0 top-0 overflow-y-auto transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
-        <div className="flex justify-between items-center p-4">
-          {sidebarOpen && <Typography variant="h6">View Options</Typography>}
-          <button onClick={toggleSidebar} className="p-2 rounded-full hover:bg-gray-200">
-            {sidebarOpen ? <ChevronLeftIcon /> : <MenuIcon />}
-          </button>
-        </div>
-        <div className={`flex flex-col space-y-2 ${sidebarOpen ? 'px-4' : 'px-2'}`}>
-          <CustomButton 
-            type="ChangeView"
-            onClick={toggleSortBy}
-            className="w-full"
-          >
-            {sidebarOpen ? (sortBy === 'manual_rank' ? 'Manual Rank' : 'ELO Score') : 'S'}
-          </CustomButton>
-          <CustomButton 
-            type="ChangeView"
-            onClick={() => setViewMode('table')}
-            active={viewMode === 'table'}
-            className="w-full"
-          >
-            {sidebarOpen ? 'Table View' : 'T'}
-          </CustomButton>
-          <CustomButton 
-            type="ChangeView"
-            onClick={() => setViewMode('cards')}
-            active={viewMode === 'cards'}
-            className="w-full"
-          >
-            {sidebarOpen ? 'Card View' : 'C'}
-          </CustomButton>
-          <CustomButton 
-            type="ChangeView"
-            onClick={() => setViewMode('kanban')}
-            active={viewMode === 'kanban'}
-            className="w-full"
-          >
-            {sidebarOpen ? 'Kanban View' : 'K'}
-          </CustomButton>
-          <Link to={`/organization/${selectedOrganization?.id}/elo-ranking`} className="w-full">
-            <CustomButton type="Action" className="w-full">
-              {sidebarOpen ? 'ELO Ranking' : 'E'}
-            </CustomButton>
-          </Link>
-          <Link to={`/organization/${selectedOrganization?.id}/manual-ranking`} className="w-full">
-            <CustomButton type="Action" className="w-full">
-              {sidebarOpen ? 'Manual Ranking' : 'M'}
-            </CustomButton>
-          </Link>
-        </div>
-      </div>
+      <Sidebar 
+        sidebarOpen={sidebarOpen}
+        toggleSidebar={toggleSidebar}
+        sortBy={sortBy}
+        toggleSortBy={toggleSortBy}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        selectedOrganizationId={selectedOrganization?.id}
+      />
 
       {/* Main Content */}
       <div className={`flex-grow transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'} p-8`}>
@@ -778,39 +744,46 @@ const OrganizationDashboard = () => {
               )}
 
 <Divider style={{ margin: '2rem 0' }} />
-                <div className="mb-4">
-                  <Typography style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }} variant='h5'>Group Questions</Typography>
-                </div>
-                {viewMode === 'kanban' ? (
-                  <OrganizationKanban 
-                    organizationId={selectedOrganization.id}
-                    questions={questions}
-                    setQuestions={setQuestions}
-                  />
-                ) : (
-                  <>
-                    {renderQuestions(sortedQuestions, true)}
-                    {organizationQuestions.length === 0 && (
-                      <Typography variant='body1'>No questions found for this group.</Typography>
-                    )}
-                    
-                    <Divider style={{ margin: '2rem 0', backgroundColor: '#075985' }} />
-                    <Typography variant='h5' style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }}>
-                      Public Questions
-                    </Typography>
-                    {renderQuestions(openQuestions)}
-                    {openQuestions.length === 0 && (
-                      <Typography variant='body1'>No open questions available.</Typography>
-                    )}
-                  </>
+            <div className="mb-4">
+              <Typography style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }} variant='h5'>Group Questions</Typography>
+            </div>
+            {viewMode === 'kanban' ? (
+              <OrganizationKanban 
+                organizationId={selectedOrganization.id}
+                questions={questions}
+                setQuestions={setQuestions}
+              />
+            ) : viewMode === 'elo-ranking' ? (
+              <OrganizationELORanking 
+                organizationId={selectedOrganization.id}
+              />
+            ) : viewMode === 'manual-ranking' ? (
+              <OrganizationManualRanking 
+                organizationId={selectedOrganization.id}
+              />
+            ) : (
+              <>
+                {renderQuestions(sortedQuestions, true)}
+                {organizationQuestions.length === 0 && (
+                  <Typography variant='body1'>No questions found for this group.</Typography>
+                )}
+                
+                <Divider style={{ margin: '2rem 0', backgroundColor: '#075985' }} />
+                <Typography variant='h5' style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }}>
+                  Public Questions
+                </Typography>
+                {renderQuestions(openQuestions)}
+                {openQuestions.length === 0 && (
+                  <Typography variant='body1'>No open questions available.</Typography>
                 )}
               </>
             )}
-            </Container>
-          </div>
-        </div>
-      
-    );
+          </>
+        )}
+      </Container>
+    </div>
+  </div>
+);
 };
 
 export default OrganizationDashboard;

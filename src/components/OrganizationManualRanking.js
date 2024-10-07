@@ -6,8 +6,8 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { colorMapping, defaultColors } from '../utils/colorMapping';
 import Button from '../components/Button';
 
-const OrganizationManualRanking = () => {
-  const { organizationId } = useParams();
+const OrganizationManualRanking = ({ organizationId }) => {
+  
   const [questions, setQuestions] = useState([]);
   const [organization, setOrganization] = useState(null);
   const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'

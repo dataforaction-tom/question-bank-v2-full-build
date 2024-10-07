@@ -4,8 +4,8 @@ import { supabase } from '../supabaseClient';
 import { Container, Typography, Button, List, ListItem, ListItemText } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
-const OrganizationELORanking = () => {
-  const { organizationId } = useParams();
+const OrganizationELORanking = ({ organizationId }) => {
+  
   const [questions, setQuestions] = useState([]);
   const [organization, setOrganization] = useState(null);
 
