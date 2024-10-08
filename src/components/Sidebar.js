@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Typography } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -26,7 +26,7 @@ const Sidebar = ({
   return (
     <div className={`bg-gray-100 h-screen fixed left-0 top-0 overflow-y-auto transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
       <div className="flex justify-between items-center p-4">
-        {sidebarOpen && <Typography variant="h6">View Options</Typography>}
+        {sidebarOpen && <Typography variant="h6">Group view options</Typography>}
         <button onClick={toggleSidebar} className="p-2 rounded-full hover:bg-gray-200">
           {sidebarOpen ? <ChevronLeftIcon /> : <MenuIcon />}
         </button>

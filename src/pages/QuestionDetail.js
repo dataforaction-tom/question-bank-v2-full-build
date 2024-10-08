@@ -91,7 +91,7 @@ const handleGoBack = () => {
   useEffect(() => {
     const fetchQuestion = async () => {
       try {
-        // First, fetch the question without the inner join
+        // Fetch the question
         const { data: questionData, error: questionError } = await supabase
           .from('questions')
           .select('*')
@@ -105,16 +105,15 @@ const handleGoBack = () => {
           return;
         }
 
-        // Then, fetch the organization ranking separately
+        // Fetch the organization ranking
         const { data: rankingData, error: rankingError } = await supabase
           .from('organization_question_rankings')
           .select('*')
           .eq('question_id', id)
           .maybeSingle();
 
-        if (rankingError) {
-          console.error('Error fetching ranking:', rankingError);
-          // Don't throw here, we can still show the question without ranking info
+        if (rankingError && rankingError.code !== 'PGRST116') {
+          console.warn('Error fetching ranking:', rankingError);
         }
 
         // Combine the data
@@ -125,7 +124,7 @@ const handleGoBack = () => {
 
         setQuestion(combinedData);
 
-        // Fetch additional data (responses, etc.) here...
+      
 
       } catch (error) {
         console.error('Error fetching question:', error);
@@ -155,9 +154,9 @@ const handleGoBack = () => {
         .eq('question_id', id);
 
       if (error) {
-        console.error('Error fetching endorsements:', error);
+        console.warn('Error fetching endorsements:', error);
       } else {
-        setEndorsements(count);
+        setEndorsements(count || 0);
       }
     };
 
@@ -168,10 +167,10 @@ const handleGoBack = () => {
           .select('*')
           .eq('question_id', id)
           .eq('user_id', currentUser.id)
-          .single();
+          .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
-          console.error('Error checking user endorsement:', error);
+          console.warn('Error checking user endorsement:', error);
         } else {
           setIsEndorsed(!!data);
         }
@@ -185,10 +184,10 @@ const handleGoBack = () => {
           .select('*')
           .eq('question_id', id)
           .eq('user_id', currentUser.id)
-          .single();
+          .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
-          console.error('Error checking user following:', error);
+          console.warn('Error checking user following:', error);
         } else {
           setIsFollowing(!!data);
         }
@@ -204,18 +203,28 @@ const handleGoBack = () => {
 
   const handleUpdateKanbanStatus = async (newStatus) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('organization_question_rankings')
-        .update({ kanban_status: newStatus })
-        .eq('question_id', id);
+        .upsert({ 
+          question_id: id, 
+          kanban_status: newStatus 
+        }, { onConflict: 'question_id' })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setQuestion(prev => ({ ...prev, kanban_status: newStatus }));
+      setQuestion(prev => ({ 
+        ...prev, 
+        organization_question_rankings: {
+          ...prev.organization_question_rankings,
+          kanban_status: newStatus
+        }
+      }));
       setDropdownState({ isOpen: false, position: null });
     } catch (error) {
       console.error('Error updating Kanban status:', error);
-      alert('Failed to update Kanban status. Error: ' + error.message);
+      alert('Failed to update Kanban status. Please try again.');
     }
   };
 
@@ -393,10 +402,10 @@ const handleGoBack = () => {
           <div className="flex flex-wrap gap-2 mt-4">
             {question.category && <ColorTag category={question.category} />}
             <ColorTag category={question.is_open ? 'Public' : 'Private'} />
-            {question.kanban_status && (
+            {question.organization_question_rankings && question.organization_question_rankings.kanban_status && (
               <div ref={statusChipRef}>
                 <StatusChip 
-                  status={question.kanban_status} 
+                  status={question.organization_question_rankings.kanban_status} 
                   onClick={handleStatusClick}
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -406,7 +415,7 @@ const handleGoBack = () => {
                     }
                   }}
                 >
-                  {question.kanban_status}
+                  {question.organization_question_rankings.kanban_status}
                 </StatusChip>
               </div>
             )}
@@ -435,6 +444,7 @@ const handleGoBack = () => {
         onClick={() => setIsResponseModalOpen(true)}
         className={`flex items-center `}
       >
+         <FaComment className="mr-2" />
         Respond
       </Button>
             </div>
