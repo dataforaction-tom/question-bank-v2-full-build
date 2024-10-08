@@ -503,7 +503,7 @@ const OrganizationDashboard = () => {
           overflow: 'auto',
         }}>
           <Typography id="organization-selector-title" variant="h6" component="h2" gutterBottom>
-            Select an Organization
+            Select a Group
           </Typography>
           <Grid container spacing={2}>
             {organizations.map((org, index) => (

@@ -35,8 +35,8 @@ const App = () => {
           <Route path='/signup' element={<SignUp />} />
           <Route path='/accept-invitation' element={<AcceptInvitation />} />
           <Route path='/dashboard' element={<AuthRoute><Dashboard /></AuthRoute>} />
-          <Route path='/organization-dashboard' element={<AuthRoute><OrganizationDashboard /></AuthRoute>} />
-          <Route path='/create-organization' element={<AuthRoute><OrganizationSignUp /></AuthRoute>} />
+          <Route path='/group-dashboard' element={<AuthRoute><OrganizationDashboard /></AuthRoute>} />
+          <Route path='/create-group' element={<AuthRoute><OrganizationSignUp /></AuthRoute>} />
           <Route path='/submit-question' element={<AuthRoute><SubmitQuestion /></AuthRoute>} />
           <Route path='/questions/:id' element={<AuthRoute><QuestionDetail /></AuthRoute>} />
           <Route path='/questions' element={<Questions />} />
