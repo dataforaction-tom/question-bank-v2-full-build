@@ -1,7 +1,7 @@
 // src/pages/OrganizationDashboard.js
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import {
   Container,
@@ -22,6 +22,7 @@ import Sidebar from '../components/Sidebar';
 import OrganizationELORanking from '../components/OrganizationELORanking';
 import OrganizationManualRanking from '../components/OrganizationManualRanking';
 
+
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
 const OrganizationDashboard = () => {
@@ -40,66 +41,9 @@ const OrganizationDashboard = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const fetchMembers = async (organizationId) => {
-    // This function is no longer needed in OrganizationDashboard
-    // You can remove it from here and from the useEffect
-  };
-
-  const handleOrganizationSelect = useCallback(async (org) => {
-    setSelectedOrganization(org);
-    setIsAdmin(org.organization_users[0].role === 'admin');
-    setShowOrgSelector(false);
-    
-    await fetchQuestions(org.id);
-  }, []); 
-  
-  useEffect(() => {
-    if (location.state?.viewMode) {
-      setViewMode(location.state.viewMode);
-    }
-    if (location.state?.organizationId) {
-      const org = organizations.find(org => org.id === location.state.organizationId);
-      if (org) {
-        handleOrganizationSelect(org);
-      }
-    }
-  }, [location.state, organizations, handleOrganizationSelect]);
   
 
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*, organization_users!inner(*)')
-        .eq('organization_users.user_id', session.user.id);
-
-      if (error) {
-        console.error('Error fetching organizations:', error);
-        alert('Error fetching your organizations.');
-        navigate('/');
-      } else if (data.length === 0) {
-        alert('You are not a member of any organization.');
-        navigate('/');
-      } else {
-        setOrganizations(data);
-        if (data.length === 1) {
-          handleOrganizationSelect(data[0]);
-        } else {
-          setShowOrgSelector(true);
-        }
-      }
-    };
-
-    fetchOrganizations();
-  }, [session.user.id, navigate]);
-
-  useEffect(() => {
-    sortQuestions(organizationQuestions, sortBy);
-  }, [sortBy, organizationQuestions]);
-
-  
-
-  const fetchQuestions = async (organizationId) => {
+  const fetchQuestions = useCallback(async (organizationId) => {
     try {
       console.log('Fetching questions for organization:', organizationId);
 
@@ -210,7 +154,61 @@ const OrganizationDashboard = () => {
       console.error('Error fetching questions:', error);
       alert('An error occurred while fetching questions. Please check the console for more details.');
     }
-  };
+  }, [sortBy]);
+
+  const handleOrganizationSelect = useCallback((org) => {
+    setSelectedOrganization(org);
+    setIsAdmin(org.organization_users[0].role === 'admin');
+    setShowOrgSelector(false);
+    fetchQuestions(org.id);
+  }, [fetchQuestions]);
+
+  useEffect(() => {
+    if (location.state?.viewMode) {
+      setViewMode(location.state.viewMode);
+    }
+    if (location.state?.organizationId) {
+      setOrganizations(prevOrganizations => {
+        const org = prevOrganizations.find(org => org.id === location.state.organizationId);
+        if (org) {
+          handleOrganizationSelect(org);
+        }
+        return prevOrganizations;
+      });
+    }
+  }, [location.state, handleOrganizationSelect]);
+  
+
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*, organization_users!inner(*)')
+        .eq('organization_users.user_id', session.user.id);
+
+      if (error) {
+        console.error('Error fetching organizations:', error);
+        alert('Error fetching your organizations.');
+        navigate('/');
+      } else if (data.length === 0) {
+        alert('You are not a member of any organization.');
+        navigate('/');
+      } else {
+        setOrganizations(data);
+        if (data.length === 1) {
+          handleOrganizationSelect(data[0]);
+        } else {
+          setShowOrgSelector(true);
+        }
+      }
+    };
+
+    fetchOrganizations();
+  }, [session.user.id, navigate, handleOrganizationSelect]);
+
+  useEffect(() => {
+    sortQuestions(organizationQuestions, sortBy);
+  }, [sortBy, organizationQuestions]);
 
   
 
@@ -308,8 +306,7 @@ const OrganizationDashboard = () => {
     }
 
     try {
-      // Start a Supabase transaction
-      const { data, error } = await supabase.rpc('make_question_open', {
+        const { error } = await supabase.rpc('make_question_open', {
         input_question_id: questionId,
         input_org_id: selectedOrganization.id
       });
