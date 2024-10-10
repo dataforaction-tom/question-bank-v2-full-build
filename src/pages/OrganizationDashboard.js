@@ -13,6 +13,12 @@ import {
   CardActionArea,
   Grid,
   Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  Button
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import toast, { Toaster } from 'react-hot-toast';
@@ -22,6 +28,7 @@ import OrganizationKanban from '../components/OrganizationKanban';
 import Sidebar from '../components/Sidebar';
 import OrganizationELORanking from '../components/OrganizationELORanking';
 import OrganizationManualRanking from '../components/OrganizationManualRanking';
+import ConfirmationDialog from '../components/ConfirmationDialog';
 
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
@@ -41,7 +48,10 @@ const OrganizationDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [questionToMakeOpen, setQuestionToMakeOpen] = useState(null);
 
   
 
@@ -301,15 +311,21 @@ const OrganizationDashboard = () => {
     }
   };
 
-  const handleMakeQuestionOpen = async (questionId) => {
+  const handleMakeQuestionOpen = useCallback((questionId) => {
     if (!isAdmin) {
       toast.error('Only admins can make questions open.');
       return;
     }
+    setQuestionToMakeOpen(questionId);
+    setOpenConfirmDialog(true);
+  }, [isAdmin]);
 
+  const handleConfirmMakeQuestionOpen = async () => {
+    setOpenConfirmDialog(false);
+    
     try {
-        const { error } = await supabase.rpc('make_question_open', {
-        input_question_id: questionId,
+      const { error } = await supabase.rpc('make_question_open', {
+        input_question_id: questionToMakeOpen,
         input_org_id: selectedOrganization.id
       });
 
@@ -320,12 +336,12 @@ const OrganizationDashboard = () => {
 
       // Update local state
       setOrganizationQuestions(prevQuestions => 
-        prevQuestions.filter(q => q.id !== questionId)
+        prevQuestions.filter(q => q.id !== questionToMakeOpen)
       );
 
       setOpenQuestions(prevOpenQuestions => [
         ...prevOpenQuestions,
-        organizationQuestions.find(q => q.id === questionId)
+        organizationQuestions.find(q => q.id === questionToMakeOpen)
       ]);
 
       // Refresh the questions to ensure consistency
@@ -601,6 +617,13 @@ const OrganizationDashboard = () => {
           )}
         </Container>
       </div>
+      <ConfirmationDialog
+        open={openConfirmDialog}
+        onClose={() => setOpenConfirmDialog(false)}
+        onConfirm={handleConfirmMakeQuestionOpen}
+        title="Confirm Making Question Public"
+        message="Making a question public means your question and responses to this question will be in the public domain. This cannot be reversed. If you make the question public, this question will still be visible in your group dashboard, and you will follow and endorse this question also."
+      />
     </div>
   );
 };
