@@ -15,6 +15,7 @@ import {
   Box,
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
+import toast, { Toaster } from 'react-hot-toast';
 import QuestionTable from '../components/QuestionTable';
 import QuestionCard from '../components/QuestionCard';
 import OrganizationKanban from '../components/OrganizationKanban';
@@ -40,6 +41,7 @@ const OrganizationDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
 
   
 
@@ -188,10 +190,10 @@ const OrganizationDashboard = () => {
 
       if (error) {
         console.error('Error fetching organizations:', error);
-        alert('Error fetching your organizations.');
+        toast.error('Error fetching your organizations.');
         navigate('/');
       } else if (data.length === 0) {
-        alert('You are not a member of any organization.');
+        toast.error('You are not a member of any organization.');
         navigate('/');
       } else {
         setOrganizations(data);
@@ -247,10 +249,10 @@ const OrganizationDashboard = () => {
 
       // Refresh the questions
       await fetchQuestions(selectedOrganization.id);
-      alert('Question added to organization successfully!');
+      toast.success('Question added to organization successfully!');
     } catch (error) {
       console.error('Error adding question to organization:', error);
-      alert('Failed to add question to organization.');
+      toast.error('Failed to add question to organization.');
     }
   };
 
@@ -274,10 +276,10 @@ const OrganizationDashboard = () => {
 
       // Refresh the questions
       await fetchQuestions(selectedOrganization.id);
-      alert('Question removed from organization successfully!');
+      toast.success('Question removed from organization successfully!');
     } catch (error) {
       console.error('Error removing question from organization:', error);
-      alert('Failed to remove question from organization.');
+      toast.error('Failed to remove question from organization.');
     }
   };
 
@@ -292,16 +294,16 @@ const OrganizationDashboard = () => {
 
       // Refresh the questions
       await fetchQuestions(selectedOrganization.id);
-      alert('Question deleted successfully!');
+      toast.success('Question deleted successfully!');
     } catch (error) {
       console.error('Error deleting question:', error);
-      alert('Failed to delete question. Error: ' + error.message);
+      toast.error('Failed to delete question. Error: ' + error.message);
     }
   };
 
   const handleMakeQuestionOpen = async (questionId) => {
     if (!isAdmin) {
-      alert('Only admins can make questions open.');
+      toast.error('Only admins can make questions open.');
       return;
     }
 
@@ -329,10 +331,10 @@ const OrganizationDashboard = () => {
       // Refresh the questions to ensure consistency
       await fetchQuestions(selectedOrganization.id);
 
-      alert('Question made open successfully!');
+      toast.success('Question made open successfully!');
     } catch (error) {
       console.error('Error making question open:', error);
-      alert('Failed to make question open. Error: ' + (error.message || JSON.stringify(error)));
+      toast.error('Failed to make question open. Error: ' + (error.message || JSON.stringify(error)));
     }
   };
 
@@ -370,7 +372,7 @@ const OrganizationDashboard = () => {
       sortQuestions(organizationQuestions, sortBy);
     } catch (error) {
       console.error('Error updating Kanban status:', error);
-      alert('Failed to update Kanban status. Error: ' + error.message);
+      toast.error('Failed to update Kanban status. Error: ' + error.message);
     }
   };
 
@@ -539,6 +541,7 @@ const OrganizationDashboard = () => {
 
   return (
     <div className="flex">
+      <Toaster position="top-right" />
       <Sidebar 
         sidebarOpen={sidebarOpen}
         toggleSidebar={toggleSidebar}
