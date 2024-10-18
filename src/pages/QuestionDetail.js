@@ -322,7 +322,7 @@ const handleGoBack = () => {
       alert('Please log in to endorse questions.');
       return;
     }
-
+  
     try {
       if (isEndorsed) {
         await supabase
@@ -335,12 +335,47 @@ const handleGoBack = () => {
         await supabase
           .from('endorsements')
           .insert({ question_id: id, user_id: currentUser.id });
-        setEndorsements(prev => prev + 1);
+        const newEndorsementCount = endorsements + 1;
+        setEndorsements(newEndorsementCount);
+        
+        // Check if the endorsement count has reached 10
+        if (newEndorsementCount === 1) {
+          await notifyEndorsers();
+        }
       }
       setIsEndorsed(!isEndorsed);
     } catch (error) {
       console.error('Error updating endorsement:', error);
       alert('Failed to update endorsement.');
+    }
+  };
+  
+  const notifyEndorsers = async () => {
+    try {
+      // Fetch all users who endorsed this question
+      const { data: endorsers, error: endorsersError } = await supabase
+        .from('endorsements')
+        .select('user_id')
+        .eq('question_id', id);
+  
+      if (endorsersError) throw endorsersError;
+  
+      // Create notifications for all endorsers
+      const notifications = endorsers.map(endorser => ({
+        user_id: endorser.user_id,
+        question_id: id,
+        message: `The question "${question.content.substring(0, 50)}..." has reached 10 endorsements!`,
+      }));
+  
+      const { error: notificationError } = await supabase
+        .from('user_notifications')
+        .insert(notifications);
+  
+      if (notificationError) throw notificationError;
+  
+      console.log('Notifications sent to all endorsers');
+    } catch (error) {
+      console.error('Error sending notifications to endorsers:', error);
     }
   };
 

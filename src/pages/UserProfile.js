@@ -245,6 +245,18 @@ const UserProfile = () => {
                 secondary={new Date(notification.created_at).toLocaleString()}
                 style={{ color: notification.read ? 'gray' : 'black' }}
               />
+              {notification.message.includes('10 endorsements') && (
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCreateGroup(notification.question_id);
+                  }}
+                >
+                  Create Group
+                </Button>
+              )}
             </ListItem>
           ))}
         </List>
@@ -340,6 +352,14 @@ const UserProfile = () => {
         </Box>
       </Modal>
     );
+  };
+
+  const handleCreateGroup = async (questionId) => {
+    // This function will handle the creation of a group
+    // You'll need to implement the logic for creating a group
+    // and adding all the endorsers of this question to the group
+    console.log(`Creating group for question ${questionId}`);
+    // Implement group creation logic here
   };
 
   if (!user || loading) {
