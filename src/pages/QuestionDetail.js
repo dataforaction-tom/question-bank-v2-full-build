@@ -88,6 +88,52 @@ const handleGoBack = () => {
     fetchCurrentUser();
   }, []);
 
+  const fetchResponses = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('responses')
+      .select('*')
+      .eq('question_id', id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching responses:', error);
+    } else {
+      setResponses(data);
+    }
+  }, [id]);
+
+  const handleResponseSubmit = useCallback(async () => {
+    try {
+      // Fetch all followers of the question
+      const { data: followers, error: followersError } = await supabase
+        .from('question_followers')
+        .select('user_id')
+        .eq('question_id', id);
+
+      if (followersError) throw followersError;
+
+      // Create notifications for all followers
+      const notifications = followers.map(follower => ({
+        user_id: follower.user_id,
+        question_id: id,
+        message: `New response to question: "${question.content.substring(0, 50)}..."`,
+      }));
+
+      const { error: notificationError } = await supabase
+        .from('user_notifications')
+        .insert(notifications);
+
+      if (notificationError) throw notificationError;
+
+      // Refresh the responses
+      await fetchResponses();
+      setIsResponseModalOpen(false);
+    } catch (error) {
+      console.error('Error handling response submission:', error);
+      alert('An error occurred while processing your response. Please try again.');
+    }
+  }, [id, question, fetchResponses]);
+
   useEffect(() => {
     const fetchQuestion = async () => {
       try {
@@ -131,19 +177,6 @@ const handleGoBack = () => {
         setError('Failed to load question. Please try again later.');
       } finally {
         setLoading(false);
-      }
-    };
-
-    const fetchResponses = async () => {
-      const { data, error } = await supabase
-        .from('responses')
-        .select('*')
-        .eq('question_id', id);
-
-      if (error) {
-        console.error('Error fetching responses:', error);
-      } else {
-        setResponses(data);
       }
     };
 
@@ -199,7 +232,7 @@ const handleGoBack = () => {
     fetchEndorsements();
     checkUserEndorsement();
     checkUserFollowing();
-  }, [id, currentUser]);
+  }, [id, currentUser, fetchResponses]);
 
   const handleUpdateKanbanStatus = async (newStatus) => {
     try {
@@ -336,24 +369,6 @@ const handleGoBack = () => {
     }
   };
 
-  const handleResponseSubmit = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('responses')
-      .select('*')
-      .eq('question_id', id);
-
-    if (error) {
-      console.error('Error fetching responses:', error);
-    } else {
-      setResponses(data);
-    }
-    setIsResponseModalOpen(false); // Close the modal after submission
-  }, [id]);
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
-
   if (!question) {
     return <div>Loading...</div>;
   }
@@ -469,7 +484,11 @@ const handleGoBack = () => {
       
 
       <Modal isOpen={isResponseModalOpen} onClose={() => setIsResponseModalOpen(false)}>
-        <ResponseForm questionId={id} onSubmit={handleResponseSubmit} />
+        <ResponseForm 
+          questionId={id} 
+          onSubmit={handleResponseSubmit} 
+          onCancel={() => setIsResponseModalOpen(false)}
+        />
       </Modal>
 
       <ResponseList questionId={id} currentUserId={currentUser?.id} />

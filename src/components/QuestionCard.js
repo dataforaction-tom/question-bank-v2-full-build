@@ -182,7 +182,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
               {question.responses_count || 0}
             </span>
           </div>
-          <div>
+          <div className="flex justify-between items-center mt-4">
             {onAddToOrganization && (
               <Button 
                 type="Action"
@@ -190,7 +190,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
                   e.stopPropagation();
                   onAddToOrganization(question.id);
                 }}
-                className="mr-2"
+                className="mr-2 mt-4"
                 size="sm"
               >
                 Add to Org
@@ -203,7 +203,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
                   e.stopPropagation();
                   onRemoveFromOrganization(question.id);
                 }}
-                className="mr-2"
+                className="mr-2 mt-4"
                 size="sm"
               >
                 Remove
@@ -219,6 +219,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
                   }
                 }}
                 size="sm"
+                className="mr-2 mt-4"
               >
                 Delete
               </Button>
@@ -230,7 +231,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
                   e.stopPropagation();
                   onMakeQuestionOpen(question.id);
                 }}
-                className="mr-2"
+                className="mr-2 mt-4"
                 size="sm"
               >
                 Make Public
