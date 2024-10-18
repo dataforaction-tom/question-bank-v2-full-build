@@ -1,8 +1,8 @@
 // src/pages/UserProfile.js
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -18,6 +18,10 @@ import {
   DialogActions,
   Grid,
   Badge,
+  Card,
+  CardActionArea,
+  CardContent,
+  Modal
 } from '@mui/material';
 import { colorMapping, defaultColors } from '../utils/colorMapping';
 import { Notifications as NotificationsIcon } from '@mui/icons-material';
@@ -30,6 +34,7 @@ const UserProfile = () => {
   const [followedQuestions, setFollowedQuestions] = useState([]);
   const [endorsedQuestions, setEndorsedQuestions] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // State for password change dialog
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -38,6 +43,8 @@ const UserProfile = () => {
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const [showOrgSelector, setShowOrgSelector] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -245,6 +252,96 @@ const UserProfile = () => {
     </Dialog>
   );
 
+  const handleOrganizationSelect = useCallback((org) => {
+    setShowOrgSelector(false);
+    navigate(`/group-dashboard`, {
+      state: {
+        viewMode: 'cards',
+        organizationId: org.id
+      }
+    });
+  }, [navigate]);
+
+  useEffect(() => {
+    if (location.state?.organizationId) {
+      setOrganizations(prevOrganizations => {
+        const org = prevOrganizations.find(org => org.id === location.state.organizationId);
+        if (org) {
+          handleOrganizationSelect(org);
+        }
+        return prevOrganizations;
+      });
+    }
+  }, [location.state, handleOrganizationSelect]);
+
+  const OrganizationSelectorModal = ({ open, organizations, onSelect }) => {
+    const COLUMN_COLORS = {
+      0: '#f860b1',
+      1: '#f3581d',
+      2: '#9dc131',
+      3: '#6a7efc',
+      4: '#53c4af'
+    };
+
+    return (
+      <Modal
+        open={open}
+        onClose={() => setShowOrgSelector(false)}
+        aria-labelledby="organization-selector-title"
+        aria-describedby="organization-selector-description"
+      >
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '80%',
+          maxWidth: 800,
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          p: 4,
+          borderRadius: 2,
+          maxHeight: '90vh',
+          overflow: 'auto',
+        }}>
+          <Typography id="organization-selector-title" variant="h6" component="h2" gutterBottom>
+            Select a Group
+          </Typography>
+          <Grid container spacing={2}>
+            {organizations.map((org, index) => (
+              <Grid item xs={12} sm={6} md={4} key={org.organization_id}>
+                <Card 
+                  sx={{ 
+                    cursor: 'pointer',
+                    '&:hover': { boxShadow: 6 },
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <Box sx={{ height: 8, backgroundColor: COLUMN_COLORS[index % 5] }} />
+                  <CardActionArea 
+                    onClick={() => onSelect(org)}
+                    sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }}
+                  >
+                    <CardContent>
+                      <Typography variant="h5" component="div" gutterBottom>
+                        {org.organizations.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Role: {org.role}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      </Modal>
+    );
+  };
+
   if (!user || loading) {
     return (
       <Container>
@@ -376,22 +473,48 @@ const UserProfile = () => {
         </Grid>
       </Grid>
 
-      <Typography variant='h6' style={{ marginTop: '2rem' }}>
-        Organizations:
-      </Typography>
-      {organizations.length > 0 ? (
-        <List>
-          {organizations.map((orgUser) => (
-            <ListItem key={orgUser.organization_id}>
-              <ListItemText primary={orgUser.organizations.name} />
-            </ListItem>
-          ))}
-        </List>
-      ) : (
-        <Typography variant='body1'>
-          You are not part of any groups.
+      {/* Commented out entire "Your Groups" section
+      <Box sx={{ mt: 4 }}>
+        <Typography variant='h5' gutterBottom>
+          Your Groups
         </Typography>
-      )}
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={() => setShowOrgSelector(true)}
+          sx={{ mb: 2 }}
+        >
+          Select Group
+        </Button>
+        <OrganizationSelectorModal
+          open={showOrgSelector}
+          organizations={organizations}
+          onSelect={handleOrganizationSelect}
+        />
+        {organizations.length > 0 ? (
+          <Grid container spacing={2}>
+            {organizations.map((orgUser) => (
+              <Grid item xs={12} sm={6} md={4} key={orgUser.organization_id}>
+                <Card>
+                  <CardActionArea onClick={() => handleOrganizationSelect(orgUser)}>
+                    <CardContent>
+                      <Typography variant="h6">{orgUser.organizations.name}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {orgUser.organizations.description || 'No description available'}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Typography variant='body1'>
+            You are not part of any groups.
+          </Typography>
+        )}
+      </Box>
+      */}
 
     </Container>
   );
