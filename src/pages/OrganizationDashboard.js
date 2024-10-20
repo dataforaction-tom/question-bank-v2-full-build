@@ -29,11 +29,14 @@ import Sidebar from '../components/Sidebar';
 import OrganizationELORanking from '../components/OrganizationELORanking';
 import OrganizationManualRanking from '../components/OrganizationManualRanking';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import { useOrganization } from '../context/OrganizationContext';
+import CustomButton from '../components/Button';
 
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
-const OrganizationDashboard = () => {
+  const OrganizationDashboard = () => {
+  const { currentOrganization, updateCurrentOrganization } = useOrganization();
   const { session } = useAuth();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -169,11 +172,11 @@ const OrganizationDashboard = () => {
   }, [sortBy]);
 
   const handleOrganizationSelect = useCallback((org) => {
-    setSelectedOrganization(org);
+    updateCurrentOrganization(org);
     setIsAdmin(org.organization_users[0].role === 'admin');
     setShowOrgSelector(false);
     fetchQuestions(org.id);
-  }, [fetchQuestions]);
+  }, [updateCurrentOrganization, fetchQuestions]);
 
   useEffect(() => {
     if (location.state?.viewMode) {
@@ -193,6 +196,8 @@ const OrganizationDashboard = () => {
 
   useEffect(() => {
     const fetchOrganizations = async () => {
+      if (!session?.user?.id) return; // Add this check
+
       const { data, error } = await supabase
         .from('organizations')
         .select('*, organization_users!inner(*)')
@@ -207,29 +212,37 @@ const OrganizationDashboard = () => {
         navigate('/');
       } else {
         setOrganizations(data);
-        if (data.length === 1) {
-          handleOrganizationSelect(data[0]);
-        } else {
-          setShowOrgSelector(true);
+        if (!currentOrganization) { // Only set if there's no current organization
+          if (data.length === 1) {
+            handleOrganizationSelect(data[0]);
+          } else {
+            setShowOrgSelector(true);
+          }
         }
       }
     };
 
     fetchOrganizations();
-  }, [session.user.id, navigate, handleOrganizationSelect]);
+  }, [session?.user?.id, navigate, handleOrganizationSelect, currentOrganization]);
 
   useEffect(() => {
     sortQuestions(organizationQuestions, sortBy);
   }, [sortBy, organizationQuestions]);
+
+  useEffect(() => {
+    if (currentOrganization) {
+      fetchQuestions(currentOrganization.id);
+    }
+  }, [currentOrganization, fetchQuestions]);
 
   
 
   const handleQuestionClick = (id) => {
     navigate(`/questions/${id}`, {
       state: {
-        previousPath: `/organization/${selectedOrganization.id}`,
+        previousPath: `/organization/${currentOrganization.id}`,
         viewMode: viewMode,
-        organizationId: selectedOrganization.id
+        organizationId: currentOrganization.id
       }
     });
   };
@@ -239,7 +252,7 @@ const OrganizationDashboard = () => {
       // Add to organization_questions table
       const { error: addError } = await supabase
         .from('organization_questions')
-        .insert({ organization_id: selectedOrganization.id, question_id: questionId });
+        .insert({ organization_id: currentOrganization.id, question_id: questionId });
 
       if (addError) throw addError;
 
@@ -247,7 +260,7 @@ const OrganizationDashboard = () => {
       const { error: rankError } = await supabase
         .from('organization_question_rankings')
         .insert({
-          organization_id: selectedOrganization.id,
+          organization_id: currentOrganization.id,
           question_id: questionId,
           manual_rank: null,
           elo_score: 1500, // Default ELO score
@@ -258,7 +271,7 @@ const OrganizationDashboard = () => {
       if (rankError) throw rankError;
 
       // Refresh the questions
-      await fetchQuestions(selectedOrganization.id);
+      await fetchQuestions(currentOrganization.id);
       toast.success('Question added to organization successfully!');
     } catch (error) {
       console.error('Error adding question to organization:', error);
@@ -272,7 +285,7 @@ const OrganizationDashboard = () => {
       const { error: removeError } = await supabase
         .from('organization_questions')
         .delete()
-        .match({ organization_id: selectedOrganization.id, question_id: questionId });
+        .match({ organization_id: currentOrganization.id, question_id: questionId });
 
       if (removeError) throw removeError;
 
@@ -280,12 +293,12 @@ const OrganizationDashboard = () => {
       const { error: rankingError } = await supabase
         .from('organization_question_rankings')
         .delete()
-        .match({ organization_id: selectedOrganization.id, question_id: questionId });
+        .match({ organization_id: currentOrganization.id, question_id: questionId });
 
       if (rankingError) throw rankingError;
 
       // Refresh the questions
-      await fetchQuestions(selectedOrganization.id);
+      await fetchQuestions(currentOrganization.id);
       toast.success('Question removed from organization successfully!');
     } catch (error) {
       console.error('Error removing question from organization:', error);
@@ -303,7 +316,7 @@ const OrganizationDashboard = () => {
       if (error) throw error;
 
       // Refresh the questions
-      await fetchQuestions(selectedOrganization.id);
+      await fetchQuestions(currentOrganization.id);
       toast.success('Question deleted successfully!');
     } catch (error) {
       console.error('Error deleting question:', error);
@@ -326,7 +339,7 @@ const OrganizationDashboard = () => {
     try {
       const { error } = await supabase.rpc('make_question_open', {
         input_question_id: questionToMakeOpen,
-        input_org_id: selectedOrganization.id
+        input_org_id: currentOrganization.id
       });
 
       if (error) {
@@ -345,7 +358,7 @@ const OrganizationDashboard = () => {
       ]);
 
       // Refresh the questions to ensure consistency
-      await fetchQuestions(selectedOrganization.id);
+      await fetchQuestions(currentOrganization.id);
 
       toast.success('Question made open successfully!');
     } catch (error) {
@@ -359,7 +372,7 @@ const OrganizationDashboard = () => {
       const { error } = await supabase
         .from('organization_question_rankings')
         .update({ kanban_status: newStatus })
-        .match({ organization_id: selectedOrganization.id, question_id: questionId });
+        .match({ organization_id: currentOrganization.id, question_id: questionId });
 
       if (error) throw error;
 
@@ -443,14 +456,14 @@ const OrganizationDashboard = () => {
         );
         case 'kanban':
           return <OrganizationKanban 
-            organizationId={selectedOrganization.id}
+            organizationId={currentOrganization.id}
             questions={questions}
             setQuestions={setQuestions}
           />;
         case 'elo-ranking':
-          return <OrganizationELORanking organizationId={selectedOrganization.id} />;
+          return <OrganizationELORanking organizationId={currentOrganization.id} />;
         case 'manual-ranking':
-          return <OrganizationManualRanking organizationId={selectedOrganization.id} />;
+          return <OrganizationManualRanking organizationId={currentOrganization.id} />;
         default:
           return null;
       }
@@ -565,36 +578,46 @@ const OrganizationDashboard = () => {
         toggleSortBy={toggleSortBy}
         viewMode={viewMode}
         setViewMode={setViewMode}
-        selectedOrganizationId={selectedOrganization?.id}
+        selectedOrganizationId={currentOrganization?.id}
       />
       {/* Main Content */}
       <div className={`flex-grow transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'} p-8`}>
         <Container maxWidth="xl">
           <OrganizationSelectorModal
-            open={showOrgSelector}
+            open={showOrgSelector && !currentOrganization}
             organizations={organizations}
             onSelect={handleOrganizationSelect}
           />
-          {selectedOrganization && (
+          {currentOrganization && (
             <>
-              <Typography variant='h4'>{selectedOrganization.name} Dashboard</Typography>
+              <Typography variant='h4'>{currentOrganization.name} Dashboard</Typography>
+              <CustomButton 
+                type="ChangeView"
+                onClick={() => {
+            updateCurrentOrganization(null);
+                  setShowOrgSelector(true);
+                }}
+                className="w-auto"
+              >
+                Change Organization
+              </CustomButton>
               <Divider style={{ margin: '2rem 0' }} />
               <div className="mb-4">
                 <Typography style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }} variant='h5'>Group Questions</Typography>
               </div>
               {viewMode === 'kanban' ? (
                 <OrganizationKanban 
-                  organizationId={selectedOrganization.id}
+                  organizationId={currentOrganization.id}
                   questions={questions}
                   setQuestions={setQuestions}
                 />
               ) : viewMode === 'elo-ranking' ? (
                 <OrganizationELORanking 
-                  organizationId={selectedOrganization.id}
+                  organizationId={currentOrganization.id}
                 />
               ) : viewMode === 'manual-ranking' ? (
                 <OrganizationManualRanking 
-                  organizationId={selectedOrganization.id}
+                  organizationId={currentOrganization.id}
                 />
               ) : (
                 <>

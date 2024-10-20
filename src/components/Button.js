@@ -22,10 +22,10 @@ const Button = ({
     lg: 'px-6 py-3 text-lg',
   };
 
-  const baseClasses = 'font-bold rounded transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-opacity-50';
+  const baseClasses = 'font-bold rounded transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-opacity-40 ';
   const typeClasses = buttonTypes[type];
   const sizeClass = sizeClasses[size];
-  const activeClass = !active ? 'bg-opacity-80 bg-slate-300' : '';
+  const activeClass = !active ? 'bg-opacity-80 ' : '';
 
   const finalClassName = `${baseClasses} ${typeClasses} ${sizeClass} ${activeClass} ${className}`;
   

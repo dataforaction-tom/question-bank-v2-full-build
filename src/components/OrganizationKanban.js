@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import { Container, Typography, Button, Card, CardContent, Box } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import ColorTag from './ColorTag';
+import { useOrganization } from '../context/OrganizationContext';
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -16,6 +17,7 @@ const COLUMN_COLORS = {
 };
 
 const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
+  const { currentOrganization } = useOrganization();
   const [sortBy, setSortBy] = useState('manual_rank');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);

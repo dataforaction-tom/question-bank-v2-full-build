@@ -22,12 +22,16 @@ import OrganizationManualRanking from './components/OrganizationManualRanking';
 import QuestionRankingModal from './components/QuestionRankingModal';
 import QuestionOverview from './pages/QuestionOverview';
 import GroupMembers from './pages/GroupMembers';
+import { OrganizationProvider } from './context/OrganizationContext';
+
+
 
 const App = () => {
-  const { session } = useAuth();
+  const {session} = useAuth();
 
   return (
     <ThemeProvider>
+      <OrganizationProvider>
       <Router>
         <Navbar />
         <Routes>
@@ -66,8 +70,11 @@ const App = () => {
           <Route path="*" element={<Navigate replace to="/questions" />} />
           <Route path="/question-overview" element={<QuestionOverview />} />
         </Routes>
+        
         <QuestionRankingModal />
-      </Router>
+        
+        </Router>
+      </OrganizationProvider>
     </ThemeProvider>
   );
 };
