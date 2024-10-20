@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../hooks/useAuth'; // Import useAuth hook
@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth'; // Import useAuth hook
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { session } = useAuth(); // Use the useAuth hook to get the session
 
   const toggleMenu = () => {
@@ -17,6 +18,11 @@ const Navbar = () => {
     await supabase.auth.signOut();
     navigate('/signin');
   };
+
+  // Close menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   return (
     <header className="bg-gradient-to-r from-slate-950 to-sky-950 text-white py-4 shadow-md">
