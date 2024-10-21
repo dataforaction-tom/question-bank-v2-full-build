@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
-import { useAuth } from '../hooks/useAuth'; // Import useAuth hook
+import { useAuth } from '../hooks/useAuth'; 
+import NotificationSystem from './NotificationSystem';
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { session } = useAuth(); // Use the useAuth hook to get the session
+  const { session } = useAuth();
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -19,7 +20,6 @@ const Navbar = () => {
     navigate('/signin');
   };
 
-  // Close menu on route change
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
@@ -39,19 +39,20 @@ const Navbar = () => {
           </Link>
           {session ? (
             <>
-              
               <Link to="/submit-question" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
                 Submit Question
               </Link>
-              
               <Link to="/create-group" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
                 Create Group
               </Link>
               <Link to="/group-dashboard" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
                 Group Dashboard
               </Link>
-              <Link to="/profile" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+              <Link to="/profile" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition flex items-center">
                 Profile
+                <span className="ml-2">
+                  <NotificationSystem showFullSystem={false} onCreateGroup={() => {}} />
+                </span>
               </Link>
               <button onClick={handleLogout} className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
                 Logout

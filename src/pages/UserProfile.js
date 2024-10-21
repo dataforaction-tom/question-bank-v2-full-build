@@ -26,6 +26,7 @@ import {
 import { colorMapping, defaultColors } from '../utils/colorMapping';
 import { Notifications as NotificationsIcon } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import NotificationSystem from '../components/NotificationSystem';
 
 const UserProfile = () => {
   const [user, setUser] = useState(null);
@@ -234,41 +235,6 @@ const UserProfile = () => {
     navigate(`/questions/${questionId}`);
   };
 
-  const NotificationsList = () => (
-    <Dialog open={showNotifications} onClose={() => setShowNotifications(false)}>
-      <DialogTitle>Notifications</DialogTitle>
-      <DialogContent>
-        <List>
-          {notifications.map((notification) => (
-            <ListItem 
-              key={notification.id} 
-              button 
-              onClick={() => handleNotificationClick(notification.id, notification.question_id)}
-            >
-              <ListItemText 
-                primary={notification.message} 
-                secondary={new Date(notification.created_at).toLocaleString()}
-                style={{ color: notification.read ? 'gray' : 'black' }}
-              />
-              {notification.message.includes('10 endorsements') && (
-                <Button 
-                  variant="outlined" 
-                  size="small" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCreateGroup(notification.question_id, notification.id);
-                  }}
-                >
-                  Create Group
-                </Button>
-              )}
-            </ListItem>
-          ))}
-        </List>
-      </DialogContent>
-    </Dialog>
-  );
-
   const handleOrganizationSelect = useCallback((org) => {
     setShowOrgSelector(false);
     navigate(`/group-dashboard`, {
@@ -362,7 +328,6 @@ const UserProfile = () => {
   const handleCreateGroup = async (questionId, notificationId) => {
     setQuestionToCreateGroup(questionId);
     setOpenConfirmDialog(true);
-    setShowNotifications(false); // Close the notifications dialog
 
     // Mark the notification as read
     if (notificationId) {
@@ -448,17 +413,8 @@ const UserProfile = () => {
 
       {/* Notifications moved to the top */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Badge badgeContent={notifications.filter(n => !n.read).length} color="secondary">
-          <Button 
-            startIcon={<NotificationsIcon />} 
-            onClick={() => setShowNotifications(true)}
-          >
-            Notifications
-          </Button>
-        </Badge>
+        <NotificationSystem onCreateGroup={handleCreateGroup} />
       </Box>
-
-      <NotificationsList />
 
       <Typography variant='h6'>Email:</Typography>
       <Typography variant='body1' gutterBottom>
