@@ -339,7 +339,7 @@ const handleGoBack = () => {
         setEndorsements(newEndorsementCount);
         
         // Check if the endorsement count has reached 10
-        if (newEndorsementCount === 1) {
+        if (newEndorsementCount >= 1) {
           await notifyEndorsers();
         }
       }

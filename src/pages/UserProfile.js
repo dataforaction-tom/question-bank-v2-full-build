@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { colorMapping, defaultColors } from '../utils/colorMapping';
 import { Notifications as NotificationsIcon } from '@mui/icons-material';
+import { useAuth } from '../hooks/useAuth';
 
 const UserProfile = () => {
   const [user, setUser] = useState(null);
@@ -45,6 +46,10 @@ const UserProfile = () => {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const [showOrgSelector, setShowOrgSelector] = useState(false);
+
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [questionToCreateGroup, setQuestionToCreateGroup] = useState(null);
+  const { session } = useAuth();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -251,7 +256,7 @@ const UserProfile = () => {
                   size="small" 
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCreateGroup(notification.question_id);
+                    handleCreateGroup(notification.question_id, notification.id);
                   }}
                 >
                   Create Group
@@ -354,12 +359,77 @@ const UserProfile = () => {
     );
   };
 
-  const handleCreateGroup = async (questionId) => {
-    // This function will handle the creation of a group
-    // You'll need to implement the logic for creating a group
-    // and adding all the endorsers of this question to the group
-    console.log(`Creating group for question ${questionId}`);
-    // Implement group creation logic here
+  const handleCreateGroup = async (questionId, notificationId) => {
+    setQuestionToCreateGroup(questionId);
+    setOpenConfirmDialog(true);
+    setShowNotifications(false); // Close the notifications dialog
+
+    // Mark the notification as read
+    if (notificationId) {
+      try {
+        const { error } = await supabase
+          .from('user_notifications')
+          .update({ read: true })
+          .eq('id', notificationId);
+
+        if (error) {
+          console.error('Error marking notification as read:', error);
+        } else {
+          // Update the local state to reflect the change
+          setNotifications(prevNotifications =>
+            prevNotifications.map(notification =>
+              notification.id === notificationId
+                ? { ...notification, read: true }
+                : notification
+            )
+          );
+        }
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+      }
+    }
+  };
+
+  const confirmCreateGroup = async () => {
+    setOpenConfirmDialog(false);
+    if (!questionToCreateGroup || !session?.user) return;
+
+    try {
+      // Call the Supabase function
+      const { data, error } = await supabase.rpc('handle_action_group', {
+        p_question_id: questionToCreateGroup,
+        p_user_id: session.user.id
+      });
+
+      if (error) throw error;
+
+      if (!data) {
+        throw new Error('No data returned from handle_action_group');
+      }
+
+      const { action_group_id, is_new } = data;
+
+      // Success! Navigate to the action group dashboard
+      navigate('/action-group-dashboard', { 
+        state: { 
+          actionGroupId: action_group_id,
+          isNewGroup: is_new
+        } 
+      });
+
+      // Provide feedback to the user
+      if (is_new) {
+        alert('New action group created successfully!');
+      } else {
+        alert('You have joined an existing action group.');
+      }
+
+    } catch (error) {
+      console.error('Error handling action group:', error);
+      alert(`Failed to handle action group. Error: ${error.message || 'Unknown error'}`);
+    } finally {
+      setQuestionToCreateGroup(null); // Reset the questionToCreateGroup state
+    }
   };
 
   if (!user || loading) {
@@ -535,6 +605,28 @@ const UserProfile = () => {
         )}
       </Box>
       */}
+
+      <Dialog 
+        open={openConfirmDialog} 
+        onClose={() => {
+          setOpenConfirmDialog(false);
+          setQuestionToCreateGroup(null);
+        }}
+      >
+        <DialogTitle>Create/Join Action Group</DialogTitle>
+        <DialogContent>
+          Do you want to create or join an action group for this question?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setOpenConfirmDialog(false);
+            setQuestionToCreateGroup(null);
+          }}>
+            Cancel
+          </Button>
+          <Button onClick={confirmCreateGroup} color="primary">Create/Join</Button>
+        </DialogActions>
+      </Dialog>
 
     </Container>
   );
