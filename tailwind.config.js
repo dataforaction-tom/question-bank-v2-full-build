@@ -35,6 +35,9 @@ module.exports = {
         pink: {
           700: '#f860b1',
           400: '#953A6A',
+        },
+        teal: {
+          500: '#53c4af',
         }
       },
       fontFamily: {

@@ -6,7 +6,8 @@ import Filter from '../components/Filter';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
-import Button from '../components/Button';  // Import the Button component
+import Button from '../components/Button';
+import { useAuth } from '../hooks/useAuth'; // Import useAuth hook
 
 const Questions = () => {
   const [questions, setQuestions] = useState([]);
@@ -14,17 +15,17 @@ const Questions = () => {
   const [viewMode, setViewMode] = useState('cards'); // 'table' or 'cards'
   const [filters, setFilters] = useState({ category: '', is_open: '' });
   const navigate = useNavigate();
+  const { session } = useAuth(); // Get the session
   const [userOrganizationId, setUserOrganizationId] = useState(null);
   const [groupBy, setGroupBy] = useState(null);
 
   useEffect(() => {
     const fetchUserOrganization = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      if (session?.user) {
         const { data, error } = await supabase
           .from('organization_users')
           .select('organization_id')
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id)
           .single();
         if (data) {
           setUserOrganizationId(data.organization_id);
@@ -33,7 +34,7 @@ const Questions = () => {
     };
 
     fetchUserOrganization();
-  }, []);
+  }, [session]);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -169,6 +170,8 @@ const Questions = () => {
             questions={filteredQuestions} 
             onQuestionClick={handleQuestionClick}
             groupBy={groupBy}
+            organizationId={userOrganizationId} // Pass organizationId
+            isAdmin={false} // Assume not admin in public view
           />
         </div>
       ) : (
@@ -178,6 +181,8 @@ const Questions = () => {
               key={question.id} 
               question={question} 
               onClick={() => handleQuestionClick(question.id)}
+              organizationId={userOrganizationId} // Pass organizationId
+              isAdmin={false} // Assume not admin in public view
             />
           ))}
         </div>

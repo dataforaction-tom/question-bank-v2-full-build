@@ -38,26 +38,27 @@ const ResponseCard = ({ response, currentUserId, onEdit, onDelete }) => {
   }
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-4 mb-4">
-      <p className="text-gray-800 mb-2">{response.content}</p>
+    <div className="bg-white shadow-md rounded-lg ">
+      <h2 className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1">Response</h2>
+      <p className="text-gray-800 mb-2 p-4">{response.content}</p>
       {response.url && (
         <a
           href={response.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:underline"
+          className="text-blue-600 hover:underline p-4"
         >
           {response.url}
         </a>
       )}
-      <p className="text-sm text-gray-500 mt-2">
+      <p className="text-sm text-gray-500 mt-2 p-4">
         Responded on: {new Date(response.created_at).toLocaleDateString()}
       </p>
       {currentUserId === response.user_id && (
-        <div className="mt-2">
+        <div className="mt-2 p-4">
           <button
             onClick={handleEdit}
-            className="text-blue-600 hover:underline mr-2"
+            className="text-blue-600 hover:underline mr-2 "
           >
             Edit
           </button>
@@ -69,6 +70,7 @@ const ResponseCard = ({ response, currentUserId, onEdit, onDelete }) => {
           </button>
         </div>
       )}
+      <div className="mb-8"></div>
     </div>
   );
 };
@@ -135,10 +137,11 @@ const ResponseList = ({ questionId, currentUserId }) => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Responses</h2>
+      
       {responses.length === 0 ? (
-        <p>No responses yet.</p>
+        <p></p>
       ) : (
+        
         responses.map((response) => (
           <ResponseCard
             key={response.id}

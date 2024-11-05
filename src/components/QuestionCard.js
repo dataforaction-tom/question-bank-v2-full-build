@@ -3,7 +3,9 @@ import ColorTag from './ColorTag';
 import { styled } from '@mui/material';
 import { createPortal } from 'react-dom';
 import { FaThumbsUp, FaBell, FaComment } from 'react-icons/fa';
-import Button from './Button';  // Import the new Button component
+import Button from './Button';
+import TagManager from './TagManager';  // Import TagManager
+import { Chip, Menu, MenuItem } from '@mui/material';
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -46,7 +48,18 @@ const DropdownItem = styled('div')(({ status, isFocused }) => ({
   outline: 'none',
 }));
 
-const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrganization, onDeleteQuestion, onMakeQuestionOpen, isAdmin, onUpdateKanbanStatus }) => {
+const QuestionCard = ({ 
+  question, 
+  onClick, 
+  onAddToOrganization, 
+  onRemoveFromOrganization, 
+  onDeleteQuestion,
+  onMakeQuestionOpen,
+  isAdmin,
+  isOrganizationQuestion,
+  onUpdateKanbanStatus,
+  organizationId  // Add this prop
+}) => {
  
   
   const [dropdownState, setDropdownState] = useState({ isOpen: false, position: null });
@@ -54,6 +67,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
   const statusChipRef = useRef(null);
   const dropdownRef = useRef(null);
   const itemRefs = useRef([]);
+  const [anchorEl, setAnchorEl] = useState(null);
 
   const handleStatusClick = (e) => {
     e.stopPropagation();
@@ -121,6 +135,8 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
     };
   }, []);
 
+ 
+
   return (
     <div 
       onClick={onClick}
@@ -130,7 +146,7 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
       role="button"
       aria-label={`Question: ${question.content}`}
     >
-      <div className="bg-pink-400 font-bold text-lg text-white p-2"></div>
+      <div className="bg-sky-900 font-bold text-lg text-white p-2"></div>
       <div className='font-bold text-xl text-slate-900 p-4 slate-900'>
         Question:
       </div>
@@ -170,15 +186,15 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
         <div className="flex justify-between items-center mt-4">
           <div className="flex space-x-4">
             <span className="flex items-center">
-              <FaThumbsUp className="mr-1 text-blue-500" />
+              <FaThumbsUp className="mr-1 text-blue-600" />
               {question.endorsements_count || 0}
             </span>
             <span className="flex items-center">
-              <FaBell className="mr-1 text-green-500" />
+              <FaBell className="mr-1 text-pink-700" />
               {question.followers_count || 0}
             </span>
             <span className="flex items-center">
-              <FaComment className="mr-1 text-yellow-500" />
+              <FaComment className="mr-1 text-teal-500" />
               {question.responses_count || 0}
             </span>
           </div>
@@ -239,6 +255,16 @@ const QuestionCard = ({ question, onClick, onAddToOrganization, onRemoveFromOrga
             )}
           </div>
         </div>
+        {isOrganizationQuestion && organizationId && (
+          <div className="px-4 py-2">
+            <TagManager 
+              questionId={question.id}
+              organizationId={organizationId}
+              isAdmin={isAdmin}
+              mode="question"
+            />
+          </div>
+        )}
       </div>
       {dropdownState.isOpen && createPortal(
         <Dropdown 

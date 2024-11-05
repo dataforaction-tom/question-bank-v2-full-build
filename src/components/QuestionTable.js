@@ -4,7 +4,8 @@ import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-tabl
 import ColorTag from './ColorTag';
 import { createPortal } from 'react-dom';
 import styled from '@emotion/styled';
-import Button from './Button';  // Import the Button component
+import Button from './Button';  
+import TagManager from './TagManager';  
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -57,7 +58,8 @@ const QuestionTable = ({
   isAdmin,
   isOrganizationQuestion,
   onUpdateKanbanStatus,
-  setQuestions
+  setQuestions,
+  organizationId  // Add this prop
 }) => {
   const navigate = useNavigate();
   const [dropdownState, setDropdownState] = useState({ isOpen: false, position: null, rowId: null });
@@ -200,6 +202,18 @@ const QuestionTable = ({
         },
       },
     ] : []),
+    {
+      accessorKey: 'tags',
+      header: 'Tags',
+      cell: ({ row }) => (
+        <TagManager 
+          questionId={row.original.id}
+          organizationId={organizationId}
+          isAdmin={isAdmin}
+          mode="question"
+        />
+      ),
+    },
     {
       id: 'actions',
       header: 'Actions',

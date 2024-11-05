@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../hooks/useAuth';
+import { useOrganization } from '../context/OrganizationContext';
 import ColorTag from '../components/ColorTag';
 import Modal from '../components/Modal';
 import ResponseForm from '../components/ResponseForm';
@@ -9,6 +11,7 @@ import Button from '../components/Button';
 import { FaThumbsUp, FaBell, FaComment, FaLinkedin, FaLink, FaEnvelope } from 'react-icons/fa';
 import { styled } from '@mui/material';
 import { createPortal } from 'react-dom';
+import TagManager from '../components/TagManager';  // Import the new TagManager component
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -52,6 +55,8 @@ const DropdownItem = styled('div')(({ status }) => ({
 
 const QuestionDetail = () => {
   const { id } = useParams();
+  const { session } = useAuth();
+  const { currentOrganization } = useOrganization();
   const [question, setQuestion] = useState(null);
   const [responses, setResponses] = useState([]);
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
@@ -66,6 +71,9 @@ const QuestionDetail = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isPartOfOrganization, setIsPartOfOrganization] = useState(false);
+  const [isQuestionInOrganization, setIsQuestionInOrganization] = useState(false);
 
   const navigate = useNavigate();
 const location = useLocation();
@@ -87,6 +95,27 @@ const handleGoBack = () => {
 
     fetchCurrentUser();
   }, []);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!session?.user?.id || !currentOrganization?.id) return;
+
+      const { data, error } = await supabase
+        .from('organization_users')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .eq('organization_id', currentOrganization.id)
+        .single();
+
+      if (error) {
+        console.error('Error checking admin status:', error);
+      } else {
+        setIsAdmin(data?.role === 'admin');
+      }
+    };
+
+    checkAdminStatus();
+  }, [session?.user?.id, currentOrganization?.id]);
 
   const fetchResponses = useCallback(async () => {
     const { data, error } = await supabase
@@ -134,52 +163,45 @@ const handleGoBack = () => {
     }
   }, [id, question, fetchResponses]);
 
-  useEffect(() => {
-    const fetchQuestion = async () => {
-      try {
-        // Fetch the question
-        const { data: questionData, error: questionError } = await supabase
-          .from('questions')
-          .select('*')
-          .eq('id', id)
-          .single();
+  const fetchQuestion = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data: questionData, error: questionError } = await supabase
+        .from('questions')
+        .select(`
+          *,
+          tags:question_tags(tags(*))
+        `)
+        .eq('id', id)
+        .single();
 
-        if (questionError) throw questionError;
+      if (questionError) throw questionError;
 
-        if (!questionData) {
-          setError('Question not found');
-          return;
-        }
-
-        // Fetch the organization ranking
-        const { data: rankingData, error: rankingError } = await supabase
-          .from('organization_question_rankings')
-          .select('*')
-          .eq('question_id', id)
-          .maybeSingle();
-
-        if (rankingError && rankingError.code !== 'PGRST116') {
-          console.warn('Error fetching ranking:', rankingError);
-        }
-
-        // Combine the data
-        const combinedData = {
-          ...questionData,
-          organization_question_rankings: rankingData || null
-        };
-
-        setQuestion(combinedData);
-
-      
-
-      } catch (error) {
-        console.error('Error fetching question:', error);
-        setError('Failed to load question. Please try again later.');
-      } finally {
-        setLoading(false);
+      if (!questionData) {
+        setError('Question not found');
+        return;
       }
-    };
 
+      // Format tags
+      const formattedQuestion = {
+        ...questionData,
+        tags: questionData.tags.map(t => t.tags)
+      };
+
+      setQuestion(formattedQuestion);
+    } catch (error) {
+      console.error('Error fetching question:', error);
+      setError('Failed to load question. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchQuestion();
+  }, [fetchQuestion]);
+
+  useEffect(() => {
     const fetchEndorsements = async () => {
       const { count, error } = await supabase
         .from('endorsements')
@@ -227,8 +249,6 @@ const handleGoBack = () => {
       }
     };
 
-    fetchQuestion();
-    fetchResponses();
     fetchEndorsements();
     checkUserEndorsement();
     checkUserFollowing();
@@ -404,6 +424,65 @@ const handleGoBack = () => {
     }
   };
 
+  useEffect(() => {
+    const checkOrganizationMembership = async () => {
+      if (!session?.user?.id || !question?.organization_id) {
+        setIsPartOfOrganization(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('organization_users')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('organization_id', question.organization_id)
+        .single();
+
+      if (error) {
+        console.error('Error checking organization membership:', error);
+        setIsPartOfOrganization(false);
+      } else {
+        setIsPartOfOrganization(!!data);
+      }
+    };
+
+    checkOrganizationMembership();
+  }, [session?.user?.id, question?.organization_id]);
+
+  useEffect(() => {
+    const checkQuestionInOrganization = async () => {
+      if (!currentOrganization?.id || !id) return;
+
+      // Check if the question is directly in the organization
+      const { data: directQuestion, error: directError } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('id', id)
+        .eq('organization_id', currentOrganization.id)
+        .single();
+
+      if (directError && directError.code !== 'PGRST116') {
+        console.error('Error checking direct question:', directError);
+      }
+
+      // Check if the question is indirectly in the organization
+      const { data: indirectQuestion, error: indirectError } = await supabase
+        .from('organization_questions')
+        .select('*')
+        .eq('question_id', id)
+        .eq('organization_id', currentOrganization.id)
+        .single();
+
+      if (indirectError && indirectError.code !== 'PGRST116') {
+        console.error('Error checking indirect question:', indirectError);
+      }
+
+      setIsQuestionInOrganization(!!directQuestion || !!indirectQuestion);
+    };
+
+    checkQuestionInOrganization();
+  }, [currentOrganization?.id, id]);
+
   if (!question) {
     return <div>Loading...</div>;
   }
@@ -416,40 +495,17 @@ const handleGoBack = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-16 ">
       
       
       <div className="shadow-md shadow-blue-100 rounded overflow-hidden">
-        <div className="bg-pink-700 font-bold text-lg text-white p-2"></div>
-        <div className='font-bold text-xl text-slate-900 p-4'>
-          Question:
-        </div>
-        <h1 className="font-semibold text-xl text-slate-900 p-4">{question.content}</h1>
-        
-        <div className='font-bold text-lg text-slate-900 p-4'>
-          What we could do with an answer:
-        </div>
-        <div className="font-semibold text-l mb-2 text-slate-900 p-4">
-          {question.answer}
-        </div>
-        
-        {question.details && (
-          <>
-            <div className='font-bold text-lg text-slate-900 p-4'>
-              Details:
-            </div>
-            <div className="font-semibold text-l mb-2 text-slate-900 p-4">
-              {question.details}
-            </div>
-          </>
-        )}
-        
-        <div className="px-4 py-2">
-          <p className="text-gray-700 text-sm mb-2">
+        <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white pl-4 p-1"> <p className=" text-sm mb-2">
+            
             <i className="fas fa-calendar-alt" aria-hidden="true"></i> {new Date(question.created_at).toLocaleDateString()}
-          </p>
-          
-          <div className="flex flex-wrap gap-2 mt-4">
+          </p></div>
+        
+        <div className="flex justify-end px-4 py-2">
+          <div className="flex flex-wrap gap-2">
             {question.category && <ColorTag category={question.category} />}
             <ColorTag category={question.is_open ? 'Public' : 'Private'} />
             {question.organization_question_rankings && question.organization_question_rankings.kanban_status && (
@@ -470,6 +526,36 @@ const handleGoBack = () => {
               </div>
             )}
           </div>
+        </div>
+
+        <div className='font-bold text-xl text-slate-900 pl-4 pb-1'>
+          Question:
+        </div>
+        <h1 className="font-semibold text-xl text-slate-900 pl-4 pb-2">{question.content}</h1>
+        
+        <div className='font-bold text-lg text-slate-900 pl-4 p1'>
+          What we could do with an answer:
+        </div>
+        <div className="font-semibold text-l mb-2 text-slate-900 pl-4">
+          {question.answer}
+        </div>
+        
+        {question.details && (
+          <>
+            <div className='font-bold text-lg text-slate-900 p-4'>
+              Details:
+            </div>
+            <div className="font-semibold text-l mb-2 text-slate-900 p-4">
+              {question.details}
+            </div>
+          </>
+        )}
+        
+        <div className="px-4 py-2">
+          
+          
+          
+          
           
           <div className="flex justify-between items-center mt-4">
             <div className="flex space-x-4">
@@ -482,7 +568,7 @@ const handleGoBack = () => {
                 Endorse ({endorsements})
               </Button>
               <Button
-                type="Action"
+                type="ChangeView"
                 onClick={handleFollow}
                 className={`flex items-center ${isFollowing ? 'bg-blue-700' : ''}`}
               >
@@ -490,7 +576,7 @@ const handleGoBack = () => {
                 {isFollowing ? 'Following' : 'Follow'}
               </Button>
               <Button
-        type="Submit"
+        type="Respond"
         onClick={() => setIsResponseModalOpen(true)}
         className={`flex items-center `}
       >
@@ -516,6 +602,7 @@ const handleGoBack = () => {
         </div>
       </div>
       
+      <div className="mb-8"></div>
       
 
       <Modal isOpen={isResponseModalOpen} onClose={() => setIsResponseModalOpen(false)}>
@@ -556,6 +643,18 @@ const handleGoBack = () => {
           ))}
         </Dropdown>,
         document.body
+      )}
+
+      {isQuestionInOrganization && currentOrganization && (
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-2">Tags</h3>
+          <TagManager 
+            questionId={id}
+            organizationId={currentOrganization.id}
+            isAdmin={isAdmin}
+            mode="question"
+          />
+        </div>
       )}
     </div>
   );

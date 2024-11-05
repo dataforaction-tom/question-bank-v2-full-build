@@ -6,6 +6,7 @@ const buttonTypes = {
   Submit: 'bg-green-600 hover:bg-green-700 text-white',
   Confirm: 'bg-yellow-600 hover:bg-yellow-700 text-black',
   Cancel: 'bg-red-600 hover:bg-red-700 text-white',
+  Respond: 'bg-teal-500 hover:bg-teal-600 text-white',
 };
 
 const Button = ({ 

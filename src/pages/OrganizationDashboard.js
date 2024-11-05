@@ -18,7 +18,8 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
-  Button
+  Button,
+  Chip
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import toast, { Toaster } from 'react-hot-toast';
@@ -31,16 +32,16 @@ import OrganizationManualRanking from '../components/OrganizationManualRanking';
 import ConfirmationDialog from '../components/ConfirmationDialog';
 import { useOrganization } from '../context/OrganizationContext';
 import CustomButton from '../components/Button';
+import TextField from '@mui/material/TextField';
 
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
   const OrganizationDashboard = () => {
-  const { currentOrganization, updateCurrentOrganization } = useOrganization();
+  const { currentOrganization, isAdmin, updateCurrentOrganization, updateIsAdmin } = useOrganization();
   const { session } = useAuth();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrganization, setSelectedOrganization] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [organizationQuestions, setOrganizationQuestions] = useState([]);
   const [openQuestions, setOpenQuestions] = useState([]);
   const [viewMode, setViewMode] = useState('cards');
@@ -55,8 +56,47 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   const [dialogMessage, setDialogMessage] = useState('');
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [questionToMakeOpen, setQuestionToMakeOpen] = useState(null);
+  const [tags, setTags] = useState([]);
+  const [newTagName, setNewTagName] = useState('');
+  const [isTagDialogOpen, setIsTagDialogOpen] = useState(false);
+  const [selectedQuestionId, setSelectedQuestionId] = useState(null);
+  const [isManageTagsDialogOpen, setIsManageTagsDialogOpen] = useState(false);
+  const [tagToDelete, setTagToDelete] = useState(null);
+  const [showEloRankingModal, setShowEloRankingModal] = useState(false);
+
+  // Add this useEffect to check when to show the modal
+  useEffect(() => {
+    if (currentOrganization) {
+      const lastShown = localStorage.getItem(`eloRankingModalLastShown_${currentOrganization.id}`);
+      const currentTime = new Date().getTime();
+      
+      if (!lastShown || currentTime - parseInt(lastShown) > 24 * 60 * 60 * 1000 * 7) {
+        setShowEloRankingModal(true);
+        localStorage.setItem(`eloRankingModalLastShown_${currentOrganization.id}`, currentTime.toString());
+      }
+    }
+  }, [currentOrganization]);
+
+  // Add handler to close the modal
+  const handleCloseEloRanking = () => {
+    setShowEloRankingModal(false);
+  };
 
   
+
+  const fetchTags = useCallback(async () => {
+    if (!currentOrganization) return;
+    const { data, error } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('organization_id', currentOrganization.id);
+    if (error) {
+      console.error('Error fetching tags:', error);
+    } else {
+      // Filter out any null values
+      setTags(data.filter(tag => tag != null));
+    }
+  }, [currentOrganization]);
 
   const fetchQuestions = useCallback(async (organizationId) => {
     try {
@@ -69,7 +109,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
           *,
           endorsements:endorsements(count),
           followers:question_followers(count),
-          responses:responses(count)
+          responses:responses(count),
+          tags:question_tags(tags(*))
         `)
         .eq('organization_id', organizationId);
 
@@ -115,7 +156,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
           responses_count: q.responses?.[0]?.count || 0,
           manual_rank: rankingsMap[q.id]?.manual_rank ?? 0,
           elo_score: rankingsMap[q.id]?.elo_score ?? 1500,
-          kanban_status: rankingsMap[q.id]?.kanban_status ?? 'Now'
+          kanban_status: rankingsMap[q.id]?.kanban_status ?? 'Now',
+          tags: q.tags.map(t => t.tags)
         })),
         ...indirectQuestions.map(q => ({
           ...q.questions,
@@ -173,10 +215,11 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
   const handleOrganizationSelect = useCallback((org) => {
     updateCurrentOrganization(org);
-    setIsAdmin(org.organization_users[0].role === 'admin');
+    const adminStatus = org.organization_users[0].role === 'admin';
+    updateIsAdmin(adminStatus);
     setShowOrgSelector(false);
     fetchQuestions(org.id);
-  }, [updateCurrentOrganization, fetchQuestions]);
+  }, [updateCurrentOrganization, updateIsAdmin, fetchQuestions]);
 
   useEffect(() => {
     if (location.state?.viewMode) {
@@ -232,8 +275,9 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   useEffect(() => {
     if (currentOrganization) {
       fetchQuestions(currentOrganization.id);
+      fetchTags();
     }
-  }, [currentOrganization, fetchQuestions]);
+  }, [currentOrganization, fetchQuestions, fetchTags]);
 
   
 
@@ -405,6 +449,18 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     }
   };
 
+  const handleAddTag = (questionId) => {
+    setSelectedQuestionId(questionId);
+    setIsTagDialogOpen(true);
+  };
+
+  const handleTagSelection = async (tagId) => {
+    if (selectedQuestionId) {
+      await addTagToQuestion(selectedQuestionId, tagId);
+    }
+    setIsTagDialogOpen(false);
+  };
+
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
     const displayQuestions = isOrganizationQuestion ? sortedQuestions : questions;
     
@@ -425,6 +481,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
             isOrganizationQuestion={isOrganizationQuestion}
             onUpdateKanbanStatus={handleUpdateKanbanStatus}
             setQuestions={setQuestions}  // Add this line
+            organizationId={currentOrganization.id}
           />
         );
       case 'cards':
@@ -449,6 +506,9 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
                   isAdmin={isAdmin}
                   isOrganizationQuestion={isOrganizationQuestion}
                   onUpdateKanbanStatus={handleUpdateKanbanStatus}
+                  tags={tags}
+                  onAddTag={handleAddTag}
+                  organizationId={currentOrganization.id}
                 />
               );
             })}
@@ -568,6 +628,119 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     );
   };
 
+  const createTag = async () => {
+    if (newTagName.trim() === '' || !currentOrganization) {
+      toast.error('Tag name cannot be empty');
+      return;
+    }
+
+    try {
+      // Insert the new tag
+      const { error: insertError } = await supabase
+        .from('tags')
+        .insert({ name: newTagName, organization_id: currentOrganization.id });
+
+      if (insertError) throw insertError;
+
+      // Fetch the newly created tag
+      const { data: newTag, error: fetchError } = await supabase
+        .from('tags')
+        .select('*')
+        .eq('name', newTagName)
+        .eq('organization_id', currentOrganization.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (newTag) {
+        setTags(prevTags => [...prevTags.filter(tag => tag != null), newTag]);
+        setNewTagName('');
+        toast.success('Tag created successfully');
+
+        // If a question is selected, add the tag to that question
+        if (selectedQuestionId) {
+          await addTagToQuestion(selectedQuestionId, newTag.id);
+        }
+
+        // Close the appropriate dialog
+        if (isTagDialogOpen) {
+          setIsTagDialogOpen(false);
+        } else if (isManageTagsDialogOpen) {
+          setIsManageTagsDialogOpen(false);
+        }
+      } else {
+        throw new Error('Failed to retrieve the newly created tag');
+      }
+
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      toast.error('Failed to create tag');
+    }
+  };
+
+  const addTagToQuestion = async (questionId, tagId) => {
+    const { error } = await supabase
+      .from('question_tags')
+      .insert({ question_id: questionId, tag_id: tagId });
+    if (error) {
+      console.error('Error adding tag to question:', error);
+      toast.error('Failed to add tag to question.');
+    } else {
+      await fetchQuestions(currentOrganization.id);
+    }
+  };
+
+  const fetchOrganizationTags = useCallback(async () => {
+    if (!currentOrganization) return;
+    const { data, error } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('organization_id', currentOrganization.id);
+    if (error) {
+      console.error('Error fetching tags:', error);
+    } else {
+      setTags(data);
+    }
+  }, [currentOrganization]);
+
+  useEffect(() => {
+    if (currentOrganization) {
+      fetchOrganizationTags();
+    }
+  }, [currentOrganization, fetchOrganizationTags]);
+
+  const handleDeleteTag = async (tagId) => {
+    try {
+      // First, remove the tag from all questions
+      const { error: removeError } = await supabase
+        .from('question_tags')
+        .delete()
+        .match({ tag_id: tagId });
+
+      if (removeError) throw removeError;
+
+      // Then, delete the tag itself
+      const { error: deleteError } = await supabase
+        .from('tags')
+        .delete()
+        .match({ id: tagId });
+
+      if (deleteError) throw deleteError;
+
+      // Update the local state
+      setTags(prevTags => prevTags.filter(tag => tag != null && tag.id !== tagId));
+      toast.success('Tag deleted successfully');
+    } catch (error) {
+      console.error('Error deleting tag:', error);
+      toast.error('Failed to delete tag');
+    }
+  };
+
+  const handleManageTags = () => {
+    setSelectedQuestionId(null); // Reset the selected question ID
+    setIsManageTagsDialogOpen(true);
+  };
+
   return (
     <div className="flex">
       <Toaster position="top-right" />
@@ -579,12 +752,14 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
         viewMode={viewMode}
         setViewMode={setViewMode}
         selectedOrganizationId={currentOrganization?.id}
+        onManageTags={handleManageTags} // Add this prop
+        isAdmin={isAdmin}
       />
       {/* Main Content */}
       <div className={`flex-grow transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'} p-8`}>
         <Container maxWidth="xl">
           <OrganizationSelectorModal
-            open={showOrgSelector && !currentOrganization}
+            open={showOrgSelector}
             organizations={organizations}
             onSelect={handleOrganizationSelect}
           />
@@ -592,14 +767,14 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
             <>
               <Typography variant='h4'>{currentOrganization.name} Dashboard</Typography>
               <CustomButton 
-                type="ChangeView"
+                type="Action"
                 onClick={() => {
             updateCurrentOrganization(null);
                   setShowOrgSelector(true);
                 }}
                 className="w-auto"
               >
-                Change Organization
+                Change Group
               </CustomButton>
               <Divider style={{ margin: '2rem 0' }} />
               <div className="mb-4">
@@ -611,7 +786,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
                   questions={questions}
                   setQuestions={setQuestions}
                 />
-              ) : viewMode === 'elo-ranking' ? (
+              ) : viewMode === 'elo-ranking' ? (  
                 <OrganizationELORanking 
                   organizationId={currentOrganization.id}
                 />
@@ -647,6 +822,95 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
         title="Confirm Making Question Public"
         message="Making a question public means your question and responses to this question will be in the public domain. This cannot be reversed. If you make the question public, this question will still be visible in your group dashboard, and you will follow and endorse this question also."
       />
+      <Dialog open={isTagDialogOpen} onClose={() => setIsTagDialogOpen(false)}>
+        <DialogTitle>Add Tag</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle1">Existing Tags:</Typography>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {tags.map(tag => (
+              <Chip
+                key={tag.id}
+                label={tag.name}
+                onClick={() => handleTagSelection(tag.id)}
+                clickable
+              />
+            ))}
+          </div>
+          <Typography variant="subtitle1">Or create a new tag:</Typography>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="New Tag Name"
+            type="text"
+            fullWidth
+            value={newTagName}
+            onChange={(e) => setNewTagName(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsTagDialogOpen(false)}>Cancel</Button>
+          <Button onClick={createTag}>Create New Tag</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={isManageTagsDialogOpen} onClose={() => setIsManageTagsDialogOpen(false)}>
+        <DialogTitle>Manage Tags</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle1">Existing Tags:</Typography>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {tags.filter(tag => tag != null).map(tag => (
+              <Chip
+                key={tag.id}
+                label={tag.name}
+                onDelete={() => setTagToDelete(tag)}
+              />
+            ))}
+          </div>
+          <Typography variant="subtitle1">Create a new tag:</Typography>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="New Tag Name"
+            type="text"
+            fullWidth
+            value={newTagName}
+            onChange={(e) => setNewTagName(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsManageTagsDialogOpen(false)}>Close</Button>
+          <Button onClick={createTag}>Create New Tag</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={!!tagToDelete} onClose={() => setTagToDelete(null)}>
+        <DialogTitle>Confirm Tag Deletion</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the tag "{tagToDelete?.name}"? This action cannot be undone and will remove the tag from all associated questions.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setTagToDelete(null)}>Cancel</Button>
+          <Button onClick={() => {
+            handleDeleteTag(tagToDelete.id);
+            setTagToDelete(null);
+          }} color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog 
+        open={showEloRankingModal} 
+        onClose={handleCloseEloRanking}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogContent>
+          <OrganizationELORanking 
+            organizationId={currentOrganization?.id} 
+            onSubmitSuccess={handleCloseEloRanking}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
