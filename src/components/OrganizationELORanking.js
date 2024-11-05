@@ -4,7 +4,7 @@ import { supabase } from '../supabaseClient';
 import { Container, Typography, Button, List, ListItem, ListItemText } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
-const OrganizationELORanking = ({ organizationId }) => {
+const OrganizationELORanking = ({ organizationId, onSubmitSuccess }) => {
   
   const [questions, setQuestions] = useState([]);
   const [organization, setOrganization] = useState(null);
@@ -90,11 +90,15 @@ const OrganizationELORanking = ({ organizationId }) => {
 
       alert('Ranking submitted successfully!');
       await fetchRandomQuestions(); // Refetch questions to get updated scores
+      if (onSubmitSuccess) {
+        onSubmitSuccess();  // Call the callback after successful submission
+      }
     } catch (error) {
       console.error('Error submitting ranking:', error);
       alert('An error occurred while submitting your ranking.');
     }
   };
+  
 
   const getItemStyle = (index, questionsLength) => {
     if (index === 0) {
@@ -129,7 +133,10 @@ const OrganizationELORanking = ({ organizationId }) => {
         marginBottom: '0.5rem',
       };
     }
+    
   };
+
+  
 
   return (
     <Container maxWidth="md">
