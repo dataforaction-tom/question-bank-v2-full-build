@@ -221,7 +221,7 @@ const OrganizationSignUp = () => {
         return (
           <Box sx={{ mt: 2 }}>
             <TextField
-              label='Organization Name'
+              label='Group Name'
               fullWidth
               margin='normal'
               value={organizationName}
