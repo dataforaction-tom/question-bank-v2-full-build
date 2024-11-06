@@ -36,34 +36,55 @@ const OrganizationSignUp = () => {
     const handleStripeRedirect = async () => {
       const queryParams = new URLSearchParams(location.search);
       const sessionId = queryParams.get('session_id');
-      const canceled = queryParams.get('canceled');
-
+      
       if (sessionId) {
         setLoading(true);
         try {
-          // Verify the session with Stripe
+          console.log('Checking session:', sessionId); // Debug session check
           const { data: session } = await retrieveSession(sessionId);
+          console.log('Session data:', session); // Debug session data
+
           if (session.payment_status === 'paid') {
-            setSuccess(true);
-            setActiveStep(2); // Move to organization creation step
-          } else {
-            setError('Payment was not completed. Please try again.');
-            setActiveStep(1); // Back to payment step
+            // Poll for organization creation
+            let attempts = 0;
+            const checkOrganization = async () => {
+              console.log('Checking for organization...'); // Debug org check
+              const { data: { user } } = await supabase.auth.getUser();
+              const { data: org, error } = await supabase
+                .from('organizations')
+                .select('*')
+                .eq('created_by', user.id)
+                .eq('name', organizationName)
+                .single();
+
+              if (org) {
+                console.log('Organization found:', org); // Debug org found
+                setSuccess(true);
+                setActiveStep(2);
+                return;
+              }
+
+              if (attempts < 5) {
+                attempts++;
+                setTimeout(checkOrganization, 2000); // Check every 2 seconds
+              } else {
+                throw new Error('Organization creation timeout');
+              }
+            };
+
+            await checkOrganization();
           }
         } catch (err) {
-          console.error('Error verifying payment:', err);
-          setError('Could not verify payment. Please contact support.');
+          console.error('Error handling redirect:', err);
+          setError('Could not verify organization creation. Please contact support.');
         } finally {
           setLoading(false);
         }
-      } else if (canceled) {
-        setError('Payment was canceled. Please try again if you wish to create an organization.');
-        setActiveStep(1); // Back to payment step
       }
     };
 
     handleStripeRedirect();
-  }, [location.search, stripe]);
+  }, [location.search, organizationName]);
 
   // Check existing subscription
   useEffect(() => {
@@ -101,7 +122,7 @@ const OrganizationSignUp = () => {
       console.log('User:', user); // Debug user
       
       if (!user) {
-        throw new Error('You need to be signed in to create an organization.');
+        throw new Error('You need to be signed in to create a group.');
       }
 
       console.log('Making checkout session request with:', { // Debug request
@@ -153,7 +174,7 @@ const OrganizationSignUp = () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        throw new Error('You need to be signed in to create an organization.');
+        throw new Error('You need to be signed in to create a group.');
       }
 
       // Check if organization was already created by webhook
@@ -227,12 +248,12 @@ const OrganizationSignUp = () => {
               Subscription Details
             </Typography>
             <Typography variant="body1" paragraph>
-              Create your organization "{organizationName}" for $19.99/month
+              Create your group "{organizationName}" for £100 per year
             </Typography>
             <ul>
-              <li>Private organization space</li>
-              <li>Unlimited team members</li>
-              <li>Advanced features</li>
+              <li>Private group space</li>
+              <li>20 group members</li>
+              <li>Private questions, rankings, prioritisation features</li>
               <li>Priority support</li>
             </ul>
             <Button
@@ -253,7 +274,7 @@ const OrganizationSignUp = () => {
           <Box sx={{ mt: 2 }}>
             <form onSubmit={handleOrganizationSignUp}>
               <TextField
-                label='Confirm Organization Name'
+                label='Confirm group Name'
                 fullWidth
                 margin='normal'
                 value={organizationName}
@@ -290,12 +311,12 @@ const OrganizationSignUp = () => {
         
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Payment successful! You can now create your organization.
+            Payment successful! You can now create your Group.
           </Alert>
         )}
 
         <Typography variant='h4' component='h1' gutterBottom>
-          Create an Organization
+          Create a Group
         </Typography>
         
         <Stepper activeStep={activeStep} sx={{ mb: 4 }}>

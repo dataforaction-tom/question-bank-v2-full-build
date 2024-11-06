@@ -21,29 +21,30 @@ export default async function handler(req, res) {
     return;
   }
 
-  const buf = await buffer(req);
   const sig = req.headers['stripe-signature'];
-
   let event;
 
   try {
     event = stripe.webhooks.constructEvent(
-      buf,
+      req.body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
+    console.log('Webhook event received:', event.type); // Debug event type
   } catch (err) {
-    console.error(`Webhook Error: ${err.message}`);
-    res.status(400).send(`Webhook Error: ${err.message}`);
-    return;
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object;
-        const { userId, organizationName } = session.metadata;
+        console.log('Checkout session completed:', session); // Debug session data
         
+        const { userId, organizationName } = session.metadata;
+        console.log('Creating organization for:', { userId, organizationName }); // Debug metadata
+
         // Create organization with active subscription
         const { data: org, error: orgError } = await supabaseServer
           .from('organizations')
@@ -58,7 +59,11 @@ export default async function handler(req, res) {
           ])
           .single();
 
-        if (orgError) throw orgError;
+        if (orgError) {
+          console.error('Error creating organization:', orgError);
+          throw orgError;
+        }
+        console.log('Organization created:', org); // Debug org creation
 
         // Create organization_users entry
         const { error: userError } = await supabaseServer
@@ -71,19 +76,15 @@ export default async function handler(req, res) {
             }
           ]);
 
-        if (userError) throw userError;
+        if (userError) {
+          console.error('Error creating organization user:', userError);
+          throw userError;
+        }
+        console.log('Organization user created'); // Debug user creation
         break;
 
-      case 'customer.subscription.deleted':
-        const subscription = event.data.object;
-        
-        const { error: updateError } = await supabaseServer
-          .from('organizations')
-          .update({ subscription_status: 'inactive' })
-          .eq('stripe_subscription_id', subscription.id);
-
-        if (updateError) throw updateError;
-        break;
+      default:
+        console.log(`Unhandled event type ${event.type}`);
     }
 
     res.json({ received: true });
