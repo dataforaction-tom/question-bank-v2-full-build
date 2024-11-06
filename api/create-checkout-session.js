@@ -13,33 +13,16 @@ export default async function handler(req, res) {
     return;
   }
 
+  console.log('Received checkout request:', req.body); // Debug request
+
   try {
     const { userId, priceId, organizationName } = req.body;
 
-    // Validate inputs
-    if (!userId || !priceId || !organizationName) {
-      return res.status(400).json({ 
-        error: 'Missing required fields' 
-      });
-    }
-
-    // Check existing subscription
-    const { data: existingOrg, error: checkError } = await supabaseServer
-      .from('organizations')
-      .select('subscription_status')
-      .eq('created_by', userId)
-      .eq('subscription_status', 'active')
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      throw checkError;
-    }
-
-    if (existingOrg) {
-      return res.status(400).json({ 
-        error: 'User already has an active subscription' 
-      });
-    }
+    console.log('Creating checkout session with:', { // Debug params
+      userId,
+      priceId,
+      organizationName
+    });
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -58,9 +41,10 @@ export default async function handler(req, res) {
       cancel_url: `${process.env.CLIENT_URL}/organization-signup?canceled=true`,
     });
 
+    console.log('Created session:', session.id); // Debug session
     res.json({ sessionId: session.id });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Checkout error:', error);
     res.status(500).json({ 
       error: 'Failed to create checkout session',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined

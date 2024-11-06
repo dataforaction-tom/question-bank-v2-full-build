@@ -90,12 +90,25 @@ const OrganizationSignUp = () => {
     setLoading(true);
     setError(null);
     
+    console.log('Stripe instance:', stripe); // Debug stripe instance
+    
     try {
+      if (!stripe) {
+        throw new Error('Stripe has not been initialized yet');
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('User:', user); // Debug user
       
       if (!user) {
         throw new Error('You need to be signed in to create an organization.');
       }
+
+      console.log('Making checkout session request with:', { // Debug request
+        userId: user.id,
+        priceId: process.env.REACT_APP_STRIPE_PRICE_ID,
+        organizationName
+      });
 
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
@@ -107,19 +120,24 @@ const OrganizationSignUp = () => {
         }),
       });
 
-      const { sessionId, error } = await response.json();
-      
-      if (error) {
-        throw new Error(error);
+      const data = await response.json();
+      console.log('Checkout session response:', data); // Debug response
+
+      if (data.error) {
+        throw new Error(data.error);
       }
 
-      const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
+      console.log('Redirecting to checkout with sessionId:', data.sessionId); // Debug redirect
+      const { error: stripeError } = await stripe.redirectToCheckout({ 
+        sessionId: data.sessionId 
+      });
 
       if (stripeError) {
+        console.error('Stripe redirect error:', stripeError); // Debug stripe error
         throw stripeError;
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Subscription error:', error);
       setError(error.message || 'An error occurred during subscription. Please try again.');
     } finally {
       setLoading(false);
