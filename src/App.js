@@ -23,6 +23,8 @@ import QuestionRankingModal from './components/QuestionRankingModal';
 import QuestionOverview from './pages/QuestionOverview';
 import GroupMembers from './pages/GroupMembers';
 import { OrganizationProvider } from './context/OrganizationContext';
+import { Elements } from '@stripe/react-stripe-js';
+import { stripePromise } from './stripe';
 
 
 
@@ -30,6 +32,7 @@ const App = () => {
   const {session} = useAuth();
 
   return (
+    <Elements stripe={stripePromise}>
     <ThemeProvider>
       <OrganizationProvider>
       <Router>
@@ -76,6 +79,7 @@ const App = () => {
         </Router>
       </OrganizationProvider>
     </ThemeProvider>
+    </Elements>
   );
 };
 
