@@ -1,8 +1,8 @@
 import Stripe from 'stripe';
-import { buffer } from 'micro';
+import getRawBody from 'raw-body';
 import { createClient } from '@supabase/supabase-js';
 
-// Disable body parsing, need raw body for webhook signature verification
+// Disable body parsing
 export const config = {
   api: {
     bodyParser: false,
@@ -17,37 +17,33 @@ const supabaseServer = createClient(supabaseUrl, supabaseServiceKey);
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
-    res.status(405).end('Method Not Allowed');
-    return;
+    return res.status(405).end('Method Not Allowed');
   }
 
-  const buf = await buffer(req);  // Get raw body
   const sig = req.headers['stripe-signature'];
-
-  let event;
-
+  
   try {
-    event = stripe.webhooks.constructEvent(
-      buf,  // Use buffered body
+    // Get raw body as a buffer
+    const rawBody = await getRawBody(req);
+    
+    // Construct the event
+    const event = stripe.webhooks.constructEvent(
+      rawBody,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
-    console.log('✅ Webhook verified, event:', event.type);
-  } catch (err) {
-    console.error('❌ Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
 
-  try {
+    console.log('✅ Webhook event received:', event.type);
+
+    // Handle the event
     switch (event.type) {
       case 'checkout.session.completed':
         const session = event.data.object;
-        console.log('Checkout session completed:', session); // Debug session data
+        console.log('Session data:', session);
         
         const { userId, organizationName } = session.metadata;
-        console.log('Creating organization for:', { userId, organizationName }); // Debug metadata
-
-        // Create organization with active subscription
+        
+        // Create organization
         const { data: org, error: orgError } = await supabaseServer
           .from('organizations')
           .insert([
@@ -59,15 +55,15 @@ export default async function handler(req, res) {
               stripe_customer_id: session.customer
             }
           ])
+          .select()
           .single();
 
         if (orgError) {
           console.error('Error creating organization:', orgError);
           throw orgError;
         }
-        console.log('Organization created:', org); // Debug org creation
 
-        // Create organization_users entry
+        // Create organization user
         const { error: userError } = await supabaseServer
           .from('organization_users')
           .insert([
@@ -82,7 +78,8 @@ export default async function handler(req, res) {
           console.error('Error creating organization user:', userError);
           throw userError;
         }
-        console.log('Organization user created'); // Debug user creation
+
+        console.log('✅ Organization and user created successfully');
         break;
 
       default:
@@ -90,8 +87,10 @@ export default async function handler(req, res) {
     }
 
     res.json({ received: true });
-  } catch (error) {
-    console.error('Error processing webhook:', error);
-    res.status(500).json({ error: 'Failed to process webhook' });
+  } catch (err) {
+    console.error('❌ Webhook error:', err.message);
+    return res.status(400).json({
+      error: `Webhook Error: ${err.message}`
+    });
   }
 } 
