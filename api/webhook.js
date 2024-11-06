@@ -43,77 +43,63 @@ export default async function handler(req, res) {
       process.env.STRIPE_WEBHOOK_SECRET
     );
 
-    console.log('✅ Webhook verified, event type:', event.type);
-    console.log('Event data:', JSON.stringify(event.data, null, 2));
+    console.log('✅ Event type:', event.type);
 
-    // Handle the event
-    switch (event.type) {
-      case 'checkout.session.completed':
-        const session = event.data.object;
-        console.log('Session data:', session);
-        
-        const { userId, organizationName } = session.metadata;
-        
-        // Create organization
-        const { data: org, error: orgError } = await supabaseServer
-          .from('organizations')
-          .insert([
-            {
-              name: organizationName,
-              created_by: userId,
-              subscription_status: 'active',
-              stripe_subscription_id: session.subscription,
-              stripe_customer_id: session.customer
-            }
-          ])
-          .select()
-          .single();
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      console.log('Creating organization with data:', {
+        name: session.metadata.organizationName,
+        created_by: session.metadata.userId,
+        subscription_status: 'active',
+        stripe_subscription_id: session.subscription,
+        stripe_customer_id: session.customer
+      });
 
-        if (orgError) {
-          console.error('Error creating organization:', orgError);
-          throw orgError;
-        }
+      const { data: org, error: orgError } = await supabaseServer
+        .from('organizations')
+        .insert([
+          {
+            name: session.metadata.organizationName,
+            created_by: session.metadata.userId,
+            subscription_status: 'active',
+            stripe_subscription_id: session.subscription,
+            stripe_customer_id: session.customer
+          }
+        ])
+        .select()
+        .single();
 
-        // Create organization user
-        const { error: userError } = await supabaseServer
-          .from('organization_users')
-          .insert([
-            {
-              organization_id: org.id,
-              user_id: userId,
-              role: 'admin'
-            }
-          ]);
+      if (orgError) {
+        console.error('Database error:', orgError);
+        return res.status(400).json({ error: orgError.message });
+      }
 
-        if (userError) {
-          console.error('Error creating organization user:', userError);
-          throw userError;
-        }
+      console.log('Organization created:', org);
 
-        console.log('✅ Organization and user created successfully');
-        break;
+      // Create organization user
+      const { error: userError } = await supabaseServer
+        .from('organization_users')
+        .insert([
+          {
+            organization_id: org.id,
+            user_id: session.metadata.userId,
+            role: 'admin'
+          }
+        ]);
 
-      default:
-        console.log(`Unhandled event type ${event.type}`);
+      if (userError) {
+        console.error('Supabase user link error:', userError);
+        throw userError;
+      }
+
+      console.log('✅ Organization and user created successfully');
+      return res.json({ received: true });
     }
 
-    res.json({ received: true });
+    // Handle other event types
+    return res.json({ received: true });
   } catch (err) {
-    console.error('❌ Webhook error details:', {
-      message: err.message,
-      stack: err.stack,
-      headers: req.headers,
-      signature: sig,
-      secretPrefix: process.env.STRIPE_WEBHOOK_SECRET?.slice(0, 10) + '...'
-    });
-
-    return res.status(400).json({
-      error: `Webhook Error: ${err.message}`,
-      debug: process.env.NODE_ENV === 'development' ? {
-        headers: req.headers,
-        signaturePresent: !!sig,
-        secretPresent: !!process.env.STRIPE_WEBHOOK_SECRET
-      } : undefined
-    });
+    console.error('Webhook processing error:', err);
+    return res.status(400).json({ error: err.message });
   }
 } 
