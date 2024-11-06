@@ -15,25 +15,36 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const supabaseServer = createClient(supabaseUrl, supabaseServiceKey);
 
 export default async function handler(req, res) {
+  console.log('💡 Webhook received');
+  console.log('Method:', req.method);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  
   if (req.method !== 'POST') {
+    console.log('❌ Not a POST request');
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
   }
 
   const sig = req.headers['stripe-signature'];
+  console.log('Stripe signature:', sig);
+  console.log('Webhook secret:', process.env.STRIPE_WEBHOOK_SECRET?.slice(0, 10) + '...');
   
   try {
-    // Get raw body as a buffer
+    // Log the raw request
     const rawBody = await getRawBody(req);
-    
-    // Construct the event
+    console.log('Raw body length:', rawBody.length);
+    console.log('Raw body preview:', rawBody.toString().slice(0, 100) + '...');
+
+    // Verify webhook signature
+    console.log('Attempting to verify webhook...');
     const event = stripe.webhooks.constructEvent(
       rawBody,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
 
-    console.log('✅ Webhook event received:', event.type);
+    console.log('✅ Webhook verified, event type:', event.type);
+    console.log('Event data:', JSON.stringify(event.data, null, 2));
 
     // Handle the event
     switch (event.type) {
@@ -88,9 +99,21 @@ export default async function handler(req, res) {
 
     res.json({ received: true });
   } catch (err) {
-    console.error('❌ Webhook error:', err.message);
+    console.error('❌ Webhook error details:', {
+      message: err.message,
+      stack: err.stack,
+      headers: req.headers,
+      signature: sig,
+      secretPrefix: process.env.STRIPE_WEBHOOK_SECRET?.slice(0, 10) + '...'
+    });
+
     return res.status(400).json({
-      error: `Webhook Error: ${err.message}`
+      error: `Webhook Error: ${err.message}`,
+      debug: process.env.NODE_ENV === 'development' ? {
+        headers: req.headers,
+        signaturePresent: !!sig,
+        secretPresent: !!process.env.STRIPE_WEBHOOK_SECRET
+      } : undefined
     });
   }
 } 
