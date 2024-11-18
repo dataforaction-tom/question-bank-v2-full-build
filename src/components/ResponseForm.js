@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Typography, DialogTitle } from '@mui/material';
+import { Typography, DialogTitle, FormControl, Select, MenuItem, InputLabel, ToggleButtonGroup, ToggleButton } from '@mui/material';
 
-const ResponseForm = ({ questionId, responseId, onSubmit, initialContent = '', initialUrl = '', isEditing = false, onCancel }) => {
+const RESPONSE_TYPES = [
+  { value: 'answer', label: 'Answer' },
+  { value: 'partial_answer', label: 'Partial answer' },
+  { value: 'way_of_answering', label: 'Way of answering' },
+  { value: 'other', label: 'Other' },
+];
+
+const ResponseForm = ({ questionId, responseId, onSubmit, initialContent = '', initialUrl = '', initialResponseType = 'answer', isEditing = false, onCancel }) => {
   const [content, setContent] = useState(initialContent);
   const [url, setUrl] = useState(initialUrl);
+  const [responseType, setResponseType] = useState(initialResponseType);
 
   useEffect(() => {
     setContent(initialContent);
     setUrl(initialUrl);
-  }, [initialContent, initialUrl]);
+    setResponseType(initialResponseType);
+  }, [initialContent, initialUrl, initialResponseType]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,18 +39,17 @@ const ResponseForm = ({ questionId, responseId, onSubmit, initialContent = '', i
       const trimmedUrl = url ? url.trim() : null;
 
       if (isEditing) {
-        // Update existing response
         const { error } = await supabase
           .from('responses')
           .update({
             content: content.trim(),
             url: trimmedUrl,
+            response_type: responseType,
           })
-          .eq('id', responseId); // Use responseId for editing
+          .eq('id', responseId);
 
         if (error) throw error;
       } else {
-        // Insert new response
         const { error } = await supabase
           .from('responses')
           .insert({
@@ -49,6 +57,7 @@ const ResponseForm = ({ questionId, responseId, onSubmit, initialContent = '', i
             user_id: user.id,
             content: content.trim(),
             url: trimmedUrl,
+            response_type: responseType,
           });
 
         if (error) throw error;
@@ -56,6 +65,7 @@ const ResponseForm = ({ questionId, responseId, onSubmit, initialContent = '', i
 
       setContent('');
       setUrl('');
+      setResponseType('answer');
       onSubmit();
       alert(isEditing ? 'Response updated successfully!' : 'Response submitted successfully!');
     } catch (error) {
@@ -73,6 +83,54 @@ const ResponseForm = ({ questionId, responseId, onSubmit, initialContent = '', i
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4 p-4">
+        <div>
+          <Typography variant="subtitle1" className="block text-sm font-medium text-gray-700 mb-2">
+            Type of Response
+          </Typography>
+          <ToggleButtonGroup
+            value={responseType}
+            exclusive
+            onChange={(e, newValue) => {
+              if (newValue !== null) {
+                setResponseType(newValue);
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1,
+              '& .MuiToggleButton-root': {
+                flex: '1 1 calc(50% - 4px)',
+                borderRadius: '9999px',
+                border: '1px solid #e2e8f0',
+                padding: '8px 16px',
+                textTransform: 'none',
+                '&.Mui-selected': {
+                  backgroundColor: '#020617',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: '#1e293b',
+                  },
+                },
+                '&:hover': {
+                  backgroundColor: '#f8fafc',
+                },
+              },
+            }}
+          >
+            {RESPONSE_TYPES.map((type) => (
+              <ToggleButton 
+                key={type.value} 
+                value={type.value}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {type.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </div>
+        
         <div>
           <Typography variant="subtitle1" className="block text-sm font-medium text-gray-700 mb-2">
             Your Response
