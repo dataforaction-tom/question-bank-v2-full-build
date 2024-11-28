@@ -12,6 +12,8 @@ import { FaThumbsUp, FaBell, FaComment, FaLinkedin, FaLink, FaEnvelope } from 'r
 import { styled } from '@mui/material';
 import { createPortal } from 'react-dom';
 import TagManager from '../components/TagManager';  // Import the new TagManager component
+import ResponseKanban from '../components/ResponseKanban';
+import ResponseManualRanking from '../components/ResponseManualRanking';
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -53,6 +55,15 @@ const DropdownItem = styled('div')(({ status }) => ({
   },
 }));
 
+const TwoColumnLayout = styled('div')({
+  display: 'grid',
+  gridTemplateColumns: '70% 30%',
+  gap: '2rem',
+  '@media (max-width: 768px)': {
+    gridTemplateColumns: '100%',
+  },
+});
+
 const QuestionDetail = () => {
   const { id } = useParams();
   const { session } = useAuth();
@@ -74,6 +85,7 @@ const QuestionDetail = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPartOfOrganization, setIsPartOfOrganization] = useState(false);
   const [isQuestionInOrganization, setIsQuestionInOrganization] = useState(false);
+  const [responseViewMode, setResponseViewMode] = useState('list'); // 'list', 'kanban', or 'manual-ranking'
 
   const navigate = useNavigate();
 const location = useLocation();
@@ -170,7 +182,11 @@ const handleGoBack = () => {
         .from('questions')
         .select(`
           *,
-          tags:question_tags(tags(*))
+          tags:question_tags(tags(*)),
+          organization_question_rankings(
+            kanban_status,
+            organization_id
+          )
         `)
         .eq('id', id)
         .single();
@@ -182,10 +198,11 @@ const handleGoBack = () => {
         return;
       }
 
-      // Format tags
+      // Format tags and ensure we have the kanban status
       const formattedQuestion = {
         ...questionData,
-        tags: questionData.tags.map(t => t.tags)
+        tags: questionData.tags.map(t => t.tags),
+        organization_question_rankings: questionData.organization_question_rankings?.[0] || null
       };
 
       setQuestion(formattedQuestion);
@@ -254,33 +271,6 @@ const handleGoBack = () => {
     checkUserFollowing();
   }, [id, currentUser, fetchResponses]);
 
-  const handleUpdateKanbanStatus = async (newStatus) => {
-    try {
-      const { data, error } = await supabase
-        .from('organization_question_rankings')
-        .upsert({ 
-          question_id: id, 
-          kanban_status: newStatus 
-        }, { onConflict: 'question_id' })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setQuestion(prev => ({ 
-        ...prev, 
-        organization_question_rankings: {
-          ...prev.organization_question_rankings,
-          kanban_status: newStatus
-        }
-      }));
-      setDropdownState({ isOpen: false, position: null });
-    } catch (error) {
-      console.error('Error updating Kanban status:', error);
-      alert('Failed to update Kanban status. Please try again.');
-    }
-  };
-
   const handleStatusClick = (e) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -289,6 +279,37 @@ const handleGoBack = () => {
       position: { top: rect.bottom, left: rect.left },
     });
     setFocusedIndex(0);
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    try {
+      const { data, error } = await supabase
+        .from('organization_question_rankings')
+        .upsert({ 
+          organization_id: currentOrganization?.id,
+          question_id: id, 
+          kanban_status: newStatus 
+        }, { 
+          onConflict: 'organization_id,question_id'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setQuestion(prev => ({
+        ...prev,
+        organization_question_rankings: {
+          ...prev.organization_question_rankings,
+          kanban_status: newStatus
+        }
+      }));
+      
+      setDropdownState({ isOpen: false, position: null });
+    } catch (error) {
+      console.error('Error updating Kanban status:', error);
+      alert('Failed to update Kanban status. Please try again.');
+    }
   };
 
   const handleKeyDown = (event) => {
@@ -305,7 +326,7 @@ const handleGoBack = () => {
         break;
       case 'Enter':
         event.preventDefault();
-        handleUpdateKanbanStatus(KANBAN_STATUSES[focusedIndex]);
+        handleStatusChange(KANBAN_STATUSES[focusedIndex]);
         break;
       case 'Escape':
         event.preventDefault();
@@ -494,116 +515,156 @@ const handleGoBack = () => {
     alert('Link copied to clipboard');
   };
 
+  const renderResponseSection = () => {
+    if (!isAdmin) {
+      return <ResponseList questionId={id} currentUserId={currentUser?.id} />;
+    }
+
+    switch (responseViewMode) {
+      case 'kanban':
+        return (
+          <ResponseKanban 
+            questionId={id} 
+            organizationId={currentOrganization?.id} 
+            fetchMode="question"
+          />
+        );
+      case 'manual-ranking':
+        return (
+          <ResponseManualRanking 
+            questionId={id} 
+            organizationId={currentOrganization?.id}
+          />
+        );
+      default:
+        return <ResponseList questionId={id} currentUserId={currentUser?.id} />;
+    }
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8 pb-16 ">
-      
-      
-      <div className="shadow-md shadow-blue-100 rounded overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white pl-4 p-1"> <p className=" text-sm mb-2">
-            
-            <i className="fas fa-calendar-alt" aria-hidden="true"></i> {new Date(question.created_at).toLocaleDateString()}
-          </p></div>
-        
-        <div className="flex justify-end px-4 py-2">
-          <div className="flex flex-wrap gap-2">
-            {question.category && <ColorTag category={question.category} />}
-            <ColorTag category={question.is_open ? 'Public' : 'Private'} />
-            {question.organization_question_rankings && question.organization_question_rankings.kanban_status && (
-              <div ref={statusChipRef}>
-                <StatusChip 
-                  status={question.organization_question_rankings.kanban_status} 
-                  onClick={handleStatusClick}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleStatusClick(e);
-                    }
-                  }}
+    <div className="container mx-auto px-4 py-8 pb-16">
+      <div className="mb-12">
+        <TwoColumnLayout>
+          {/* Main Column */}
+          <div className="shadow-md shadow-blue-100 rounded overflow-hidden">
+            <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white p-4">
+              <div className="font-bold text-xl text-white mb-2">Question:</div>
+              <h1 className="font-semibold text-xl">{question.content}</h1>
+            </div>
+
+            <div className="p-4">
+              <div className="font-bold text-lg text-slate-900 mb-2">
+                What we could do with an answer:
+              </div>
+              <div className="font-semibold text-l mb-4 text-slate-900">
+                {question.answer}
+              </div>
+
+              {question.details && (
+                <>
+                  <div className="font-bold text-lg text-slate-900 mb-2">
+                    Details:
+                  </div>
+                  <div className="font-semibold text-l mb-4 text-slate-900">
+                    {question.details}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Date and Tags Section */}
+            <div className="bg-white shadow-md shadow-blue-100 rounded p-4">
+              <p className="text-sm mb-4">
+                <i className="fas fa-calendar-alt" aria-hidden="true"></i>{' '}
+                Date Submitted: {new Date(question.created_at).toLocaleDateString()}
+              </p>
+
+              {/* Category and Status Tags */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {question.category && <ColorTag category={question.category} />}
+                <ColorTag category={question.is_open ? 'Public' : 'Private'} />
+                {isAdmin && currentOrganization && (
+                  <div ref={statusChipRef}>
+                    <StatusChip 
+                      status={question.organization_question_rankings?.kanban_status} 
+                      onClick={handleStatusClick}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleStatusClick(e);
+                        }
+                      }}
+                    >
+                      {question.organization_question_rankings?.kanban_status || 'Set Status'}
+                    </StatusChip>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-2 mb-4">
+                <Button
+                  type="Action"
+                  onClick={handleEndorse}
+                  className={`flex items-center ${isEndorsed ? 'bg-blue-700' : ''} w-1/2`}
                 >
-                  {question.organization_question_rankings.kanban_status}
-                </StatusChip>
+                  <FaThumbsUp className="mr-2" />
+                  Endorse ({endorsements})
+                </Button>
+                <Button
+                  type="ChangeView"
+                  onClick={handleFollow}
+                  className={`flex items-center ${isFollowing ? 'bg-blue-700' : ''} w-1/2`}
+                >
+                  <FaBell className="mr-2" />
+                  {isFollowing ? 'Following' : 'Follow'}
+                </Button>
+                <Button
+                  type="Respond"
+                  onClick={() => setIsResponseModalOpen(true)}
+                  className="flex items-center w-1/2"
+                >
+                  <FaComment className="mr-2" />
+                  Respond
+                </Button>
+              </div>
+
+              {/* Share Section */}
+              <div className="flex items-center justify-between">
+                <span>SHARE:</span>
+                <div className="flex gap-2">
+                  <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${currentUrl}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 text-2xl">
+                    <FaLinkedin />
+                  </a>
+                  <button onClick={handleCopyLink} className="text-gray-700 text-2xl">
+                    <FaLink />
+                  </button>
+                  <a href={`mailto:?subject=Check out this question&body=Check out this question I found: ${currentUrl}`} className="text-green-600 text-2xl">
+                    <FaEnvelope />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Tags Section */}
+            {isQuestionInOrganization && currentOrganization && (
+              <div className="bg-white shadow-md shadow-blue-100 rounded p-4">
+                <h3 className="text-lg font-semibold mb-2">Tags</h3>
+                <TagManager 
+                  questionId={id}
+                  organizationId={currentOrganization.id}
+                  isAdmin={isAdmin}
+                  mode="question"
+                />
               </div>
             )}
           </div>
-        </div>
-
-        <div className='font-bold text-xl text-slate-900 pl-4 pb-1'>
-          Question:
-        </div>
-        <h1 className="font-semibold text-xl text-slate-900 pl-4 pb-2">{question.content}</h1>
-        
-        <div className='font-bold text-lg text-slate-900 pl-4 p1'>
-          What we could do with an answer:
-        </div>
-        <div className="font-semibold text-l mb-2 text-slate-900 pl-4">
-          {question.answer}
-        </div>
-        
-        {question.details && (
-          <>
-            <div className='font-bold text-lg text-slate-900 p-4'>
-              Details:
-            </div>
-            <div className="font-semibold text-l mb-2 text-slate-900 p-4">
-              {question.details}
-            </div>
-          </>
-        )}
-        
-        <div className="px-4 py-2">
-          
-          
-          
-          
-          
-          <div className="flex justify-between items-center mt-4">
-            <div className="flex space-x-4">
-              <Button
-                type="Action"
-                onClick={handleEndorse}
-                className={`flex items-center ${isEndorsed ? 'bg-blue-700' : ''}`}
-              >
-                <FaThumbsUp className="mr-2" />
-                Endorse ({endorsements})
-              </Button>
-              <Button
-                type="ChangeView"
-                onClick={handleFollow}
-                className={`flex items-center ${isFollowing ? 'bg-blue-700' : ''}`}
-              >
-                <FaBell className="mr-2" />
-                {isFollowing ? 'Following' : 'Follow'}
-              </Button>
-              <Button
-        type="Respond"
-        onClick={() => setIsResponseModalOpen(true)}
-        className={`flex items-center `}
-      >
-         <FaComment className="mr-2" />
-        Respond
-      </Button>
-            </div>
-            
-            
-            <div className="flex items-center">
-              <span className="mr-4">SHARE:</span>
-              <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${currentUrl}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 text-2xl mr-2" aria-label="Share on LinkedIn">
-                <FaLinkedin />
-              </a>
-              <button onClick={handleCopyLink} className="text-gray-700 text-2xl mr-2" aria-label="Copy link">
-                <FaLink />
-              </button>
-              <a href={`mailto:?subject=Check out this question&body=Check out this question I found: ${currentUrl}`} className="text-green-600 text-2xl" aria-label="Share via email">
-                <FaEnvelope />
-              </a>
-            </div>
-          </div>
-        </div>
+        </TwoColumnLayout>
       </div>
-      
-      <div className="mb-8"></div>
-      
 
       <Modal isOpen={isResponseModalOpen} onClose={() => setIsResponseModalOpen(false)}>
         <ResponseForm 
@@ -613,7 +674,41 @@ const handleGoBack = () => {
         />
       </Modal>
 
-      <ResponseList questionId={id} currentUserId={currentUser?.id} />
+      {isPartOfOrganization && isAdmin && (
+        <div className="flex gap-2 mb-4">
+          <Button
+            type="ChangeView"
+            onClick={() => setResponseViewMode('list')}
+            className={responseViewMode === 'list' ? 'bg-blue-700' : ''}
+          >
+            List View
+          </Button>
+          <Button
+            type="ChangeView"
+            onClick={() => setResponseViewMode('kanban')}
+            className={responseViewMode === 'kanban' ? 'bg-blue-700' : ''}
+          >
+            Kanban View
+          </Button>
+          <Button
+            type="ChangeView"
+            onClick={() => setResponseViewMode('manual-ranking')}
+            className={responseViewMode === 'manual-ranking' ? 'bg-blue-700' : ''}
+          >
+            Manual Ranking
+          </Button>
+        </div>
+      )}
+
+      {isPartOfOrganization ? (
+        isAdmin ? (
+          renderResponseSection()
+        ) : (
+          <ResponseList questionId={id} currentUserId={currentUser?.id} />
+        )
+      ) : (
+        <ResponseList questionId={id} currentUserId={currentUser?.id} />
+      )}
 
       {dropdownState.isOpen && createPortal(
         <Dropdown 
@@ -627,14 +722,14 @@ const handleGoBack = () => {
               isFocused={index === focusedIndex}
               onClick={(e) => {
                 e.stopPropagation();
-                handleUpdateKanbanStatus(status);
+                handleStatusChange(status);
               }}
               ref={el => itemRefs.current[index] = el}
               tabIndex={index === focusedIndex ? 0 : -1}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  handleUpdateKanbanStatus(status);
+                  handleStatusChange(status);
                 }
               }}
             >
@@ -643,18 +738,6 @@ const handleGoBack = () => {
           ))}
         </Dropdown>,
         document.body
-      )}
-
-      {isQuestionInOrganization && currentOrganization && (
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold mb-2">Tags</h3>
-          <TagManager 
-            questionId={id}
-            organizationId={currentOrganization.id}
-            isAdmin={isAdmin}
-            mode="question"
-          />
-        </div>
       )}
     </div>
   );

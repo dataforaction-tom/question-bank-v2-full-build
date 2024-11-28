@@ -4,8 +4,7 @@ import { styled } from '@mui/material';
 import { createPortal } from 'react-dom';
 import { FaThumbsUp, FaBell, FaComment } from 'react-icons/fa';
 import Button from './Button';
-import TagManager from './TagManager';  // Import TagManager
-import { Chip, Menu, MenuItem } from '@mui/material';
+
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -58,7 +57,7 @@ const QuestionCard = ({
   isAdmin,
   isOrganizationQuestion,
   onUpdateKanbanStatus,
-  organizationId  // Add this prop
+  organizationId  
 }) => {
  
   
@@ -146,23 +145,9 @@ const QuestionCard = ({
       role="button"
       aria-label={`Question: ${question.content}`}
     >
-      <div className="bg-sky-900 font-bold text-lg text-white p-2"></div>
-      <div className='font-bold text-xl text-slate-900 p-4 slate-900'>
-        Question:
-      </div>
-      <div className="font-semibold text-xl text-slate-900 p-4 flex-grow">
-       {question.content}
-      </div>
-      <div className='font-bold text-lg text-slate-900 p-4 slate-900'>
-        What we could do with an answer:
-      </div>
-      <div className=" font-semibold text-l mb-2 text-slate-900 p-4 flex-grow">
-
-       {question.answer}
-      </div>
-      <div className="px-4 py-2">
+      <div className="bg-sky-900 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center">
         
-        <div className="flex flex-wrap gap-2 mt-auto">
+        <div className="flex gap-2 pr-4">
           <ColorTag category={question.category} />
           <ColorTag category={question.is_open ? 'Public' : 'Private'} />
           {question.kanban_status && (
@@ -183,6 +168,14 @@ const QuestionCard = ({
             </div>
           )}
         </div>
+      </div>
+
+      
+      <div className="font-semibold text-xl text-slate-900 p-4 flex-grow">
+        {question.content}
+      </div>
+      
+      <div className="px-4 py-2">
         <div className="flex justify-between items-center mt-4">
           <div className="flex space-x-4">
             <span className="flex items-center">
@@ -198,7 +191,7 @@ const QuestionCard = ({
               {question.responses_count || 0}
             </span>
           </div>
-          <div className="flex justify-between items-center mt-4">
+          <div className="flex justify-between items-center">
             {onAddToOrganization && (
               <Button 
                 type="Action"
@@ -255,17 +248,9 @@ const QuestionCard = ({
             )}
           </div>
         </div>
-        {isOrganizationQuestion && organizationId && (
-          <div className="px-4 py-2">
-            <TagManager 
-              questionId={question.id}
-              organizationId={organizationId}
-              isAdmin={isAdmin}
-              mode="question"
-            />
-          </div>
-        )}
+        
       </div>
+
       {dropdownState.isOpen && createPortal(
         <Dropdown 
           ref={dropdownRef} 
