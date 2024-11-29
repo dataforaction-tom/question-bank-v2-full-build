@@ -68,9 +68,9 @@ const App = () => {
             } 
           />
          
-          <Route path="/" element={<Navigate replace to="/questions" />} />
+          <Route path="/" element={<Navigate replace to="/question-overview" />} />
           
-          <Route path="*" element={<Navigate replace to="/questions" />} />
+          <Route path="*" element={<Navigate replace to="/question-overview" />} />
           <Route path="/question-overview" element={<QuestionOverview />} />
         </Routes>
         

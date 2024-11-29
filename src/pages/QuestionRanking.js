@@ -20,6 +20,7 @@ const QuestionRanking = ({ open, onClose, onSubmit }) => {
       const { data, error } = await supabase
         .from('questions')
         .select('*')
+        .eq('is_open', true)
         .limit(100);  // Fetch more questions than needed
 
       if (error) {

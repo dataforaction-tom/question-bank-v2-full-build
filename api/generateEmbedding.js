@@ -23,8 +23,8 @@ module.exports = async (req, res) => {
       console.log('OpenAI embedding response:', response);
       const [{ embedding }] = response.data;
 
-      const categories = ["Poverty", "Health", "Advice", "Education", "Environment"];
-      const prompt = `Question: "${question}"\nCategorize this question into one of the following categories: ${categories.join(", ")}. If you cannot find a category that closely matches the question you should attempt to create a new category. Category: \n`;
+      const categories = ["Poverty", "Health", "Advice", "Education", "Environment", "Philanthropy", "Wellbeing", "Technology", "Citizenship", "Neighbourhoods"];
+      const prompt = `Question: "${question}"\nCategorize this question into one of the following categories: ${categories.join(", ")}. If you cannot find a category that closely matches the question you should attempt to create a new category. Always use the most specific category that matches the question. Always use British English. Never use multiple categories or include a backslash. Category: \n`;
       console.log('Category prompt:', prompt);
       
       const categoryResponse = await openai.completions.create({

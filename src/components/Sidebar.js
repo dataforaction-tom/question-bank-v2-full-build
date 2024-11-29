@@ -9,6 +9,7 @@ import CustomButton from './Button';
 import TagManager from './TagManager';
 import BillingPortal from './BillingPortal';
 import { CreditCard } from '@mui/icons-material';
+import PublicIcon from '@mui/icons-material/Public';
 
 const Sidebar = ({ 
   sidebarOpen, 
@@ -19,7 +20,9 @@ const Sidebar = ({
   setViewMode, 
   selectedOrganizationId,
   isAdmin,
-  currentOrganization
+  currentOrganization,
+  onTogglePublicQuestions,
+  showPublicQuestions
 }) => {
   const navigate = useNavigate();
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
@@ -95,6 +98,22 @@ const Sidebar = ({
           {/* Add a spacer */}
           <div className="flex-grow"></div>
           
+          {/* Add this button before the existing management buttons */}
+          <CustomButton
+            type="Action"
+            onClick={onTogglePublicQuestions}
+            className="w-full"
+          >
+            {sidebarOpen ? (
+              <div className="flex items-center">
+                <PublicIcon className="mr-2" />
+                {showPublicQuestions ? 'Hide Public Questions' : 'Show Public Questions'}
+              </div>
+            ) : (
+              <PublicIcon />
+            )}
+          </CustomButton>
+          
           {/* Manage Tags button */}
           <CustomButton 
             type="Action"
@@ -114,6 +133,7 @@ const Sidebar = ({
           
           {/* Billing Portal Button */}
           {sidebarOpen ? (
+            
             <BillingPortal 
               organizationId={selectedOrganizationId}
               disabled={!selectedOrganizationId || !isAdmin}

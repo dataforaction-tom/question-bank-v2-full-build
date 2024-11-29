@@ -19,7 +19,8 @@ import {
   DialogActions,
   DialogContentText,
   Button,
-  Chip
+  Chip,
+  CircularProgress
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import toast, { Toaster } from 'react-hot-toast';
@@ -33,6 +34,7 @@ import ConfirmationDialog from '../components/ConfirmationDialog';
 import { useOrganization } from '../context/OrganizationContext';
 import CustomButton from '../components/Button';
 import TextField from '@mui/material/TextField';
+import PublicIcon from '@mui/icons-material/Public';
 
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
@@ -63,6 +65,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   const [isManageTagsDialogOpen, setIsManageTagsDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState(null);
   const [showEloRankingModal, setShowEloRankingModal] = useState(false);
+  const [showPublicQuestions, setShowPublicQuestions] = useState(false);
+  const [publicQuestionsLoading, setPublicQuestionsLoading] = useState(false);
 
   // Add this useEffect to check when to show the modal
   useEffect(() => {
@@ -97,6 +101,37 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
       setTags(data.filter(tag => tag != null));
     }
   }, [currentOrganization]);
+
+  const fetchPublicQuestions = async () => {
+    setPublicQuestionsLoading(true);
+    try {
+      const { data: openQuestionsData, error: openError } = await supabase
+        .from('questions')
+        .select(`
+          *,
+          endorsements:endorsements(count),
+          followers:question_followers(count),
+          responses:responses(count)
+        `)
+        .eq('is_open', true);
+
+      if (openError) throw openError;
+
+      const openQuestions = openQuestionsData.map(q => ({
+        ...q,
+        endorsements_count: q.endorsements?.[0]?.count || 0,
+        followers_count: q.followers?.[0]?.count || 0,
+        responses_count: q.responses?.[0]?.count || 0
+      }));
+
+      setOpenQuestions(openQuestions);
+    } catch (error) {
+      console.error('Error fetching public questions:', error);
+      toast.error('Failed to load public questions');
+    } finally {
+      setPublicQuestionsLoading(false);
+    }
+  };
 
   const fetchQuestions = useCallback(async (organizationId) => {
     try {
@@ -183,33 +218,11 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
       setQuestions(groupedQuestions);
       setOrganizationQuestions(uniqueQuestions);
-
-      // Fetch open questions
-      const { data: openQuestionsData, error: openError } = await supabase
-        .from('questions')
-        .select(`
-          *,
-          endorsements:endorsements(count),
-          followers:question_followers(count),
-          responses:responses(count)
-        `)
-        .eq('is_open', true);
-
-      if (openError) throw openError;
-
-      const openQuestions = openQuestionsData.map(q => ({
-        ...q,
-        endorsements_count: q.endorsements?.[0]?.count || 0,
-        followers_count: q.followers?.[0]?.count || 0,
-        responses_count: q.responses?.[0]?.count || 0
-      }));
-
-      setOpenQuestions(openQuestions);
       sortQuestions(uniqueQuestions, sortBy);
 
     } catch (error) {
       console.error('Error fetching questions:', error);
-      alert('An error occurred while fetching questions. Please check the console for more details.');
+      toast.error('Failed to load organization questions');
     }
   }, [sortBy]);
 
@@ -741,6 +754,13 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     setIsManageTagsDialogOpen(true);
   };
 
+  const handleTogglePublicQuestions = async () => {
+    if (!showPublicQuestions && openQuestions.length === 0) {
+      await fetchPublicQuestions();
+    }
+    setShowPublicQuestions(!showPublicQuestions);
+  };
+
   return (
     <div className="flex">
       <Toaster position="top-right" />
@@ -755,6 +775,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
         onManageTags={handleManageTags} // Add this prop
         isAdmin={isAdmin}
         currentOrganization={currentOrganization}
+        onTogglePublicQuestions={handleTogglePublicQuestions}
+        showPublicQuestions={showPublicQuestions}
       />
       {/* Main Content */}
       <div className={`flex-grow transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'} p-8`}>
@@ -806,9 +828,23 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
                   <Typography variant='h5' style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }}>
                     Public Questions
                   </Typography>
-                  {renderQuestions(openQuestions)}
-                  {openQuestions.length === 0 && (
-                    <Typography variant='body1'>No open questions available.</Typography>
+                  {showPublicQuestions && (
+                    <>
+                      {publicQuestionsLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                          <CircularProgress />
+                        </Box>
+                      ) : (
+                        <>
+                          {renderQuestions(openQuestions)}
+                          {openQuestions.length === 0 && (
+                            <Typography variant='body1'>
+                              No public questions available.
+                            </Typography>
+                          )}
+                        </>
+                      )}
+                    </>
                   )}
                 </>
               )}

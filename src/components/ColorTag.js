@@ -15,7 +15,7 @@ const ColorTag = ({ category, variant = 'default' }) => {
       sx={{
         backgroundColor: variant === 'outlined' ? 'transparent' : color.bg,
         color: color.text,
-        border: `2px dashed ${color.border}`,
+        border: `2px  ${color.border}`,
         fontWeight: 'bold',
         '&:hover': {
           backgroundColor: variant === 'outlined' ? 'rgba(0, 0, 0, 0.04)' : color.bg,

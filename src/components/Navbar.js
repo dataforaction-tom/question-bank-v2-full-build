@@ -50,9 +50,7 @@ const Navbar = () => {
               </Link>
               <Link to="/profile" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition flex items-center">
                 Profile
-                <span className="ml-2">
-                  <NotificationSystem showFullSystem={false} onCreateGroup={() => {}} />
-                </span>
+                
               </Link>
               <button onClick={handleLogout} className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
                 Logout

@@ -21,7 +21,8 @@ import {
   Card,
   CardActionArea,
   CardContent,
-  Modal
+  Modal,
+  Paper
 } from '@mui/material';
 import { colorMapping, defaultColors } from '../utils/colorMapping';
 import { Notifications as NotificationsIcon } from '@mui/icons-material';
@@ -406,61 +407,149 @@ const UserProfile = () => {
   }
 
   return (
-    <Container maxWidth='lg'>
-      <Typography variant='h4' gutterBottom>
-        User Profile
-      </Typography>
+    <Container maxWidth="lg">
+      <Paper elevation={3} sx={{ p: 4, mt: 4, mb: 4 }}>
+        {/* Header Section */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          mb: 4 
+        }}>
+          <Typography variant='h4' sx={{ fontWeight: 500 }}>
+            Profile Settings
+          </Typography>
+          <Box>
+            <NotificationSystem onCreateGroup={handleCreateGroup} />
+          </Box>
+        </Box>
 
-      {/* Notifications moved to the top */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <NotificationSystem onCreateGroup={handleCreateGroup} />
-      </Box>
+        {/* Profile Information Section */}
+        <Paper variant="outlined" sx={{ p: 3, mb: 4 }}>
+          <Typography variant='h6' sx={{ mb: 2, color: 'primary.main' }}>
+            Account Information
+          </Typography>
+          <Typography variant='body1' sx={{ mb: 3, color: 'text.secondary' }}>
+            Email: {user?.email}
+          </Typography>
 
-      <Typography variant='h6'>Email:</Typography>
-      <Typography variant='body1' gutterBottom>
-        {user.email}
-      </Typography>
+          <Box component='form' noValidate autoComplete='off' sx={{ mb: 3 }}>
+            <TextField
+              label='Full Name'
+              fullWidth
+              margin='normal'
+              value={profile.name}
+              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              label='Bio'
+              fullWidth
+              margin='normal'
+              multiline
+              rows={4}
+              value={profile.bio}
+              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+              sx={{ mb: 3 }}
+            />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant='contained'
+                color='primary'
+                onClick={handleUpdateProfile}
+                disabled={loading}
+                sx={{ minWidth: '150px' }}
+              >
+                {loading ? 'Updating...' : 'Update Profile'}
+              </Button>
+              <Button
+                variant='outlined'
+                color='secondary'
+                onClick={() => setPasswordDialogOpen(true)}
+                sx={{ minWidth: '150px' }}
+              >
+                Change Password
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
 
-      <Box component='form' noValidate autoComplete='off'>
-        <TextField
-          label='Full Name'
-          fullWidth
-          margin='normal'
-          value={profile.name}
-          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-        />
-        <TextField
-          label='Bio'
-          fullWidth
-          margin='normal'
-          multiline
-          rows={4}
-          value={profile.bio}
-          onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-        />
-        <Button
-          variant='contained'
-          color='primary'
-          onClick={handleUpdateProfile}
-          style={{ marginTop: '1rem' }}
-        >
-          Update Profile
-        </Button>
-      </Box>
-
-      <Button
-        variant='outlined'
-        color='secondary'
-        onClick={() => setPasswordDialogOpen(true)}
-        style={{ marginTop: '1rem' }}
-      >
-        Change Password
-      </Button>
+        {/* Activity Section */}
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={6}>
+            <Paper variant="outlined" sx={{ p: 3, height: '100%' }}>
+              <Typography 
+                variant='h6' 
+                sx={{ mb: 3, color: 'primary.main' }}
+              >
+                Followed Questions
+              </Typography>
+              {followedQuestions.length > 0 ? (
+                <Grid container spacing={2}>
+                  {followedQuestions.map(question => (
+                    <Grid item xs={12} key={question.id}>
+                      <CompactQuestionCard question={question} />
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Box sx={{ 
+                  p: 3, 
+                  textAlign: 'center',
+                  backgroundColor: 'grey.50',
+                  borderRadius: 1
+                }}>
+                  <Typography variant='body1' color="text.secondary">
+                    You haven't followed any questions yet.
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Paper variant="outlined" sx={{ p: 3, height: '100%' }}>
+              <Typography 
+                variant='h6' 
+                sx={{ mb: 3, color: 'primary.main' }}
+              >
+                Endorsed Questions
+              </Typography>
+              {endorsedQuestions.length > 0 ? (
+                <Grid container spacing={2}>
+                  {endorsedQuestions.map(question => (
+                    <Grid item xs={12} key={question.id}>
+                      <CompactQuestionCard question={question} />
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Box sx={{ 
+                  p: 3, 
+                  textAlign: 'center',
+                  backgroundColor: 'grey.50',
+                  borderRadius: 1
+                }}>
+                  <Typography variant='body1' color="text.secondary">
+                    You haven't endorsed any questions yet.
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
+      </Paper>
 
       {/* Password Change Dialog */}
-      <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)}>
-        <DialogTitle>Change Password</DialogTitle>
-        <DialogContent>
+      <Dialog 
+        open={passwordDialogOpen} 
+        onClose={() => setPasswordDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          Change Password
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
           <TextField
             label='Current Password'
             type='password'
@@ -478,89 +567,23 @@ const UserProfile = () => {
             onChange={(e) => setNewPassword(e.target.value)}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setPasswordDialogOpen(false)} color='primary'>
+        <DialogActions sx={{ p: 2.5, borderTop: 1, borderColor: 'divider' }}>
+          <Button 
+            onClick={() => setPasswordDialogOpen(false)} 
+            color='inherit'
+          >
             Cancel
           </Button>
-          <Button onClick={handleChangePassword} color='primary'>
-            Update Password
+          <Button 
+            onClick={handleChangePassword} 
+            variant="contained"
+            color='primary'
+            disabled={loading}
+          >
+            {loading ? 'Updating...' : 'Update Password'}
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Grid container spacing={4} sx={{ mt: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Typography variant='h5' gutterBottom>Followed Questions</Typography>
-          {followedQuestions.length > 0 ? (
-            <Grid container spacing={2}>
-              {followedQuestions.map(question => (
-                <Grid item xs={12} key={question.id}>
-                  <CompactQuestionCard question={question} />
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
-            <Typography variant='body1'>You haven't followed any questions yet.</Typography>
-          )}
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Typography variant='h5' gutterBottom>Endorsed Questions</Typography>
-          {endorsedQuestions.length > 0 ? (
-            <Grid container spacing={2}>
-              {endorsedQuestions.map(question => (
-                <Grid item xs={12} key={question.id}>
-                  <CompactQuestionCard question={question} />
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
-            <Typography variant='body1'>You haven't endorsed any questions yet.</Typography>
-          )}
-        </Grid>
-      </Grid>
-
-      {/* Commented out entire "Your Groups" section
-      <Box sx={{ mt: 4 }}>
-        <Typography variant='h5' gutterBottom>
-          Your Groups
-        </Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={() => setShowOrgSelector(true)}
-          sx={{ mb: 2 }}
-        >
-          Select Group
-        </Button>
-        <OrganizationSelectorModal
-          open={showOrgSelector}
-          organizations={organizations}
-          onSelect={handleOrganizationSelect}
-        />
-        {organizations.length > 0 ? (
-          <Grid container spacing={2}>
-            {organizations.map((orgUser) => (
-              <Grid item xs={12} sm={6} md={4} key={orgUser.organization_id}>
-                <Card>
-                  <CardActionArea onClick={() => handleOrganizationSelect(orgUser)}>
-                    <CardContent>
-                      <Typography variant="h6">{orgUser.organizations.name}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {orgUser.organizations.description || 'No description available'}
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        ) : (
-          <Typography variant='body1'>
-            You are not part of any groups.
-          </Typography>
-        )}
-      </Box>
-      */}
 
       <Dialog 
         open={openConfirmDialog} 

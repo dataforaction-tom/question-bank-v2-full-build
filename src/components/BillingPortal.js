@@ -40,7 +40,7 @@ const BillingPortal = ({ organizationId, disabled }) => {
         <CircularProgress size={24} />
       ) : (
         <>
-          <CreditCard className="mr-2" />
+          <CreditCard className="mr-2 flex items-center" />
           Manage Billing
         </>
       )}

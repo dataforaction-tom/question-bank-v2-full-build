@@ -18,6 +18,7 @@ const QuestionOverview = () => {
     const { data, error } = await supabase
       .from('questions')
       .select('*')
+      .eq('is_open', true)
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -33,6 +34,7 @@ const QuestionOverview = () => {
     const { data, error } = await supabase
       .from('questions')
       .select('id, content, category, priority_score')
+      .eq('is_open', true)
       .order('priority_score', { ascending: false });
 
     if (error) {
