@@ -17,7 +17,7 @@ import {
   Alert
 } from '@mui/material';
 
-const STEPS = ['Enter Organization Details', 'Subscribe', 'Create Organization'];
+const STEPS = ['Enter group Details', 'Subscribe', 'Create group'];
 
 const OrganizationSignUp = () => {
   const [organizationName, setOrganizationName] = useState('');
@@ -48,7 +48,7 @@ const OrganizationSignUp = () => {
             // Poll for organization creation
             let attempts = 0;
             const checkOrganization = async () => {
-              console.log('Checking for organization...'); // Debug org check
+              console.log('Checking for group...'); // Debug org check
               const { data: { user } } = await supabase.auth.getUser();
               const { data: org, error } = await supabase
                 .from('organizations')
@@ -58,7 +58,7 @@ const OrganizationSignUp = () => {
                 .single();
 
               if (org) {
-                console.log('Organization found:', org); // Debug org found
+                console.log('Group found:', org); // Debug org found
                 setSuccess(true);
                 setActiveStep(2);
                 return;
@@ -68,7 +68,7 @@ const OrganizationSignUp = () => {
                 attempts++;
                 setTimeout(checkOrganization, 2000); // Check every 2 seconds
               } else {
-                throw new Error('Organization creation timeout');
+                throw new Error('Group creation timeout');
               }
             };
 
@@ -76,7 +76,7 @@ const OrganizationSignUp = () => {
           }
         } catch (err) {
           console.error('Error handling redirect:', err);
-          setError('Could not verify organization creation. Please contact support.');
+          setError('Could not verify group creation. Please contact support.');
         } finally {
           setLoading(false);
         }
@@ -205,7 +205,7 @@ const OrganizationSignUp = () => {
       navigate('/organization-dashboard');
     } catch (error) {
       console.error('Error creating organization:', error);
-      setError(error.message || 'An error occurred while creating the organization.');
+      setError(error.message || 'An error occurred while creating the group.');
     } finally {
       setLoading(false);
     }
@@ -289,7 +289,7 @@ const OrganizationSignUp = () => {
                 disabled={loading}
                 sx={{ mt: 2 }}
               >
-                {loading ? <CircularProgress size={24} /> : 'Create Organization'}
+                {loading ? <CircularProgress size={24} /> : 'Create Group'}
               </Button>
             </form>
           </Box>

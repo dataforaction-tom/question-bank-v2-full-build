@@ -754,6 +754,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
         selectedOrganizationId={currentOrganization?.id}
         onManageTags={handleManageTags} // Add this prop
         isAdmin={isAdmin}
+        currentOrganization={currentOrganization}
       />
       {/* Main Content */}
       <div className={`flex-grow transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'} p-8`}>

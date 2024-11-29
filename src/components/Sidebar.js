@@ -7,6 +7,8 @@ import PeopleIcon from '@mui/icons-material/People';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import CustomButton from './Button';
 import TagManager from './TagManager';
+import BillingPortal from './BillingPortal';
+import { CreditCard } from '@mui/icons-material';
 
 const Sidebar = ({ 
   sidebarOpen, 
@@ -16,7 +18,8 @@ const Sidebar = ({
   viewMode, 
   setViewMode, 
   selectedOrganizationId,
-  isAdmin
+  isAdmin,
+  currentOrganization
 }) => {
   const navigate = useNavigate();
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
@@ -109,11 +112,28 @@ const Sidebar = ({
             )}
           </CustomButton>
           
+          {/* Billing Portal Button */}
+          {sidebarOpen ? (
+            <BillingPortal 
+              organizationId={selectedOrganizationId}
+              disabled={!selectedOrganizationId || !isAdmin}
+            />
+          ) : (
+            <CustomButton
+              type="Action"
+              onClick={() => {}}
+              disabled={!selectedOrganizationId || !isAdmin}
+              className="w-full"
+            >
+              <CreditCard />
+            </CustomButton>
+          )}
+          
           {/* Manage Members button */}
           <CustomButton 
             type="Action"
             onClick={goToMembersPage}
-            className="w-full mt-2"
+            className="w-full"
             disabled={!selectedOrganizationId}
           >
             {sidebarOpen ? (
