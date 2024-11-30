@@ -482,7 +482,7 @@ const SubmitQuestion = () => {
             )}
             <Button
               variant='contained'
-              color='secondary'
+              
               type='submit'
               disabled={isSubmitting}
               fullWidth

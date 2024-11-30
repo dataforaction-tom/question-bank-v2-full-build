@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import ResponseForm from './ResponseForm';
+import Button from './Button';
 
 const ResponseTypePill = ({ type, manualRank, kanbanStatus }) => {
   const typeStyles = {
@@ -123,19 +124,21 @@ const ResponseCard = ({ response, currentUserId, onEdit, onDelete }) => {
         Responded on: {new Date(response.created_at).toLocaleDateString()}
       </p>
       {currentUserId === response.user_id && (
-        <div className="mt-2 p-4">
-          <button
+        <div className="flex gap-2 p-4">
+          <Button
+            type="Action"
             onClick={handleEdit}
-            className="text-blue-600 hover:underline mr-2 "
+            size="sm"
           >
             Edit
-          </button>
-          <button
+          </Button>
+          <Button
+            type="Cancel"
             onClick={handleDelete}
-            className="text-red-600 hover:underline"
+            size="sm"
           >
             Delete
-          </button>
+          </Button>
         </div>
       )}
       <div className="mb-8"></div>

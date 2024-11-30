@@ -709,26 +709,26 @@ const handleGoBack = () => {
       <div className="mb-12">
         <TwoColumnLayout>
           {/* Main Column */}
-          <div className="shadow-md shadow-blue-100 rounded overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white p-4">
-              <div className="font-bold text-xl text-white mb-2">Question:</div>
-              <h1 className="font-semibold text-xl">{question.content}</h1>
+          <div className="shadow-lg rounded-xl overflow-hidden bg-white">
+            <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white p-6">
+              <div className="font-bold text-xl text-white mb-4">Question:</div>
+              <h1 className="font-semibold text-2xl leading-relaxed">{question.content}</h1>
             </div>
 
-            <div className="p-4">
-              <div className="font-bold text-lg text-slate-900 mb-2">
+            <div className="p-6">
+              <div className="font-bold text-lg text-slate-900 mb-3">
                 What we could do with an answer:
               </div>
-              <div className="font-semibold text-l mb-4 text-slate-900">
+              <div className="font-semibold text-lg mb-6 text-slate-900">
                 {question.answer}
               </div>
 
               {question.details && (
                 <>
-                  <div className="font-bold text-lg text-slate-900 mb-2">
+                  <div className="font-bold text-lg text-slate-900 mb-3">
                     Details:
                   </div>
-                  <div className="font-semibold text-l mb-4 text-slate-900">
+                  <div className="font-semibold text-lg mb-6 text-slate-900">
                     {question.details}
                   </div>
                 </>
@@ -739,7 +739,7 @@ const handleGoBack = () => {
           {/* Right Column */}
           <div className="space-y-6">
             {/* Date and Tags Section */}
-            <div className="bg-white shadow-md shadow-blue-100 rounded p-4">
+            <div className="bg-white shadow-lg rounded-xl p-6">
               <p className="text-sm mb-4">
                 <i className="fas fa-calendar-alt" aria-hidden="true"></i>{' '}
                 Date Submitted: {new Date(question.created_at).toLocaleDateString()}
@@ -816,7 +816,7 @@ const handleGoBack = () => {
 
             {/* Tags Section */}
             {isQuestionInOrganization && currentOrganization && (
-              <div className="bg-white shadow-md shadow-blue-100 rounded p-4">
+              <div className="bg-white shadow-lg rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-2">Tags</h3>
                 <TagManager 
                   questionId={id}

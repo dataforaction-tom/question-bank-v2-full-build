@@ -119,16 +119,14 @@ const QuestionOverview = () => {
   };
 
   const CompactQuestionCard = ({ question }) => {
-    const colors = getColorForCategory(question.category);
     return (
       <div 
         className="bg-white shadow-md rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200"
         onClick={() => handleQuestionClick(question.id)}
       >
-        <div style={{ backgroundColor: colors.border }} className="h-2"></div>
+        <div className="bg-gradient-to-r from-slate-950 to-sky-900 h-2"></div>
         <div className="p-4">
           <h4 className="text-lg font-semibold mb-2 wrap">{question.content}</h4>
-          
         </div>
       </div>
     );
@@ -137,49 +135,70 @@ const QuestionOverview = () => {
   const CategoryHeading = ({ category }) => {
     const colors = getColorForCategory(category);
     return (
-      <h3 
-        className="text-lg font-medium mb-2 px-3 py-1 rounded-md text-white"
-        style={{ backgroundColor: colors.border }}
-      >
-        {category}
-      </h3>
+      <h3 className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white px-4 py-2 rounded-md mb-2">
+      {category}
+    </h3>
     );
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Question Overview</h1>
+    <div className="text-center mb-12">
+      <h1 className="text-4xl font-bold mb-4">
+        Welcome to the Data For Action Question Bank
+      </h1>
+      <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+        Search, browse, or ask your own open questions so we can all work together to answer them.
+      </p>
+    </div>
 
-      {/* Search Section */}
-      <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Search questions by content or category..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="action" />
-              </InputAdornment>
-            ),
-            endAdornment: isSearching && (
-              <InputAdornment position="end">
-                <CircularProgress size={20} />
-              </InputAdornment>
-            ),
-            sx: {
-              borderRadius: 2,
-              '&:hover': {
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'primary.main',
-                },
-              },
+    {/* Search Section */}
+<Paper elevation={3} sx={{ 
+  p: 3, 
+  mb: 4,
+  borderRadius: 28,
+}}>
+  <div className="flex items-center gap-4">
+    <TextField
+      fullWidth
+      variant="outlined"
+      placeholder="Search questions by content or category..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon color="action" />
+          </InputAdornment>
+        ),
+        endAdornment: isSearching && (
+          <InputAdornment position="end">
+            <CircularProgress size={20} />
+          </InputAdornment>
+        ),
+        sx: {
+          borderRadius: 28,
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderRadius: 28,
+          },
+          '&:hover': {
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'primary.main',
             },
-          }}
-        />
-      </Paper>
+          },
+        },
+      }}
+    />
+    <span className="text-gray-500 text-lg whitespace-nowrap">or</span>
+    <Button
+      type="Submit"
+      onClick={() => navigate('/questions')}
+      className="whitespace-nowrap"
+    >
+      View All Questions
+    </Button>
+  </div>
+</Paper>
 
       {/* Search Results */}
       {showSearchResults ? (
@@ -210,7 +229,7 @@ const QuestionOverview = () => {
           {/* Latest Questions Section */}
           <div className="lg:w-1/3">
             <h2 className="text-2xl font-semibold mb-4">Latest Questions</h2>
-            <div className="space-y-3 bg-slate-950 rounded-lg p-4">
+            <div className="space-y-3 bg-gradient-to-r from-slate-950 to-sky-900 rounded-lg p-4">
               {latestQuestions.map(question => (
                 <Paper
                   key={question.id}
@@ -276,16 +295,7 @@ const QuestionOverview = () => {
         </div>
       )}
 
-      {/* View All Questions Button */}
-      <div className="mt-8 text-center">
-        <Button
-          type="Submit"
-          onClick={() => navigate('/questions')}
-          className="px-6 py-3"
-        >
-          View All Questions
-        </Button>
-      </div>
+      
     </div>
   );
 };

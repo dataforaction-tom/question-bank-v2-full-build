@@ -3,7 +3,7 @@ import React from 'react';
 const buttonTypes = {
   Action: 'bg-blue-600 hover:bg-blue-700 text-white',
   ChangeView: 'bg-pink-700 hover:bg-pink-700 text-white',
-  Submit: 'bg-green-600 hover:bg-green-700 text-white',
+  Submit: 'bg-gradient-to-r from-sky-950 to-teal-500 hover:bg-gradient-to-r from-sky-950 to-teal-600 text-white',
   Confirm: 'bg-yellow-600 hover:bg-yellow-700 text-black',
   Cancel: 'bg-red-600 hover:bg-red-700 text-white',
   Respond: 'bg-teal-500 hover:bg-teal-600 text-white',

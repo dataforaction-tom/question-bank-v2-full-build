@@ -140,12 +140,12 @@ const QuestionCard = ({
     <div 
       onClick={onClick}
       onKeyDown={handleKeyDown}
-      className="flex flex-col h-full rounded overflow-hidden shadow-lg cursor-pointer hover:bg-zinc-50 transition duration-300"
+      className="flex flex-col h-full rounded-xl overflow-hidden shadow-lg cursor-pointer hover:bg-zinc-50 transition duration-300"
       tabIndex={0}
       role="button"
       aria-label={`Question: ${question.content}`}
     >
-      <div className="bg-sky-900 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center">
+      <div className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center rounded-t-xl">
         
         <div className="flex gap-2 pr-4">
           <ColorTag category={question.category} />

@@ -307,7 +307,7 @@ const OrganizationSignUp = () => {
       {/* Explainer Cards */}
       <Grid container spacing={4} sx={{ mb: 4, mt: 4 }}>
         <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
+          <Card sx={{ height: '100%', borderRadius: 4 }}>
             <CardContent>
               <div className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
                 <Typography variant="h5" component="div">
@@ -334,7 +334,7 @@ const OrganizationSignUp = () => {
           </Card>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%' }}>
+          <Card sx={{ height: '100%', borderRadius: 4  }}>
             <CardContent>
               <div className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
                 <Typography variant="h5" component="div">
@@ -361,7 +361,7 @@ const OrganizationSignUp = () => {
       </Grid>
 
       {/* Main Sign Up Container */}
-      <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
+      <Paper elevation={3} sx={{ p: 4, mt: 4, borderRadius: 4  }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
