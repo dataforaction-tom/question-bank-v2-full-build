@@ -14,8 +14,15 @@ import {
   Step,
   StepLabel,
   CircularProgress,
-  Alert
+  Alert,
+  List,
+  ListItem,
+  ListItemIcon,
+  Grid,
+  Card,
+  CardContent
 } from '@mui/material';
+import CircleIcon from '@mui/icons-material/Circle';
 
 const STEPS = ['Enter group Details', 'Subscribe', 'Create group'];
 
@@ -250,12 +257,7 @@ const OrganizationSignUp = () => {
             <Typography variant="body1" paragraph>
               Create your group "{organizationName}" for £100 per year
             </Typography>
-            <ul>
-              <li>Private group space</li>
-              <li>20 group members</li>
-              <li>Private questions, rankings, prioritisation features</li>
-              <li>Priority support</li>
-            </ul>
+            
             <Button
               variant='contained'
               color='primary'
@@ -301,7 +303,64 @@ const OrganizationSignUp = () => {
   };
 
   return (
-    <Container maxWidth='sm'>
+    <Container maxWidth='md'>
+      {/* Explainer Cards */}
+      <Grid container spacing={4} sx={{ mb: 4, mt: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <div className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
+                <Typography variant="h5" component="div">
+                  Group Features
+                </Typography>
+              </div>
+              <List>
+                {[
+                  'Access to a private group space with up to 20 members',
+                  'Private questions',
+                  'Ranking for questions and responses',
+                  'Kanban prioritisation',
+                  'Export and graph features'
+                ].map((text, index) => (
+                  <ListItem key={index} sx={{ py: 0 }}>
+                    <ListItemIcon sx={{ minWidth: 30 }}>
+                      <CircleIcon sx={{ fontSize: 8 }} />
+                    </ListItemIcon>
+                    {text}
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <div className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
+                <Typography variant="h5" component="div">
+                  Sign up Process
+                </Typography>
+              </div>
+              <List>
+                {[
+                  '£100 per year, per group',
+                  'Stripe payment',
+                  'Online cancellation and account management'
+                ].map((text, index) => (
+                  <ListItem key={index} sx={{ py: 0 }}>
+                    <ListItemIcon sx={{ minWidth: 30 }}>
+                      <CircleIcon sx={{ fontSize: 8 }} />
+                    </ListItemIcon>
+                    {text}
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Main Sign Up Container */}
       <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -315,10 +374,12 @@ const OrganizationSignUp = () => {
           </Alert>
         )}
 
-        <Typography variant='h4' component='h1' gutterBottom>
-          Create a Group
-        </Typography>
-        
+        <div className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
+          <Typography variant="h4" component="h1">
+            Create a Group
+          </Typography>
+        </div>
+
         <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
           {STEPS.map((label) => (
             <Step key={label}>
