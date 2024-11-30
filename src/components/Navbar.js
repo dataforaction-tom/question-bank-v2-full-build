@@ -34,7 +34,7 @@ const Navbar = () => {
           </button>
         </div>
         <nav className={`sm:flex sm:items-center ${menuOpen ? 'block' : 'hidden'} w-full sm:w-auto`}>
-          <Link to="/questions" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+          <Link to="/question-overview" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
             Questions
           </Link>
           {session ? (
