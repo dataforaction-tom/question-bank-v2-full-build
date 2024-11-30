@@ -8,12 +8,13 @@ import Modal from '../components/Modal';
 import ResponseForm from '../components/ResponseForm';
 import ResponseList from '../components/ResponseList';
 import Button from '../components/Button';
-import { FaThumbsUp, FaBell, FaComment, FaLinkedin, FaLink, FaEnvelope } from 'react-icons/fa';
-import { styled } from '@mui/material';
+import { FaThumbsUp, FaBell, FaComment, FaLinkedin, FaLink, FaEnvelope, FaTrash, FaCircularProgress } from 'react-icons/fa';
+import { styled, Box, Dialog, DialogTitle, DialogContent, DialogActions, Typography, CircularProgress } from '@mui/material';
 import { createPortal } from 'react-dom';
 import TagManager from '../components/TagManager';  // Import the new TagManager component
 import ResponseKanban from '../components/ResponseKanban';
 import ResponseManualRanking from '../components/ResponseManualRanking';
+import toast from 'react-hot-toast'; // Add this import
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -25,6 +26,28 @@ const COLUMN_COLORS = {
   Done: '#53c4af'
 };
 
+const ColorBand = styled(Box)({
+  height: 8,
+  backgroundColor: '#dc2626', // red-600 for warning
+});
+
+const SubmitButton = styled(Button)(({ theme }) => ({
+  backgroundColor: '#dc2626',
+  color: 'white',
+  '&:hover': {
+    backgroundColor: '#b91c1c',
+  },
+  borderRadius: theme.shape.borderRadius,
+}));
+
+const CancelButton = styled(Button)(({ theme }) => ({
+  backgroundColor: '#e0e0e0',
+  color: '#333',
+  '&:hover': {
+    backgroundColor: '#c0c0c0',
+  },
+  borderRadius: theme.shape.borderRadius,
+}));
 
 const StatusChip = styled('div')(({ status }) => ({
   backgroundColor: COLUMN_COLORS[status],
@@ -86,6 +109,8 @@ const QuestionDetail = () => {
   const [isPartOfOrganization, setIsPartOfOrganization] = useState(false);
   const [isQuestionInOrganization, setIsQuestionInOrganization] = useState(false);
   const [responseViewMode, setResponseViewMode] = useState('list'); // 'list', 'kanban', or 'manual-ranking'
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const navigate = useNavigate();
 const location = useLocation();
@@ -101,7 +126,12 @@ const handleGoBack = () => {
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error('Error fetching current user:', error);
+        return;
+      }
+      console.log('Current user set:', user); // Debug log
       setCurrentUser(user);
     };
 
@@ -182,22 +212,18 @@ const handleGoBack = () => {
         .from('questions')
         .select(`
           *,
-          tags:question_tags(tags(*)),
-          organization_question_rankings(
-            kanban_status,
-            organization_id
-          )
+          endorsements:endorsements(count),
+          followers:question_followers(count),
+          responses:responses(count)
         `)
         .eq('id', id)
         .single();
 
       if (questionError) throw questionError;
 
-      if (!questionData) {
-        setError('Question not found');
-        return;
-      }
-
+      console.log('Fetched question:', questionData);
+      setQuestion(questionData);
+      
       // Format tags and ensure we have the kanban status
       const formattedQuestion = {
         ...questionData,
@@ -504,6 +530,143 @@ const handleGoBack = () => {
     checkQuestionInOrganization();
   }, [currentOrganization?.id, id]);
 
+  const handleDeleteQuestion = async () => {
+    if (!currentUser || currentUser.id !== question.created_by) {
+      toast.error('You can only delete your own questions');
+      return;
+    }
+
+    setIsDeleting(true);
+    const deletePromise = new Promise(async (resolve, reject) => {
+      try {
+        // Delete all responses first
+        const { error: responsesError } = await supabase
+          .from('responses')
+          .delete()
+          .eq('question_id', id);
+
+        if (responsesError) throw responsesError;
+
+        // Delete the question
+        const { error: questionError } = await supabase
+          .from('questions')
+          .delete()
+          .eq('id', id)
+          .eq('created_by', currentUser.id);
+
+        if (questionError) throw questionError;
+
+        resolve();
+      } catch (error) {
+        console.error('Error deleting question:', error);
+        reject(error);
+      }
+    });
+
+    toast.promise(deletePromise, {
+      loading: 'Deleting question...',
+      success: () => {
+        setIsDeleting(false);
+        setDeleteDialogOpen(false);
+        navigate('/questions');
+        return 'Question deleted successfully';
+      },
+      error: (err) => {
+        setIsDeleting(false);
+        return 'Failed to delete question';
+      },
+    });
+  };
+
+  const renderDeleteButton = () => {
+    if (!currentUser || !question) return null;
+
+    console.log('Checking delete button visibility:', {
+      currentUserId: currentUser.id,
+      questionCreatedBy: question.created_by,
+      isOwner: currentUser.id === question.created_by
+    });
+
+    if (currentUser.id === question.created_by) {
+      return (
+        <Button
+          type="Delete"
+          onClick={() => setDeleteDialogOpen(true)}
+          className="flex items-center w-full bg-red-600 hover:bg-red-700 text-white"
+        >
+          <FaTrash className="mr-2" />
+          Delete Question
+        </Button>
+      );
+    }
+    return null;
+  };
+
+  const renderDeleteDialog = () => (
+    <Dialog 
+      open={deleteDialogOpen} 
+      onClose={() => setDeleteDialogOpen(false)}
+      maxWidth="md"
+      fullWidth
+    >
+      <ColorBand />
+      <DialogTitle>
+        <Typography variant="h6" component="div" sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          gap: 1,
+          color: '#dc2626'
+        }}>
+          <FaTrash />
+          Delete Question
+        </Typography>
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body1" gutterBottom>
+            Are you sure you want to delete this question?
+          </Typography>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              mt: 2,
+              p: 2,
+              bgcolor: '#fee2e2', // red-100
+              borderRadius: 1,
+              color: '#dc2626' // red-600
+            }}
+          >
+            Warning: This action cannot be undone. All responses and related data will be permanently deleted.
+          </Typography>
+          <Box sx={{ mt: 3, bgcolor: '#f3f4f6', p: 2, borderRadius: 1 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, color: '#4b5563' }}>
+              Question to be deleted:
+            </Typography>
+            <Typography variant="body2">
+              {question?.content}
+            </Typography>
+          </Box>
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ p: 2.5, gap: 1 }}>
+        <CancelButton 
+          onClick={() => setDeleteDialogOpen(false)}
+          variant="contained"
+        >
+          Cancel
+        </CancelButton>
+        <SubmitButton
+          onClick={handleDeleteQuestion}
+          variant="contained"
+          disabled={isDeleting}
+          startIcon={isDeleting ? <CircularProgress size={20} color="inherit" /> : <FaTrash />}
+        >
+          {isDeleting ? 'Deleting...' : 'Delete Question'}
+        </SubmitButton>
+      </DialogActions>
+    </Dialog>
+  );
+
   if (!question) {
     return <div>Loading...</div>;
   }
@@ -610,7 +773,7 @@ const handleGoBack = () => {
                 <Button
                   type="Action"
                   onClick={handleEndorse}
-                  className={`flex items-center ${isEndorsed ? 'bg-blue-700' : ''} w-1/2`}
+                  className={`flex items-center ${isEndorsed ? 'bg-blue-700' : ''} w-full`}
                 >
                   <FaThumbsUp className="mr-2" />
                   Endorse ({endorsements})
@@ -618,7 +781,7 @@ const handleGoBack = () => {
                 <Button
                   type="ChangeView"
                   onClick={handleFollow}
-                  className={`flex items-center ${isFollowing ? 'bg-blue-700' : ''} w-1/2`}
+                  className={`flex items-center ${isFollowing ? 'bg-blue-700' : ''} w-full`}
                 >
                   <FaBell className="mr-2" />
                   {isFollowing ? 'Following' : 'Follow'}
@@ -626,11 +789,12 @@ const handleGoBack = () => {
                 <Button
                   type="Respond"
                   onClick={() => setIsResponseModalOpen(true)}
-                  className="flex items-center w-1/2"
+                  className="flex items-center w-full"
                 >
                   <FaComment className="mr-2" />
                   Respond
                 </Button>
+                {renderDeleteButton()}
               </div>
 
               {/* Share Section */}
@@ -739,6 +903,7 @@ const handleGoBack = () => {
         </Dropdown>,
         document.body
       )}
+      {renderDeleteDialog()}
     </div>
   );
 };
