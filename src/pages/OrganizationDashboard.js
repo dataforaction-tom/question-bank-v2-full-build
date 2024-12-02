@@ -40,6 +40,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import InputAdornment from '@mui/material/InputAdornment';
 import Paper from '@mui/material/Paper';
 import Button from '../components/Button';
+import MenuItem from '@mui/material/MenuItem';
 
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
@@ -78,11 +79,12 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [kanbanFilter, setKanbanFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  
 
-  const memoizedQuestions = useMemo(() => 
-    viewMode === 'table' ? sortedQuestions : questions, 
-    [viewMode, sortedQuestions, questions]
-  );
+ 
   // Add this useEffect to check when to show the modal
   useEffect(() => {
     if (currentOrganization) {
@@ -175,7 +177,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
             *,
             endorsements:endorsements(count),
             followers:question_followers(count),
-            responses:responses(count)
+            responses:responses(count),
+            tags:question_tags(tags(*))
           )
         `)
         .eq('organization_id', organizationId);
@@ -217,7 +220,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
           responses_count: q.questions?.responses?.[0]?.count || 0,
           manual_rank: rankingsMap[q.question_id]?.manual_rank ?? 0,
           elo_score: rankingsMap[q.question_id]?.elo_score ?? 1500,
-          kanban_status: rankingsMap[q.question_id]?.kanban_status ?? 'Now'
+          kanban_status: rankingsMap[q.question_id]?.kanban_status ?? 'Now',
+          tags: q.questions?.tags?.map(t => t.tags) || []
         }))
       ];
 
@@ -522,39 +526,100 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
         );
       case 'cards':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayQuestions.map(question => {
-              
-              return (
-                <QuestionCard 
-                  key={question.id} 
-                  question={{
-                    ...question,
-                    endorsements_count: question.endorsements_count || 0,
-                    followers_count: question.followers_count || 0,
-                    responses_count: question.responses_count || 0
-                  }}
-                  onClick={() => handleQuestionClick(question.id)}
-                  onAddToOrganization={isAdmin && !isOrganizationQuestion ? () => handleAddToOrganization(question.id) : null}
-                  onRemoveFromOrganization={isAdmin && isOrganizationQuestion && !question.is_direct ? () => handleRemoveFromOrganization(question.id) : null}
-                  onDeleteQuestion={isAdmin && isOrganizationQuestion && question.is_direct ? () => handleDeleteDirectQuestion(question.id) : null}
-                  onMakeQuestionOpen={isAdmin && isOrganizationQuestion && question.is_direct && !question.is_open ? () => handleMakeQuestionOpen(question.id) : null}
-                  isAdmin={isAdmin}
-                  isOrganizationQuestion={isOrganizationQuestion}
-                  onUpdateKanbanStatus={handleUpdateKanbanStatus}
-                  tags={tags}
-                  onAddTag={handleAddTag}
-                  organizationId={currentOrganization.id}
-                />
-              );
-            })}
-          </div>
+          <>
+            {isOrganizationQuestion && (
+              <div className="flex gap-4 mb-4">
+                <TextField
+                  select
+                  label="Filter by Category"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  variant="outlined"
+                  size="small"
+                  sx={{ minWidth: 200 }}
+                >
+                  <MenuItem value="">All Categories</MenuItem>
+                  {[...new Set(displayQuestions.map(q => q.category))].filter(Boolean).map((category) => (
+                    <MenuItem key={category} value={category}>
+                      {category}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  select
+                  label="Filter by Status"
+                  value={kanbanFilter}
+                  onChange={(e) => setKanbanFilter(e.target.value)}
+                  variant="outlined"
+                  size="small"
+                  sx={{ minWidth: 200 }}
+                >
+                  <MenuItem value="">All Statuses</MenuItem>
+                  {KANBAN_STATUSES.map((status) => (
+                    <MenuItem key={status} value={status}>
+                      {status}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  select
+                  label="Filter by Tag"
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                  variant="outlined"
+                  size="small"
+                  sx={{ minWidth: 200 }}
+                >
+                  <MenuItem value="">All Tags</MenuItem>
+                  {[...new Set(displayQuestions.flatMap(q => q.tags?.map(tag => tag.name) || []))].map((tag) => (
+                    <MenuItem key={tag} value={tag}>
+                      {tag}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {displayQuestions
+                .filter(question => {
+                  const matchesCategory = !categoryFilter || question.category === categoryFilter;
+                  const matchesKanban = !kanbanFilter || question.kanban_status === kanbanFilter;
+                  const matchesTag = !tagFilter || (question.tags && question.tags.some(tag => tag.name === tagFilter));
+                  return matchesCategory && matchesKanban && matchesTag;
+                })
+                .map(question => (
+                  <QuestionCard 
+                    key={question.id} 
+                    question={{
+                      ...question,
+                      endorsements_count: question.endorsements_count || 0,
+                      followers_count: question.followers_count || 0,
+                      responses_count: question.responses_count || 0
+                    }}
+                    onClick={() => handleQuestionClick(question.id)}
+                    onAddToOrganization={isAdmin && !isOrganizationQuestion ? () => handleAddToOrganization(question.id) : null}
+                    onRemoveFromOrganization={isAdmin && isOrganizationQuestion && !question.is_direct ? () => handleRemoveFromOrganization(question.id) : null}
+                    onDeleteQuestion={isAdmin && isOrganizationQuestion && question.is_direct ? () => handleDeleteDirectQuestion(question.id) : null}
+                    onMakeQuestionOpen={isAdmin && isOrganizationQuestion && question.is_direct && !question.is_open ? () => handleMakeQuestionOpen(question.id) : null}
+                    isAdmin={isAdmin}
+                    isOrganizationQuestion={isOrganizationQuestion}
+                    onUpdateKanbanStatus={handleUpdateKanbanStatus}
+                    tags={tags}
+                    onAddTag={handleAddTag}
+                    organizationId={currentOrganization.id}
+                  />
+                ))}
+            </div>
+          </>
         );
         case 'kanban':
           return <OrganizationKanban 
             organizationId={currentOrganization.id}
             questions={questions}
             setQuestions={setQuestions}
+            tags={tags || []}  // Add default empty array
           />;
         case 'elo-ranking':
           return <OrganizationELORanking organizationId={currentOrganization.id} />;
@@ -810,13 +875,21 @@ const handleSearch = async () => {
         *,
         endorsements:endorsements(count),
         followers:question_followers(count),
-        responses:responses(count)
+        responses:responses(count),
+         question_tags (
+            tags (*)
+          )
+        
       `)
       .eq('organization_id', currentOrganization.id)
-      .or(`content.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`)
+      .or(`content.ilike.%${searchQuery}%,category.ilike.%${searchQuery}% `)
       .order('priority_score', { ascending: false });
 
     if (error) throw error;
+
+    
+    // Log the fetched data to check tags
+    console.log('Fetched questions with tags:', data);
 
     const questionsWithCounts = data.map(q => ({
       ...q,
@@ -964,6 +1037,7 @@ const handleSearch = async () => {
               >
                 Change Group
               </CustomButton>
+              {viewMode !== 'table' && viewMode !== 'kanban' && (
 
               <Paper elevation={3} sx={{ 
                 p: 3, 
@@ -1004,6 +1078,7 @@ const handleSearch = async () => {
                   />
                 </div>
               </Paper>
+              )}
 
               {showSearchResults && (
   <Box sx={{ mb: 6 }}>

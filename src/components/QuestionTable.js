@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import ColorTag from './ColorTag';
@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import styled from '@emotion/styled';
 import Button from './Button';  
 import TagManager from './TagManager';  
+import { TextField, MenuItem } from '@mui/material';
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -48,24 +49,6 @@ const DropdownItem = styled.div(({ status, isFocused }) => ({
   outline: 'none',
 }));
 
-const TableCell = React.memo(({ cell }) => (
-  <td className="px-4 py-2 border">
-    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-  </td>
-));
-
-TableCell.displayName = 'TableCell';
-
-const TableRow = React.memo(({ row }) => (
-  <tr className="hover:bg-gray-100">
-    {row.getVisibleCells().map(cell => (
-      <TableCell key={cell.id} cell={cell} />
-    ))}
-  </tr>
-));
-
-TableRow.displayName = 'TableRow';
-
 const QuestionTable = ({ 
   questions, 
   onQuestionClick, 
@@ -77,7 +60,7 @@ const QuestionTable = ({
   isOrganizationQuestion,
   onUpdateKanbanStatus,
   setQuestions,
-  organizationId  // Add this prop
+  organizationId
 }) => {
   const navigate = useNavigate();
   const [dropdownState, setDropdownState] = useState({ isOpen: false, position: null, rowId: null });
@@ -85,14 +68,17 @@ const QuestionTable = ({
   const dropdownRef = useRef(null);
   const itemRefs = useRef([]);
   const [selectedRows, setSelectedRows] = useState({});
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [kanbanFilter, setKanbanFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
 
-  const handleQuestionClick = useCallback((questionId) => {
+  const handleQuestionClick = (questionId) => {
     if (onQuestionClick) {
       onQuestionClick(questionId);
     } else {
       navigate(`/questions/${questionId}`);
     }
-  }, [onQuestionClick, navigate]);
+  };
 
   const handleStatusClick = (event, rowId) => {
     event.stopPropagation();
@@ -176,21 +162,10 @@ const QuestionTable = ({
     };
   }, [dropdownState.isOpen]);
 
-  const columns = useMemo(() => [
+  const columns = [
     {
       accessorKey: 'content',
       header: 'Question',
-      cell: ({ row }) => (
-        <div 
-          onClick={() => handleQuestionClick(row.original.id)}
-          className="cursor-pointer hover:underline"
-          tabIndex={0}
-          role="button"
-          aria-label={`View question: ${row.original.content}`}
-        >
-          {row.original.content}
-        </div>
-      ),
     },
     {
       accessorKey: 'created_at',
@@ -297,16 +272,95 @@ const QuestionTable = ({
         </div>
       ),
     },
-  ], [handleQuestionClick, handleStatusClick]);
+  ];
+
+  const uniqueCategories = useMemo(() => 
+    [...new Set(questions.map(q => q.category))].filter(Boolean),
+    [questions]
+  );
+
+  const uniqueTags = useMemo(() => {
+    const tags = new Set();
+    questions.forEach(q => {
+      if (q.tags) {
+        q.tags.forEach(tag => tags.add(tag.name));
+      }
+    });
+    return [...tags];
+  }, [questions]);
+
+  const filteredQuestions = useMemo(() => {
+    return questions.filter(question => {
+      const matchesCategory = !categoryFilter || question.category === categoryFilter;
+      const matchesKanban = !kanbanFilter || question.kanban_status === kanbanFilter;
+      const matchesTag = !tagFilter || (question.tags && question.tags.some(tag => tag.name === tagFilter));
+      return matchesCategory && matchesKanban && matchesTag;
+    });
+  }, [questions, categoryFilter, kanbanFilter, tagFilter]);
 
   const table = useReactTable({
-    data: questions,
+    data: filteredQuestions,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
 
   return (
     <div className="overflow-x-auto">
+      {isOrganizationQuestion && (
+        <div className="flex gap-4 mb-4">
+          <TextField
+            select
+            label="Filter by Category"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            variant="outlined"
+            size="small"
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="">All Categories</MenuItem>
+            {uniqueCategories.map((category) => (
+              <MenuItem key={category} value={category}>
+                {category}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Filter by Status"
+            value={kanbanFilter}
+            onChange={(e) => setKanbanFilter(e.target.value)}
+            variant="outlined"
+            size="small"
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="">All Statuses</MenuItem>
+            {KANBAN_STATUSES.map((status) => (
+              <MenuItem key={status} value={status}>
+                {status}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          <TextField
+            select
+            label="Filter by Tag"
+            value={tagFilter}
+            onChange={(e) => setTagFilter(e.target.value)}
+            variant="outlined"
+            size="small"
+            sx={{ minWidth: 200 }}
+          >
+            <MenuItem value="">All Tags</MenuItem>
+            {uniqueTags.map((tag) => (
+              <MenuItem key={tag} value={tag}>
+                {tag}
+              </MenuItem>
+            ))}
+          </TextField>
+        </div>
+      )}
+
       <table className="min-w-full bg-white shadow-md rounded border border-gray-300">
         <thead>
           {table.getHeaderGroups().map(headerGroup => (
@@ -321,7 +375,26 @@ const QuestionTable = ({
         </thead>
         <tbody>
           {table.getRowModel().rows.map(row => (
-            <TableRow key={row.original.id} row={row} />
+            <tr 
+              key={row.id} 
+              
+              onKeyDown={(e) => handleRowKeyDown(e, row.original.id)}
+              className="cursor-pointer hover:bg-gray-100"
+              tabIndex={0}
+              role="button"
+              aria-label={`Question: ${row.original.content}`}
+            >
+              {row.getVisibleCells().map(cell => (
+      <td 
+        key={cell.id} 
+        className="px-4 py-2 border"
+        onClick={() => cell.column.id === 'content' ? handleQuestionClick(row.original.id) : null}
+        style={{ cursor: cell.column.id === 'content' ? 'pointer' : 'default' }}
+      >
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
+            </tr>
           ))}
         </tbody>
       </table>
@@ -355,4 +428,4 @@ const QuestionTable = ({
   );
 };
 
-export default React.memo(QuestionTable);
+export default QuestionTable;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Container, Typography, Button, Card, CardContent, Box } from '@mui/material';
+import { Container, Typography, Button, Card, CardContent, Box, Chip } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import ColorTag from './ColorTag';
 import { useOrganization } from '../context/OrganizationContext';
@@ -46,7 +46,15 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
           kanban_status,
           kanban_order,
           elo_score,
-          questions (id, content, organization_id, category)
+          questions (
+            id, 
+            content, 
+            organization_id, 
+            category,
+            question_tags (
+              tags (*)
+            )
+          )
         `)
         .eq('organization_id', organizationId);
         console.log(rankingsData);
@@ -56,7 +64,14 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
       // Fetch questions directly associated with the organization
       const { data: directQuestions, error: directError } = await supabase
         .from('questions')
-        .select('id, content, category')
+        .select(`
+          id, 
+          content, 
+          category,
+          question_tags (
+            tags (*)
+          )
+        `)
         .eq('organization_id', organizationId);
 
       if (directError) throw directError;
@@ -70,16 +85,18 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
           status: item.kanban_status || 'Now',
           order_in_status: item.kanban_order || 0,
           manual_rank: item.manual_rank,
-          category: item.questions.category
+          category: item.questions.category,
+          tags: item.questions.question_tags?.map(qt => qt.tags) || []
         })),
         ...directQuestions.map(q => ({
           id: q.id,
           content: q.content,
-          elo_score: 1500, // Default ELO score for new questions
+          elo_score: 1500,
           status: 'Now',
           order_in_status: 0,
           manual_rank: 0,
-          category: q.category
+          category: q.category,
+          tags: q.question_tags?.map(qt => qt.tags) || []
         }))
       ];
 
@@ -212,14 +229,30 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
                           >
                             <Box sx={{ height: 8, backgroundColor: COLUMN_COLORS[status] }} />
                             <CardContent>
-                              <Typography>{question.content}</Typography>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                                {question.category && <ColorTag category={question.category} />}
-                                <Typography variant="caption">
-                                  {sortBy === 'manual_rank' ? `Rank: ${question.manual_rank || 'N/A'}` : `Score: ${question.elo_score || 'N/A'}`}
-                                </Typography>
-                              </Box>
-                            </CardContent>
+  <Typography>{question.content}</Typography>
+  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+    {question.category && <ColorTag category={question.category} />}
+    </Box>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+    <Typography variant="caption">
+      {sortBy === 'manual_rank' ? `Rank: ${question.manual_rank || 'N/A'}` : `Score: ${question.elo_score || 'N/A'}`}
+    </Typography>
+  </Box>
+  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
+    {question.tags?.map(tag => (
+      <Chip
+        key={tag.id}
+        label={tag.name}
+        size="small"
+        sx={{
+          backgroundColor: tag.color || 'black',
+          color: 'white',
+          fontSize: '0.75rem'
+        }}
+      />
+    ))}
+  </Box>
+</CardContent>
                           </Card>
                         )}
                       </Draggable>
