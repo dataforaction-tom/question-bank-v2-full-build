@@ -309,7 +309,7 @@ const OrganizationSignUp = () => {
         <Grid item xs={12} md={6}>
           <Card sx={{ height: '100%', borderRadius: 4 }}>
             <CardContent>
-              <div className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
+              <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
                 <Typography variant="h5" component="div">
                   Group Features
                 </Typography>
@@ -336,7 +336,7 @@ const OrganizationSignUp = () => {
         <Grid item xs={12} md={6}>
           <Card sx={{ height: '100%', borderRadius: 4  }}>
             <CardContent>
-              <div className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
+              <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
                 <Typography variant="h5" component="div">
                   Sign up Process
                 </Typography>
@@ -374,8 +374,8 @@ const OrganizationSignUp = () => {
           </Alert>
         )}
 
-        <div className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
-          <Typography variant="h4" component="h1">
+        <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
+          <Typography variant="h5" component="h1">
             Create a Group
           </Typography>
         </div>
