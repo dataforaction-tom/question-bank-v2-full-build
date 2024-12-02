@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import ColorTag from './ColorTag';
@@ -48,6 +48,24 @@ const DropdownItem = styled.div(({ status, isFocused }) => ({
   outline: 'none',
 }));
 
+const TableCell = React.memo(({ cell }) => (
+  <td className="px-4 py-2 border">
+    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+  </td>
+));
+
+TableCell.displayName = 'TableCell';
+
+const TableRow = React.memo(({ row }) => (
+  <tr className="hover:bg-gray-100">
+    {row.getVisibleCells().map(cell => (
+      <TableCell key={cell.id} cell={cell} />
+    ))}
+  </tr>
+));
+
+TableRow.displayName = 'TableRow';
+
 const QuestionTable = ({ 
   questions, 
   onQuestionClick, 
@@ -68,15 +86,13 @@ const QuestionTable = ({
   const itemRefs = useRef([]);
   const [selectedRows, setSelectedRows] = useState({});
 
-  const handleQuestionClick = (questionId) => {
+  const handleQuestionClick = useCallback((questionId) => {
     if (onQuestionClick) {
       onQuestionClick(questionId);
     } else {
       navigate(`/questions/${questionId}`);
     }
-  };
-
- 
+  }, [onQuestionClick, navigate]);
 
   const handleStatusClick = (event, rowId) => {
     event.stopPropagation();
@@ -160,10 +176,21 @@ const QuestionTable = ({
     };
   }, [dropdownState.isOpen]);
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       accessorKey: 'content',
       header: 'Question',
+      cell: ({ row }) => (
+        <div 
+          onClick={() => handleQuestionClick(row.original.id)}
+          className="cursor-pointer hover:underline"
+          tabIndex={0}
+          role="button"
+          aria-label={`View question: ${row.original.content}`}
+        >
+          {row.original.content}
+        </div>
+      ),
     },
     {
       accessorKey: 'created_at',
@@ -175,11 +202,7 @@ const QuestionTable = ({
       header: 'Category',
       cell: info => <ColorTag category={info.getValue()} />,
     },
-    {
-      accessorKey: 'is_open',
-      header: 'Status',
-      cell: info => <ColorTag category={info.getValue() ? 'Public' : 'Private'} />,
-    },
+    
     ...(isOrganizationQuestion ? [
       {
         accessorKey: 'kanban_status',
@@ -274,7 +297,7 @@ const QuestionTable = ({
         </div>
       ),
     },
-  ];
+  ], [handleQuestionClick, handleStatusClick]);
 
   const table = useReactTable({
     data: questions,
@@ -283,41 +306,25 @@ const QuestionTable = ({
   });
 
   return (
-    <>
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white shadow-md rounded border border-gray-300">
-          <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id} className="bg-gradient-to-r from-slate-950 to-sky-950 text-white text-xl">
-                {headerGroup.headers.map(header => (
-                  <th key={header.id} className="px-4 py-2 border">
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map(row => (
-              <tr 
-                key={row.id} 
-                onClick={() => handleQuestionClick(row.original.id)}
-                onKeyDown={(e) => handleRowKeyDown(e, row.original.id)}
-                className="cursor-pointer hover:bg-gray-100"
-                tabIndex={0}
-                role="button"
-                aria-label={`Question: ${row.original.content}`}
-              >
-                {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} className="px-4 py-2 border">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="overflow-x-auto">
+      <table className="min-w-full bg-white shadow-md rounded border border-gray-300">
+        <thead>
+          {table.getHeaderGroups().map(headerGroup => (
+            <tr key={headerGroup.id} className="bg-gradient-to-r from-slate-950 to-sky-950 text-white text-xl">
+              {headerGroup.headers.map(header => (
+                <th key={header.id} className="px-4 py-2 border">
+                  {flexRender(header.column.columnDef.header, header.getContext())}
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody>
+          {table.getRowModel().rows.map(row => (
+            <TableRow key={row.original.id} row={row} />
+          ))}
+        </tbody>
+      </table>
       {dropdownState.isOpen && createPortal(
         <Dropdown 
           ref={dropdownRef} 
@@ -344,7 +351,7 @@ const QuestionTable = ({
         </Dropdown>,
         document.body
       )}
-    </>
+    </div>
   );
 };
 

@@ -353,22 +353,30 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
   const handleRemoveFromOrganization = async (questionId) => {
     try {
+      // Remove tags first (since it's a foreign key relationship)
+      const { error: tagsError } = await supabase
+        .from('question_tags')
+        .delete()
+        .match({ question_id: questionId });
+  
+      if (tagsError) throw tagsError;
+  
       // Remove from organization_questions table
       const { error: removeError } = await supabase
         .from('organization_questions')
         .delete()
         .match({ organization_id: currentOrganization.id, question_id: questionId });
-
+  
       if (removeError) throw removeError;
-
+  
       // Remove from organization_question_rankings table
       const { error: rankingError } = await supabase
         .from('organization_question_rankings')
         .delete()
         .match({ organization_id: currentOrganization.id, question_id: questionId });
-
+  
       if (rankingError) throw rankingError;
-
+  
       // Refresh the questions
       await fetchQuestions(currentOrganization.id);
       toast.success('Question removed from organization successfully!');
@@ -497,7 +505,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
       case 'table':
         return (
           <QuestionTable 
-            questions={memoizedQuestions} 
+            questions={displayQuestions} 
             onQuestionClick={handleQuestionClick}
             onAddToOrganization={isAdmin && !isOrganizationQuestion ? handleAddToOrganization : null}
             onRemoveFromOrganization={isAdmin && isOrganizationQuestion ? handleRemoveFromOrganization : null}
@@ -1078,7 +1086,7 @@ const handleSearch = async () => {
                         </Box>
                       ) : (
                         <>
-                          {renderQuestions(openQuestions)}
+                          {renderQuestions(openQuestions, false)}
                           {openQuestions.length === 0 && (
                             <Typography variant='body1'>
                               No public questions available.
