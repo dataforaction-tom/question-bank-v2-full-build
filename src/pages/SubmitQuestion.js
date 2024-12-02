@@ -5,15 +5,25 @@ import { Formik, Form } from 'formik';
 import { supabase } from '../supabaseClient';
 import {
   TextField,
-  Button,
+  
   Container,
   Typography,
   FormControlLabel,
   Checkbox,
   MenuItem,
+  Paper,
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  List,
+  ListItem,
+  ListItemIcon,
 } from '@mui/material';
 import * as Yup from 'yup';
 import SimilarQuestionsModal from '../components/SimilarQuestionsModal';
+import CircleIcon from '@mui/icons-material/Circle';
+import Button from '../components/Button';
 
 const QuestionSchema = Yup.object().shape({
   content: Yup.string().required('Question content is required'),
@@ -400,99 +410,168 @@ const SubmitQuestion = () => {
 
   return (
     <Container maxWidth="md">
-      <Typography variant="h4" component="h1" gutterBottom>
-        Submit a Question
-      </Typography>
-      <Formik
-        initialValues={{ content: '', answer: '', is_open: true, organization_id: '' }}
-        validationSchema={QuestionSchema}
-        onSubmit={handleSubmit}
-      >
-        {({
-          isSubmitting,
-          values,
-          handleChange,
-          errors,
-          touched,
-          handleBlur,
-          setFieldValue,
-        }) => (
-          <Form>
-            <TextField
-              label='Your Question'
-              name='content'
-              fullWidth
-              margin='normal'
-              multiline
-              rows={4}
-              value={values.content}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              error={touched.content && Boolean(errors.content)}
-              helperText={touched.content && errors.content}
-            />
-            <TextField
-              label='Answering this question means you will be able to do what?'
-              name='answer'
-              fullWidth
-              margin='normal'
-              multiline
-              rows={4}
-              value={values.answer}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              error={touched.answer && Boolean(errors.answer)}
-              helperText={touched.answer && errors.answer}
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  name='is_open'
-                  checked={values.is_open}
-                  onChange={(e) => {
-                    handleChange(e);
-                    if (!e.target.checked && userOrganizations.length > 0) {
-                      setFieldValue('organization_id', userOrganizations[0].id);
-                    } else {
-                      setFieldValue('organization_id', '');
-                    }
-                  }}
-                />
-              }
-              label='Make this question public'
-            />
-            {!values.is_open && (
-              <TextField
-                select
-                label="Select Organization"
-                name="organization_id"
-                value={values.organization_id}
-                onChange={handleChange}
-                fullWidth
-                margin="normal"
-                error={touched.organization_id && Boolean(errors.organization_id)}
-                helperText={touched.organization_id && errors.organization_id}
-              >
-                {userOrganizations.map((org) => (
-                  <MenuItem key={org.id} value={org.id}>
-                    {org.name}
-                  </MenuItem>
+      {/* Explainer Cards */}
+      <Grid container spacing={4} sx={{ mb: 4, mt: 4 }}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', borderRadius: 4 }}>
+            <CardContent>
+              <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
+                <Typography variant="h5" component="div">
+                  Question Guidelines
+                </Typography>
+              </div>
+              <List>
+                {[
+                  'Be specific and clear in your question',
+                  'Provide context where necessary',
+                  'Focus on actionable outcomes',
+                  'Consider privacy implications',
+                  'Review similar questions first'
+                ].map((text, index) => (
+                  <ListItem key={index} sx={{ py: 0 }}>
+                    <ListItemIcon sx={{ minWidth: 30 }}>
+                      <CircleIcon sx={{ fontSize: 8 }} />
+                    </ListItemIcon>
+                    {text}
+                  </ListItem>
                 ))}
-              </TextField>
-            )}
-            <Button
-              variant='contained'
-              
-              type='submit'
-              disabled={isSubmitting}
-              fullWidth
-              style={{ marginTop: '1rem' }}
-            >
-              Submit Question
-            </Button>
-          </Form>
-        )}
-      </Formik>
+              </List>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', borderRadius: 4 }}>
+            <CardContent>
+              <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
+                <Typography variant="h5" component="div">
+                  Visibility Options
+                </Typography>
+              </div>
+              <List>
+                {[
+                  'Public questions are visible to all users',
+                  'Private questions stay within your group',
+                  'Similar questions will be suggested',
+                  'You can endorse existing questions'
+                ].map((text, index) => (
+                  <ListItem key={index} sx={{ py: 0 }}>
+                    <ListItemIcon sx={{ minWidth: 30 }}>
+                      <CircleIcon sx={{ fontSize: 8 }} />
+                    </ListItemIcon>
+                    {text}
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Main Form Container */}
+      <Paper elevation={3} sx={{ p: 4, mt: 4, borderRadius: 4 }}>
+        <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center mb-4 rounded">
+          <Typography variant="h5" component="h1">
+            Submit a Question
+          </Typography>
+        </div>
+
+        <Formik
+          initialValues={{ content: '', answer: '', is_open: true, organization_id: '' }}
+          validationSchema={QuestionSchema}
+          onSubmit={handleSubmit}
+        >
+          {({
+            isSubmitting,
+            values,
+            handleChange,
+            errors,
+            touched,
+            handleBlur,
+            setFieldValue,
+          }) => (
+            <Form>
+              <Box sx={{ mt: 2 }}>
+                <TextField
+                  label="Your Question"
+                  name="content"
+                  fullWidth
+                  margin="normal"
+                  multiline
+                  rows={4}
+                  value={values.content}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={touched.content && Boolean(errors.content)}
+                  helperText={touched.content && errors.content}
+                />
+                <TextField
+                  label="Answering this question means you will be able to do what?"
+                  name="answer"
+                  fullWidth
+                  margin="normal"
+                  multiline
+                  rows={4}
+                  value={values.answer}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={touched.answer && Boolean(errors.answer)}
+                  helperText={touched.answer && errors.answer}
+                />
+                
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        name="is_open"
+                        checked={values.is_open}
+                        onChange={(e) => {
+                          handleChange(e);
+                          if (!e.target.checked && userOrganizations.length > 0) {
+                            setFieldValue('organization_id', userOrganizations[0].id);
+                          } else {
+                            setFieldValue('organization_id', '');
+                          }
+                        }}
+                      />
+                    }
+                    label="Make this question public"
+                  />
+                </Box>
+
+                {!values.is_open && (
+                  <TextField
+                    select
+                    label="Select Organization"
+                    name="organization_id"
+                    value={values.organization_id}
+                    onChange={handleChange}
+                    fullWidth
+                    margin="normal"
+                    error={touched.organization_id && Boolean(errors.organization_id)}
+                    helperText={touched.organization_id && errors.organization_id}
+                  >
+                    {userOrganizations.map((org) => (
+                      <MenuItem key={org.id} value={org.id}>
+                        {org.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+
+                <Button
+                  type="Submit"
+                  
+                  disabled={isSubmitting}
+                  fullWidth
+                  sx={{ mt: 3 }}
+                >
+                  Submit Question
+                </Button>
+              </Box>
+            </Form>
+          )}
+        </Formik>
+      </Paper>
 
       <SimilarQuestionsModal
         open={showModal}
