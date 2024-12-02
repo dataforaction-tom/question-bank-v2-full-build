@@ -10,6 +10,7 @@ import TagManager from './TagManager';
 import BillingPortal from './BillingPortal';
 import { CreditCard } from '@mui/icons-material';
 import PublicIcon from '@mui/icons-material/Public';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 
 const Sidebar = ({ 
   sidebarOpen, 
@@ -49,10 +50,25 @@ const Sidebar = ({
         <div className={`flex flex-col space-y-2 ${sidebarOpen ? 'px-4' : 'px-2'}`}>
           <CustomButton 
             type="ChangeView"
+            onClick={() => setViewMode('overview')}
+            active={viewMode === 'overview'}
+            className="w-full"
+          >
+            {sidebarOpen ? (
+              <div className="flex items-center">
+                <DashboardIcon className="mr-2" />
+                Overview
+              </div>
+            ) : (
+              <DashboardIcon />
+            )}
+          </CustomButton>
+          <CustomButton 
+            type="ChangeView"
             onClick={toggleSortBy}
             className="w-full"
           >
-            {sidebarOpen ? (sortBy === 'manual_rank' ? 'Manual Rank' : 'ELO Score') : 'S'}
+            {sidebarOpen ? (sortBy === 'manual_rank' ? 'Manual Ranking' : 'Continuously Updated') : 'S'}
           </CustomButton>
           <CustomButton 
             type="ChangeView"

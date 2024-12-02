@@ -76,6 +76,8 @@ const QuestionTable = ({
     }
   };
 
+ 
+
   const handleStatusClick = (event, rowId) => {
     event.stopPropagation();
     const rect = event.currentTarget.getBoundingClientRect();
@@ -346,4 +348,4 @@ const QuestionTable = ({
   );
 };
 
-export default QuestionTable;
+export default React.memo(QuestionTable);

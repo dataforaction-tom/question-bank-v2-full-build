@@ -32,6 +32,9 @@ module.exports = {
         gray: {
           300: '#d1d5db',
         },
+        orange: {
+          700: '#f3581d',
+        },
         pink: {
           700: '#f860b1',
           400: '#953A6A',

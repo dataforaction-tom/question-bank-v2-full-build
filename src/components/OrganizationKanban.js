@@ -156,8 +156,8 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <Container maxWidth="xl" sx={{ backgroundColor: '#1f1d1e', minHeight: '100vh', py: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>Organization Kanban Board</Typography>
+    <Container maxWidth="xl" sx={{ backgroundColor: '#082f49', minHeight: '100vh', py: 4 }}>
+      <Typography variant="h4" gutterBottom sx={{ color: 'white' }}>Group Kanban Board</Typography>
       <Button 
         onClick={() => setSortBy(sortBy === 'manual_rank' ? 'elo_score' : 'manual_rank')}
         sx={{ mb: 2, backgroundColor: 'white', color: 'black' }}

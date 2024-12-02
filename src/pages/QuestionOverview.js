@@ -135,7 +135,7 @@ const QuestionOverview = () => {
   const CategoryHeading = ({ category }) => {
     const colors = getColorForCategory(category);
     return (
-      <h3 className="bg-gradient-to-r from-sky-950 to-teal-500 font-bold text-lg text-white px-4 py-2 rounded-md mb-2">
+      <h3 className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white px-4 py-2 rounded-md mb-2">
       {category}
     </h3>
     );

@@ -1,6 +1,6 @@
 // src/pages/OrganizationDashboard.js
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import {
@@ -18,7 +18,7 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
-  Button,
+  
   Chip,
   CircularProgress
 } from '@mui/material';
@@ -35,6 +35,11 @@ import { useOrganization } from '../context/OrganizationContext';
 import CustomButton from '../components/Button';
 import TextField from '@mui/material/TextField';
 import PublicIcon from '@mui/icons-material/Public';
+import QuestionOverviewSection from '../components/QuestionOverviewSection';
+import SearchIcon from '@mui/icons-material/Search';
+import InputAdornment from '@mui/material/InputAdornment';
+import Paper from '@mui/material/Paper';
+import Button from '../components/Button';
 
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
@@ -46,7 +51,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   const [selectedOrganization, setSelectedOrganization] = useState(null);
   const [organizationQuestions, setOrganizationQuestions] = useState([]);
   const [openQuestions, setOpenQuestions] = useState([]);
-  const [viewMode, setViewMode] = useState('cards');
+  const [viewMode, setViewMode] = useState('overview');
   const [sortBy, setSortBy] = useState('manual_rank');
   const [sortedQuestions, setSortedQuestions] = useState([]);
   const [showOrgSelector, setShowOrgSelector] = useState(false);
@@ -67,7 +72,17 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   const [showEloRankingModal, setShowEloRankingModal] = useState(false);
   const [showPublicQuestions, setShowPublicQuestions] = useState(false);
   const [publicQuestionsLoading, setPublicQuestionsLoading] = useState(false);
+  const [latestQuestions, setLatestQuestions] = useState([]);
+  const [topQuestionsByCategory, setTopQuestionsByCategory] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
+  const memoizedQuestions = useMemo(() => 
+    viewMode === 'table' ? sortedQuestions : questions, 
+    [viewMode, sortedQuestions, questions]
+  );
   // Add this useEffect to check when to show the modal
   useEffect(() => {
     if (currentOrganization) {
@@ -482,7 +497,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
       case 'table':
         return (
           <QuestionTable 
-            questions={displayQuestions} 
+            questions={memoizedQuestions} 
             onQuestionClick={handleQuestionClick}
             onAddToOrganization={isAdmin && !isOrganizationQuestion ? handleAddToOrganization : null}
             onRemoveFromOrganization={isAdmin && isOrganizationQuestion ? handleRemoveFromOrganization : null}
@@ -537,6 +552,13 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
           return <OrganizationELORanking organizationId={currentOrganization.id} />;
         case 'manual-ranking':
           return <OrganizationManualRanking organizationId={currentOrganization.id} />;
+        case 'overview':
+          return <QuestionOverviewSection
+            latestQuestions={latestQuestions}
+            topQuestionsByCategory={topQuestionsByCategory}
+            handleQuestionClick={handleQuestionClick}
+            isOrganizationView={true}
+          />;
         default:
           return null;
       }
@@ -761,6 +783,141 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     setShowPublicQuestions(!showPublicQuestions);
   };
 
+const handleKeyDown = (event) => {
+  if (event.key === 'Enter') {
+    handleSearch();
+  }
+};
+
+const handleSearch = async () => {
+  if (!searchQuery.trim() || !currentOrganization) return;
+
+  setIsSearching(true);
+  setShowSearchResults(true);
+
+  try {
+    const { data, error } = await supabase
+      .from('questions')
+      .select(`
+        *,
+        endorsements:endorsements(count),
+        followers:question_followers(count),
+        responses:responses(count)
+      `)
+      .eq('organization_id', currentOrganization.id)
+      .or(`content.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`)
+      .order('priority_score', { ascending: false });
+
+    if (error) throw error;
+
+    const questionsWithCounts = data.map(q => ({
+      ...q,
+      endorsements_count: q.endorsements[0]?.count || 0,
+      followers_count: q.followers[0]?.count || 0,
+      responses_count: q.responses[0]?.count || 0
+    }));
+
+    setSearchResults(questionsWithCounts);
+  } catch (error) {
+    console.error('Error searching questions:', error);
+  } finally {
+    setIsSearching(false);
+  }
+};
+  // Add this function to fetch latest questions
+  const fetchLatestQuestions = useCallback(async () => {
+    if (!currentOrganization) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select(`
+          *,
+          endorsements:endorsements(count),
+          followers:question_followers(count),
+          responses:responses(count)
+        `)
+        .eq('organization_id', currentOrganization.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      const formattedQuestions = data.map(q => ({
+        ...q,
+        endorsements_count: q.endorsements?.[0]?.count || 0,
+        followers_count: q.followers?.[0]?.count || 0,
+        responses_count: q.responses?.[0]?.count || 0
+      }));
+
+      setLatestQuestions(formattedQuestions);
+    } catch (error) {
+      console.error('Error fetching latest questions:', error);
+      toast.error('Failed to load latest questions');
+    }
+  }, [currentOrganization]);
+
+  
+  const fetchTopQuestionsByCategory = useCallback(async () => {
+    if (!currentOrganization) return;
+    
+    try {
+      const { data: questions, error } = await supabase
+        .from('questions')
+        .select(`
+          *,
+          endorsements:endorsements(count),
+          followers:question_followers(count),
+          responses:responses(count)
+        `)
+        .eq('organization_id', currentOrganization.id);
+  
+      if (error) throw error;
+  
+      // Group questions by category
+      const questionsByCategory = questions.reduce((acc, question) => {
+        if (!question.category) return acc; // Skip questions without category
+        
+        if (!acc[question.category]) {
+          acc[question.category] = [];
+        }
+        
+        acc[question.category].push({
+          ...question,
+          endorsements_count: question.endorsements?.[0]?.count || 0,
+          followers_count: question.followers?.[0]?.count || 0,
+          responses_count: question.responses?.[0]?.count || 0
+        });
+        
+        return acc;
+      }, {});
+  
+      // Find top question for each category
+      const topByCategory = Object.entries(questionsByCategory).reduce((acc, [category, questions]) => {
+        // Sort by endorsements and take the top one
+        const topQuestion = questions.sort((a, b) => 
+          b.endorsements_count - a.endorsements_count
+        )[0];
+        
+        acc[category] = topQuestion;
+        return acc;
+      }, {});
+  
+      setTopQuestionsByCategory(topByCategory);
+    } catch (error) {
+      console.error('Error fetching top questions by category:', error);
+      toast.error('Failed to load top questions by category');
+    }
+  }, [currentOrganization]);
+
+  // Add this useEffect to fetch overview data
+  useEffect(() => {
+    if (currentOrganization) {
+      fetchLatestQuestions();
+      fetchTopQuestionsByCategory();
+    }
+  }, [currentOrganization, fetchLatestQuestions, fetchTopQuestionsByCategory]);
+
   return (
     <div className="flex">
       <Toaster position="top-right" />
@@ -792,18 +949,103 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
               <CustomButton 
                 type="Action"
                 onClick={() => {
-            updateCurrentOrganization(null);
+                  updateCurrentOrganization(null);
                   setShowOrgSelector(true);
                 }}
                 className="w-auto"
               >
                 Change Group
               </CustomButton>
+
+              <Paper elevation={3} sx={{ 
+                p: 3, 
+                my: 4,
+                borderRadius: 4,
+              }}>
+                <div className="flex items-center gap-4">
+                  <TextField
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Search questions by content or category..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleKeyDown} 
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: isSearching && (
+                        <InputAdornment position="end">
+                          <CircularProgress size={20} />
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        borderRadius: 28,
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderRadius: 28,
+                        },
+                        '&:hover': {
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'primary.main',
+                          },
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </Paper>
+
+              {showSearchResults && (
+  <Box sx={{ mb: 6 }}>
+    <div className="flex justify-between items-center mb-3">
+      <Typography variant="h5">
+        Search Results {searchResults.length > 0 && `(${searchResults.length})`}
+      </Typography>
+      <Button 
+        type="Submit" 
+        onClick={() => {
+          setShowSearchResults(false);
+          setSearchResults([]);
+          setSearchQuery('');
+        }}
+      >
+        Clear Search
+      </Button>
+    </div>
+    {searchResults.length > 0 ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {searchResults.map(question => (
+          <QuestionCard
+            key={question.id}
+            question={question}
+            onClick={() => handleQuestionClick(question.id)}
+          />
+        ))}
+      </div>
+    ) : (
+      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
+        <Typography color="text.secondary">
+          No questions found matching your search.
+        </Typography>
+      </Paper>
+    )}
+  </Box>
+)}
+
               <Divider style={{ margin: '2rem 0' }} />
               <div className="mb-4">
                 <Typography style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }} variant='h5'>Group Questions</Typography>
               </div>
-              {viewMode === 'kanban' ? (
+              {viewMode === 'overview' ? (
+                <QuestionOverviewSection
+                  latestQuestions={latestQuestions}
+                  topQuestionsByCategory={topQuestionsByCategory}
+                  handleQuestionClick={handleQuestionClick}
+                  isOrganizationView={true}
+                />
+              ) : viewMode === 'kanban' ? (
                 <OrganizationKanban 
                   organizationId={currentOrganization.id}
                   questions={questions}
