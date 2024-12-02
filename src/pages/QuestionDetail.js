@@ -15,7 +15,7 @@ import TagManager from '../components/TagManager';  // Import the new TagManager
 import ResponseKanban from '../components/ResponseKanban';
 import ResponseManualRanking from '../components/ResponseManualRanking';
 import toast from 'react-hot-toast'; // Add this import
-
+import QuestionCard from '../components/QuestionCard';
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
 const COLUMN_COLORS = {
@@ -111,6 +111,7 @@ const QuestionDetail = () => {
   const [responseViewMode, setResponseViewMode] = useState('list'); // 'list', 'kanban', or 'manual-ranking'
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [similarQuestions, setSimilarQuestions] = useState([]);
 
   const navigate = useNavigate();
 const location = useLocation();
@@ -296,6 +297,38 @@ const handleGoBack = () => {
     checkUserEndorsement();
     checkUserFollowing();
   }, [id, currentUser, fetchResponses]);
+
+  useEffect(() => {
+    const fetchSimilarQuestions = async () => {
+      if (!question?.embedding) return;
+
+      try {
+        const { data: similarData, error: searchError } = await supabase
+          .rpc('finds_similar_questions', {
+            query_embedding: question.embedding,
+            match_threshold: 0.6,
+            match_count: 3
+          });
+
+        if (searchError) throw searchError;
+
+        // Filter out the current question and limit to 2 results
+        const filteredQuestions = similarData
+          .filter(q => q.id !== question.id)
+          .slice(0, 2);
+
+        setSimilarQuestions(filteredQuestions);
+      } catch (error) {
+        console.error('Error fetching similar questions:', error);
+      }
+    };
+
+    if (question) {
+      fetchSimilarQuestions();
+    }
+  }, [question]);
+
+  console.log('Similar questions:', similarQuestions);
 
   const handleStatusClick = (e) => {
     e.stopPropagation();
@@ -872,6 +905,28 @@ const handleGoBack = () => {
         )
       ) : (
         <ResponseList questionId={id} currentUserId={currentUser?.id} />
+      )}
+
+      {similarQuestions.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold mb-6">Similar Questions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {similarQuestions.map((similarQuestion) => (
+              <QuestionCard
+                key={similarQuestion.id}
+                question={{
+                  ...similarQuestion,
+                  // Ensure all required props are passed
+                  category: similarQuestion.category,
+                  
+                }}
+                
+                onClick={() => navigate(`/questions/${similarQuestion.id}`)}
+                isAdmin={isAdmin}
+              />
+            ))}
+          </div>
+        </div>
       )}
 
       {dropdownState.isOpen && createPortal(
