@@ -19,6 +19,8 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  Paper,
+  Box,
 } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -242,82 +244,127 @@ const GroupMembers = () => {
   };
 
   return (
-    <Container maxWidth="md">
-      <Typography variant="h4" gutterBottom>
-        {organization ? `${organization.name} - Members` : 'Organization Members'}
-      </Typography>
+    <Container maxWidth="lg">
+      <Paper elevation={3} sx={{ p: 4, mt: 4, mb: 4 }}>
+        {/* Header Section */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          mb: 4 
+        }}>
+          <Typography variant="h4" sx={{ fontWeight: 500 }}>
+            {organization ? `${organization.name} - Members` : 'Organization Members'}
+          </Typography>
 
-      {session.user.id !== organization?.created_by && (
-        <Button
-          variant="outlined"
-          color="error"
-          onClick={() => setMemberToRemove({ user_id: session.user.id })}
-          sx={{ mb: 2 }}
-        >
-          Leave Group
-        </Button>
-      )}
-
-      <List>
-        {members.map((member) => {
-          const user = member.users;
-          const name = user ? user.name || user.email : 'Unknown User';
-          const bio = user ? user.bio : null;
-          const isLastAdmin = members.filter(m => m.role === 'admin').length === 1 && member.role === 'admin';
-
-          return (
-            <ListItem
-              key={member.id}
-              secondaryAction={
-                isAdmin && member.user_id !== session.user.id && (
-                  <>
-                    <FormControl variant='outlined' size='small' style={{ minWidth: 120, marginRight: '1rem' }}>
-                      <InputLabel>Role</InputLabel>
-                      <Select
-                        value={member.role}
-                        onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                        label='Role'
-                        disabled={isLastAdmin || member.user_id === organization?.created_by}
-                      >
-                        <MenuItem value='member'>Member</MenuItem>
-                        <MenuItem value='admin'>Admin</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <IconButton 
-                      edge="end" 
-                      aria-label="delete" 
-                      onClick={() => setMemberToRemove(member)}
-                      color="error"
-                      disabled={member.user_id === organization?.created_by}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </>
-                )
-              }
+          {session.user.id !== organization?.created_by && (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => setMemberToRemove({ user_id: session.user.id })}
             >
-              <ListItemText
-                primary={name}
-                secondary={
-                  <>
-                    <Typography component='span' variant='body2' color='textPrimary'>
-                      Role: {member.role}
-                    </Typography>
-                    {bio && (
-                      <>
-                        {' - '}
-                        <Typography component='span' variant='body2' color='textSecondary'>
-                          {bio}
-                        </Typography>
-                      </>
-                    )}
-                  </>
+              Leave Group
+            </Button>
+          )}
+        </Box>
+
+        {/* Members List Section */}
+        <Paper variant="outlined" sx={{ p: 3, mb: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+            Group Members
+          </Typography>
+          <List>
+            {members.map((member) => (
+              <ListItem
+                key={member.id}
+                sx={{
+                  backgroundColor: 'background.paper',
+                  mb: 1,
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+                secondaryAction={
+                  isAdmin && member.user_id !== session.user.id && (
+                    <>
+                      <FormControl variant='outlined' size='small' style={{ minWidth: 120, marginRight: '1rem' }}>
+                        <InputLabel>Role</InputLabel>
+                        <Select
+                          value={member.role}
+                          onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                          label='Role'
+                          disabled={members.filter(m => m.role === 'admin').length === 1 && member.role === 'admin' || member.user_id === organization?.created_by}
+                        >
+                          <MenuItem value='member'>Member</MenuItem>
+                          <MenuItem value='admin'>Admin</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <IconButton 
+                        edge="end" 
+                        aria-label="delete" 
+                        onClick={() => setMemberToRemove(member)}
+                        color="error"
+                        disabled={member.user_id === organization?.created_by}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </>
+                  )
                 }
+              >
+                <ListItemText
+                  primary={
+                    <Typography variant="subtitle1" fontWeight="medium">
+                      {member.users?.name || 'Unknown User'}
+                    </Typography>
+                  }
+                  secondary={
+                    <Box sx={{ mt: 0.5 }}>
+                      <Typography component="span" variant="body2" color="text.primary">
+                        Role: {member.role}
+                      </Typography>
+                      {member.users?.bio && (
+                        <>
+                          {' - '}
+                          <Typography component="span" variant="body2" color="text.secondary">
+                            {member.users.bio}
+                          </Typography>
+                        </>
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
+
+        {/* Invite Section */}
+        {isAdmin && (
+          <Paper variant="outlined" sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+              Invite New Members
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+              <TextField
+                label="Invite User by Email"
+                value={emailToInvite}
+                onChange={(e) => setEmailToInvite(e.target.value)}
+                fullWidth
+                size="medium"
               />
-            </ListItem>
-          );
-        })}
-      </List>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={handleInvite}
+                sx={{ minWidth: '120px', height: '56px' }}
+              >
+                Invite User
+              </Button>
+            </Box>
+          </Paper>
+        )}
+      </Paper>
 
       <Dialog
         open={Boolean(memberToRemove)}
@@ -346,24 +393,6 @@ const GroupMembers = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {isAdmin && (
-        <>
-          <Typography variant='h6' style={{ marginTop: '2rem' }}>
-            Invite a User:
-          </Typography>
-          <TextField
-            label='Invite User by Email'
-            value={emailToInvite}
-            onChange={(e) => setEmailToInvite(e.target.value)}
-            fullWidth
-            style={{ marginBottom: '1rem' }}
-          />
-          <Button variant='contained' color='primary' onClick={handleInvite}>
-            Invite User
-          </Button>
-        </>
-      )}
     </Container>
   );
 };
