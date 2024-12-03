@@ -41,6 +41,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Paper from '@mui/material/Paper';
 import Button from '../components/Button';
 import MenuItem from '@mui/material/MenuItem';
+import Papa from 'papaparse';
 
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
@@ -311,6 +312,74 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     }
   }, [currentOrganization, fetchQuestions, fetchTags]);
 
+  const displayQuestions = organizationQuestions.filter(question => {
+    const matchesCategory = !categoryFilter || question.category === categoryFilter;
+    const matchesKanban = !kanbanFilter || question.kanban_status === kanbanFilter;
+    const matchesTag = !tagFilter || (question.tags && question.tags.some(tag => tag.name === tagFilter));
+    return matchesCategory && matchesKanban && matchesTag;
+  });
+
+  const exportToCSV = () => {
+    const csvData = [];
+    
+    // Get the currently filtered questions
+    const questionsToExport = displayQuestions
+      .filter(question => {
+        const matchesCategory = !categoryFilter || question.category === categoryFilter;
+        const matchesKanban = !kanbanFilter || question.kanban_status === kanbanFilter;
+        const matchesTag = !tagFilter || (question.tags && question.tags.some(tag => tag.name === tagFilter));
+        return matchesCategory && matchesKanban && matchesTag;
+      });
+  
+    questionsToExport.forEach(question => {
+      if (question.responses && question.responses.length > 0) {
+        question.responses.forEach(response => {
+          csvData.push({
+            question_content: question.content,
+            question_category: question.category,
+            submission_date: new Date(question.created_at).toISOString().split('T')[0],
+            kanban_status: question.kanban_status || '',
+            tags: question.tags?.map(tag => tag.name).join(', ') || '',
+            response_content: response.content,
+            response_url: response.url,
+            response_type: response.response_type
+          });
+        });
+      } else {
+        csvData.push({
+          question_content: question.content,
+          question_category: question.category,
+          submission_date: new Date(question.created_at).toISOString().split('T')[0],
+          kanban_status: question.kanban_status || '',
+          tags: question.tags?.map(tag => tag.name).join(', ') || '',
+          response_content: '',
+          response_url: '',
+          response_type: ''
+        });
+      }
+    });
+  
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    // Include filter information in the filename
+    const filterInfo = [];
+    if (categoryFilter) filterInfo.push(`category-${categoryFilter}`);
+    if (kanbanFilter) filterInfo.push(`status-${kanbanFilter}`);
+    if (tagFilter) filterInfo.push(`tag-${tagFilter}`);
+    
+    const filename = `${currentOrganization.name}_questions${filterInfo.length ? '_filtered_by_' + filterInfo.join('_') : ''}.csv`;
+    link.setAttribute('download', filename);
+    
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   
 
   const handleQuestionClick = (id) => {
@@ -508,6 +577,16 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     switch (viewMode) {
       case 'table':
         return (
+          <>
+            <div className="flex justify-end mb-4">
+              <Button 
+                type="button"
+                onClick={exportToCSV}
+                className="p-2 mr-4"
+              >
+                Export CSV
+              </Button>
+            </div>
           <QuestionTable 
             questions={displayQuestions} 
             onQuestionClick={handleQuestionClick}
@@ -523,11 +602,13 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
             setQuestions={setQuestions}  // Add this line
             organizationId={currentOrganization.id}
           />
+          </>
         );
       case 'cards':
         return (
           <>
             {isOrganizationQuestion && (
+               <div className="flex justify-between mb-4">
               <div className="flex gap-4 mb-4">
                 <TextField
                   select
@@ -580,6 +661,14 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
                   ))}
                 </TextField>
               </div>
+              <Button 
+                type="button"
+                onClick={exportToCSV}
+                className="p-2"
+              >
+                Export CSV
+              </Button>
+            </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {displayQuestions

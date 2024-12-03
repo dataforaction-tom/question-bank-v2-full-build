@@ -8,6 +8,7 @@ import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 import Button from '../components/Button';
 import { useAuth } from '../hooks/useAuth'; // Import useAuth hook
+import Papa from 'papaparse'; // Import PapaParse
 
 const Questions = () => {
   const [questions, setQuestions] = useState([]);
@@ -42,20 +43,24 @@ const Questions = () => {
         .from('questions')
         .select(`
           *,
-          endorsements:endorsements(count),
-          followers:question_followers(count),
-          responses:responses(count)
+          endorsements(count),
+          question_followers(count),
+          responses(
+            id,
+            content,
+            url,
+            response_type
+          )
         `)
-        .eq('is_open', true)  // This ensures we only fetch open questions
-        .order('priority_score', { ascending: false });  // Sort by priority_score descending
-
+        .eq('is_open', true)
+        .order('priority_score', { ascending: false });
+  
       if (userOrganizationId) {
-        // This allows fetching closed questions for the user's organization
         query = query.or(`is_open.eq.true,and(is_open.eq.false,organization_id.eq.${userOrganizationId})`);
       }
-
+  
       const { data, error } = await query;
-
+  
       if (error) {
         console.error('Error fetching questions:', error);
         alert('An error occurred while fetching questions.');
@@ -63,14 +68,15 @@ const Questions = () => {
         const questionsWithCounts = data.map(q => ({
           ...q,
           endorsements_count: q.endorsements[0]?.count || 0,
-          followers_count: q.followers[0]?.count || 0,
-          responses_count: q.responses[0]?.count || 0
+          followers_count: q.question_followers[0]?.count || 0,
+          responses_count: q.responses.length,
+          responses: q.responses || []
         }));
         setQuestions(questionsWithCounts);
         setFilteredQuestions(questionsWithCounts);
       }
     };
-
+  
     fetchQuestions();
   }, [userOrganizationId]);
 
@@ -134,6 +140,47 @@ const Questions = () => {
     </Menu>
   );
 
+  const exportToCSV = () => {
+    const csvData = [];
+
+    filteredQuestions.forEach(question => {
+      if (question.responses && question.responses.length > 0) {
+        question.responses.forEach(response => {
+          csvData.push({
+            question_content: question.content,
+            question_category: question.category,
+            submission_date: new Date(question.created_at).toISOString().split('T')[0],
+            response_content: response.content,
+            response_url: response.url,
+            response_type: response.response_type
+          });
+        });
+      } else {
+        // If no responses, still include the question with empty response fields
+        csvData.push({
+          question_content: question.content,
+          question_category: question.category,
+          submission_date: new Date(question.created_at).toISOString().split('T')[0],
+          response_content: '',
+          response_url: '',
+          response_type: ''
+        });
+      }
+    });
+
+    const csv = Papa.unparse(csvData);
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'questions_with_responses.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold mb-8">Questions</h1>
@@ -141,6 +188,13 @@ const Questions = () => {
       <div className="flex flex-col sm:flex-row justify-end mb-4">
         <div className="mb-4 sm:mb-0 flex space-x-4">
           <GroupingMenu />
+          <Button 
+            type="button"
+            onClick={exportToCSV} // Add export button
+            className="p-2"
+          >
+            Export CSV
+          </Button>
           <Button 
             type="ChangeView"
             onClick={() => setViewMode('table')} 
