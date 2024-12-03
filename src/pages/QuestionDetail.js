@@ -734,6 +734,15 @@ const handleGoBack = () => {
     alert('Link copied to clipboard');
   };
 
+  const handleOpenResponseModal = () => {
+    if (!session) {
+      alert('Please log in to respond to questions.');
+      navigate('/signin');
+      return;
+    }
+    setIsResponseModalOpen(true);
+  };
+
   const renderResponseSection = () => {
     if (!isAdmin) {
       return <ResponseList questionId={id} currentUserId={currentUser?.id} />;
@@ -844,7 +853,7 @@ const handleGoBack = () => {
                 </Button>
                 <Button
                   type="Respond"
-                  onClick={() => setIsResponseModalOpen(true)}
+                  onClick={handleOpenResponseModal}
                   className="flex items-center w-full"
                 >
                   <FaComment className="mr-2" />

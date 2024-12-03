@@ -100,7 +100,7 @@ const Sidebar = ({
             active={viewMode === 'elo-ranking'}
             className="w-full"
           >
-            {sidebarOpen ? 'ELO Ranking' : 'E'}
+            {sidebarOpen ? 'Group Ranking' : 'G'}
           </CustomButton>
           <CustomButton 
             type="ChangeView"

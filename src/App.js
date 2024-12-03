@@ -45,7 +45,7 @@ const App = () => {
           <Route path='/group-dashboard' element={<AuthRoute><OrganizationDashboard /></AuthRoute>} />
           <Route path='/create-group' element={<AuthRoute><OrganizationSignUp /></AuthRoute>} />
           <Route path='/submit-question' element={<AuthRoute><SubmitQuestion /></AuthRoute>} />
-          <Route path='/questions/:id' element={<AuthRoute><QuestionDetail /></AuthRoute>} />
+          <Route path='/questions/:id' element={<QuestionDetail />} />
           <Route path='/questions' element={<Questions />} />
           <Route path='/my-questions' element={<AuthRoute><MyQuestions /></AuthRoute>} />
           <Route path='/rank-questions' element={<AuthRoute><QuestionRanking /></AuthRoute>} />
