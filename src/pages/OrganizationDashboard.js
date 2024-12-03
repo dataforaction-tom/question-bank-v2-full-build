@@ -85,7 +85,6 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   const [tagFilter, setTagFilter] = useState('');
   
 
- 
   // Add this useEffect to check when to show the modal
   useEffect(() => {
     if (currentOrganization) {
@@ -151,6 +150,44 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     }
   };
 
+  // Define these functions first
+  const processLatestQuestions = useCallback((questions) => {
+    // Sort by created_at and take the 5 most recent
+    const sortedQuestions = [...questions].sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    ).slice(0, 5);
+    
+    setLatestQuestions(sortedQuestions);
+  }, []);
+
+  const processTopQuestionsByCategory = useCallback((questions) => {
+    // Group questions by category
+    const questionsByCategory = questions.reduce((acc, question) => {
+      if (!question.category) return acc;
+      
+      if (!acc[question.category]) {
+        acc[question.category] = [];
+      }
+      
+      acc[question.category].push(question);
+      return acc;
+    }, {});
+
+    // Find top question for each category
+    const topByCategory = Object.entries(questionsByCategory).reduce((acc, [category, categoryQuestions]) => {
+      // Sort by endorsements and take the top one
+      const topQuestion = categoryQuestions.sort((a, b) => 
+        b.endorsements_count - a.endorsements_count
+      )[0];
+      
+      acc[category] = topQuestion;
+      return acc;
+    }, {});
+
+    setTopQuestionsByCategory(topByCategory);
+  }, []);
+
+  // Then define fetchQuestions which depends on them
   const fetchQuestions = useCallback(async (organizationId) => {
     try {
       console.log('Fetching questions for organization:', organizationId);
@@ -240,11 +277,15 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
       setOrganizationQuestions(uniqueQuestions);
       sortQuestions(uniqueQuestions, sortBy);
 
+      // Process overview data
+      processLatestQuestions(uniqueQuestions);
+      processTopQuestionsByCategory(uniqueQuestions);
+
     } catch (error) {
       console.error('Error fetching questions:', error);
       toast.error('Failed to load organization questions');
     }
-  }, [sortBy]);
+  }, [sortBy, processLatestQuestions, processTopQuestionsByCategory]);
 
   const handleOrganizationSelect = useCallback((org) => {
     updateCurrentOrganization(org);
@@ -867,148 +908,47 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     setShowPublicQuestions(!showPublicQuestions);
   };
 
-const handleKeyDown = (event) => {
-  if (event.key === 'Enter') {
-    handleSearch();
-  }
-};
+// Remove the useEffect for debounced search
 
-const handleSearch = async () => {
-  if (!searchQuery.trim() || !currentOrganization) return;
+const handleSearch = useCallback(() => {
+  if (!searchQuery.trim() || !organizationQuestions) return;
 
   setIsSearching(true);
   setShowSearchResults(true);
 
   try {
-    const { data, error } = await supabase
-      .from('questions')
-      .select(`
-        *,
-        endorsements:endorsements(count),
-        followers:question_followers(count),
-        responses:responses(count),
-         question_tags (
-            tags (*)
-          )
-        
-      `)
-      .eq('organization_id', currentOrganization.id)
-      .or(`content.ilike.%${searchQuery}%,category.ilike.%${searchQuery}% `)
-      .order('priority_score', { ascending: false });
+    // Filter the existing organizationQuestions
+    const filteredQuestions = organizationQuestions.filter(question => {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        question.content?.toLowerCase().includes(searchLower) ||
+        question.category?.toLowerCase().includes(searchLower)
+      );
+    });
 
-    if (error) throw error;
+    // Sort by priority_score if available, otherwise by created_at
+    const sortedResults = filteredQuestions.sort((a, b) => {
+      if (a.priority_score !== undefined && b.priority_score !== undefined) {
+        return b.priority_score - a.priority_score;
+      }
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
 
-    
-    // Log the fetched data to check tags
-    console.log('Fetched questions with tags:', data);
-
-    const questionsWithCounts = data.map(q => ({
-      ...q,
-      endorsements_count: q.endorsements[0]?.count || 0,
-      followers_count: q.followers[0]?.count || 0,
-      responses_count: q.responses[0]?.count || 0
-    }));
-
-    setSearchResults(questionsWithCounts);
+    setSearchResults(sortedResults);
   } catch (error) {
     console.error('Error searching questions:', error);
+    toast.error('Failed to search questions');
   } finally {
     setIsSearching(false);
   }
+}, [searchQuery, organizationQuestions]);
+
+const handleKeyDown = (event) => {
+  if (event.key === 'Enter') {
+    handleSearch();
+  }
 };
-  // Add this function to fetch latest questions
-  const fetchLatestQuestions = useCallback(async () => {
-    if (!currentOrganization) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('questions')
-        .select(`
-          *,
-          endorsements:endorsements(count),
-          followers:question_followers(count),
-          responses:responses(count)
-        `)
-        .eq('organization_id', currentOrganization.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-
-      const formattedQuestions = data.map(q => ({
-        ...q,
-        endorsements_count: q.endorsements?.[0]?.count || 0,
-        followers_count: q.followers?.[0]?.count || 0,
-        responses_count: q.responses?.[0]?.count || 0
-      }));
-
-      setLatestQuestions(formattedQuestions);
-    } catch (error) {
-      console.error('Error fetching latest questions:', error);
-      toast.error('Failed to load latest questions');
-    }
-  }, [currentOrganization]);
-
   
-  const fetchTopQuestionsByCategory = useCallback(async () => {
-    if (!currentOrganization) return;
-    
-    try {
-      const { data: questions, error } = await supabase
-        .from('questions')
-        .select(`
-          *,
-          endorsements:endorsements(count),
-          followers:question_followers(count),
-          responses:responses(count)
-        `)
-        .eq('organization_id', currentOrganization.id);
-  
-      if (error) throw error;
-  
-      // Group questions by category
-      const questionsByCategory = questions.reduce((acc, question) => {
-        if (!question.category) return acc; // Skip questions without category
-        
-        if (!acc[question.category]) {
-          acc[question.category] = [];
-        }
-        
-        acc[question.category].push({
-          ...question,
-          endorsements_count: question.endorsements?.[0]?.count || 0,
-          followers_count: question.followers?.[0]?.count || 0,
-          responses_count: question.responses?.[0]?.count || 0
-        });
-        
-        return acc;
-      }, {});
-  
-      // Find top question for each category
-      const topByCategory = Object.entries(questionsByCategory).reduce((acc, [category, questions]) => {
-        // Sort by endorsements and take the top one
-        const topQuestion = questions.sort((a, b) => 
-          b.endorsements_count - a.endorsements_count
-        )[0];
-        
-        acc[category] = topQuestion;
-        return acc;
-      }, {});
-  
-      setTopQuestionsByCategory(topByCategory);
-    } catch (error) {
-      console.error('Error fetching top questions by category:', error);
-      toast.error('Failed to load top questions by category');
-    }
-  }, [currentOrganization]);
-
-  // Add this useEffect to fetch overview data
-  useEffect(() => {
-    if (currentOrganization) {
-      fetchLatestQuestions();
-      fetchTopQuestionsByCategory();
-    }
-  }, [currentOrganization, fetchLatestQuestions, fetchTopQuestionsByCategory]);
 
   const createTag = async () => {
     if (!isAdmin) return;
