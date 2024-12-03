@@ -16,7 +16,8 @@ const TagManager = React.memo(({ questionId, organizationId, isAdmin = false, mo
     const { data, error } = await supabase
       .from('tags')
       .select('*')
-      .eq('organization_id', organizationId);
+      .eq('organization_id', organizationId)
+      .order('name');
     if (error) {
       console.error('Error fetching organization tags:', error);
     } else {
@@ -25,17 +26,20 @@ const TagManager = React.memo(({ questionId, organizationId, isAdmin = false, mo
   }, [organizationId]);
 
   const fetchQuestionTags = useCallback(async () => {
-    if (!questionId) return;
+    if (!questionId || !organizationId) return;
     const { data, error } = await supabase
       .from('question_tags')
-      .select('tags(*)')
-      .eq('question_id', questionId);
+      .select(`
+        tags!inner(*)
+      `)
+      .eq('question_id', questionId)
+      .eq('tags.organization_id', organizationId);
     if (error) {
       console.error('Error fetching question tags:', error);
     } else {
       setQuestionTags(data.map(item => item.tags).filter(tag => tag != null));
     }
-  }, [questionId]);
+  }, [questionId, organizationId]);
 
   // Fetch data only when IDs change
   useEffect(() => {

@@ -1042,16 +1042,18 @@ const handleKeyDown = (event) => {
           {currentOrganization && (
             <>
               <Typography variant='h4'>{currentOrganization.name} Dashboard</Typography>
-              <CustomButton 
-                type="Action"
-                onClick={() => {
-                  updateCurrentOrganization(null);
-                  setShowOrgSelector(true);
-                }}
-                className="w-auto"
-              >
-                Change Group
-              </CustomButton>
+              {organizations.length > 1 && (
+      <CustomButton 
+        type="Action"
+        onClick={() => {
+          updateCurrentOrganization(null);
+          setShowOrgSelector(true);
+        }}
+        className="w-auto"
+      >
+        Change Group
+      </CustomButton>
+    )}
               {viewMode !== 'table' && viewMode !== 'kanban' && (
 
               <Paper elevation={3} sx={{ 
