@@ -301,7 +301,7 @@ const handleGoBack = () => {
   useEffect(() => {
     const fetchSimilarQuestions = async () => {
       if (!question?.embedding) return;
-
+  
       try {
         const { data: similarData, error: searchError } = await supabase
           .rpc('finds_similar_questions', {
@@ -309,20 +309,43 @@ const handleGoBack = () => {
             match_threshold: 0.6,
             match_count: 3
           });
-
+  
         if (searchError) throw searchError;
-
-        // Filter out the current question and limit to 2 results
-        const filteredQuestions = similarData
-          .filter(q => q.id !== question.id)
-          .slice(0, 2);
-
-        setSimilarQuestions(filteredQuestions);
+  
+        // Fetch additional counts for each similar question
+        const questionsWithCounts = await Promise.all(
+          similarData
+            .filter(q => q.id !== question.id)
+            .slice(0, 2)
+            .map(async (q) => {
+              const { data, error } = await supabase
+                .from('questions')
+                .select(`
+                  *,
+                  endorsements:endorsements(count),
+                  followers:question_followers(count),
+                  responses:responses(count)
+                `)
+                .eq('id', q.id)
+                .single();
+  
+              if (error) throw error;
+  
+              return {
+                ...q,
+                endorsements_count: data.endorsements[0]?.count || 0,
+                followers_count: data.followers[0]?.count || 0,
+                responses_count: data.responses[0]?.count || 0
+              };
+            })
+        );
+  
+        setSimilarQuestions(questionsWithCounts);
       } catch (error) {
         console.error('Error fetching similar questions:', error);
       }
     };
-
+  
     if (question) {
       fetchSimilarQuestions();
     }
@@ -918,7 +941,11 @@ const handleGoBack = () => {
                   ...similarQuestion,
                   // Ensure all required props are passed
                   category: similarQuestion.category,
-                  
+                  kanban_status: similarQuestion.organization_question_rankings?.kanban_status,
+                 
+                  endorsements_count: similarQuestion.endorsements_count,
+                  followers_count: similarQuestion.followers_count,
+                  responses_count: similarQuestion.responses_count
                 }}
                 
                 onClick={() => navigate(`/questions/${similarQuestion.id}`)}
