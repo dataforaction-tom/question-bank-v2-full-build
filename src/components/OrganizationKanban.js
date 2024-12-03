@@ -239,18 +239,20 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
     </Typography>
   </Box>
   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2 }}>
-    {question.tags?.map(tag => (
-      <Chip
-        key={tag.id}
-        label={tag.name}
-        size="small"
-        sx={{
-          backgroundColor: tag.color || 'black',
-          color: 'white',
-          fontSize: '0.75rem'
-        }}
-      />
-    ))}
+    {question.tags && Array.isArray(question.tags) && question.tags
+      .filter(tag => tag && tag.name)
+      .map(tag => (
+        <Chip
+          key={tag.id}
+          label={tag.name}
+          size="small"
+          sx={{
+            backgroundColor: tag.color || 'black',
+            color: 'white',
+            fontSize: '0.75rem'
+          }}
+        />
+      ))}
   </Box>
 </CardContent>
                           </Card>

@@ -282,8 +282,12 @@ const QuestionTable = ({
   const uniqueTags = useMemo(() => {
     const tags = new Set();
     questions.forEach(q => {
-      if (q.tags) {
-        q.tags.forEach(tag => tags.add(tag.name));
+      if (q.tags && Array.isArray(q.tags)) {
+        q.tags.forEach(tag => {
+          if (tag && tag.name) {
+            tags.add(tag.name);
+          }
+        });
       }
     });
     return [...tags];
@@ -293,7 +297,11 @@ const QuestionTable = ({
     return questions.filter(question => {
       const matchesCategory = !categoryFilter || question.category === categoryFilter;
       const matchesKanban = !kanbanFilter || question.kanban_status === kanbanFilter;
-      const matchesTag = !tagFilter || (question.tags && question.tags.some(tag => tag.name === tagFilter));
+      const matchesTag = !tagFilter || (
+        question.tags && 
+        Array.isArray(question.tags) && 
+        question.tags.some(tag => tag && tag.name === tagFilter)
+      );
       return matchesCategory && matchesKanban && matchesTag;
     });
   }, [questions, categoryFilter, kanbanFilter, tagFilter]);

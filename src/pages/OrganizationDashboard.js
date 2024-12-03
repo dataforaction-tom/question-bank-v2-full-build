@@ -697,9 +697,19 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
                   sx={{ minWidth: 200 }}
                 >
                   <MenuItem value="">All Tags</MenuItem>
-                  {[...new Set(displayQuestions.flatMap(q => q.tags?.map(tag => tag.name) || []))].map((tag) => (
-                    <MenuItem key={tag} value={tag}>
-                      {tag}
+                  {[...new Set(displayQuestions
+                    .flatMap(q => {
+                      // Ensure question has tags and they are an array
+                      if (!q.tags || !Array.isArray(q.tags)) return [];
+                      // Filter out null tags and map to names
+                      return q.tags
+                        .filter(tag => tag && typeof tag === 'object' && tag.name)
+                        .map(tag => tag.name);
+                    })
+                    .filter(Boolean) // Remove any null/undefined values
+                  )].map((tagName) => (
+                    <MenuItem key={tagName} value={tagName}>
+                      {tagName}
                     </MenuItem>
                   ))}
                 </TextField>
