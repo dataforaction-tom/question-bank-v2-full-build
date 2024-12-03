@@ -64,6 +64,10 @@ const TagManager = React.memo(({ questionId, organizationId, isAdmin = false, mo
   }, [newTagName, mode, organizationId]);
 
   const handleDeleteTag = useCallback(async (tagId) => {
+    if (!isAdmin) {
+      console.error('Only admins can delete tags');
+      return;
+    }
     if (mode === 'manage' && organizationId) {
       const { error } = await supabase
         .from('tags')
@@ -75,7 +79,7 @@ const TagManager = React.memo(({ questionId, organizationId, isAdmin = false, mo
         setOrganizationTags(prev => prev.filter(tag => tag.id !== tagId));
       }
     }
-  }, [mode, organizationId]);
+  }, [mode, organizationId, isAdmin]);
 
   const handleAddTagToQuestion = useCallback(async (tagId) => {
     if (!questionId) return;
@@ -105,20 +109,30 @@ const TagManager = React.memo(({ questionId, organizationId, isAdmin = false, mo
   // Memoize renderTags function
   const renderTags = useCallback((tags, isQuestionTag = false) => (
     <Grid container spacing={1}>
-      {tags.filter(tag => tag != null).map(tag => (
-        <Grid item key={tag.id}>
-          <Chip
-            label={tag.name}
-            onDelete={mode === 'manage' && isAdmin ? 
-              () => handleDeleteTag(tag.id) : 
-              isQuestionTag ? () => handleRemoveTagFromQuestion(tag.id) : undefined
-            }
-            onClick={mode === 'question' && !isQuestionTag ? () => handleAddTagToQuestion(tag.id) : undefined}
-            color={isQuestionTag ? "primary" : "default"}
-            deleteIcon={<DeleteIcon />}
-          />
-        </Grid>
-      ))}
+      {tags.filter(tag => tag != null).map(tag => {
+        // Determine if this tag should be deletable
+        const isDeletable = isAdmin && (mode === 'manage' || isQuestionTag);
+        
+        return (
+          <Grid item key={tag.id}>
+            <Chip
+              label={tag.name}
+              color={isQuestionTag ? "primary" : "default"}
+              // Only include delete-related props if the user is an admin
+              {...(isDeletable ? {
+                onDelete: mode === 'manage' ? 
+                  () => handleDeleteTag(tag.id) : 
+                  () => handleRemoveTagFromQuestion(tag.id),
+                deleteIcon: <DeleteIcon />
+              } : {})}
+              // Only allow clicking if admin and in question mode
+              onClick={isAdmin && mode === 'question' && !isQuestionTag ? 
+                () => handleAddTagToQuestion(tag.id) : 
+                undefined}
+            />
+          </Grid>
+        );
+      })}
     </Grid>
   ), [mode, isAdmin, handleDeleteTag, handleRemoveTagFromQuestion, handleAddTagToQuestion]);
 

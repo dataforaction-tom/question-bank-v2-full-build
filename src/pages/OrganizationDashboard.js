@@ -564,6 +564,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   };
 
   const handleTagSelection = async (tagId) => {
+    if (!isAdmin) return;
+    
     if (selectedQuestionId) {
       await addTagToQuestion(selectedQuestionId, tagId);
     }
@@ -825,98 +827,18 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     );
   };
 
-  const createTag = async () => {
-    if (newTagName.trim() === '' || !currentOrganization) {
-      toast.error('Tag name cannot be empty');
-      return;
-    }
-
-    try {
-      // Insert the new tag
-      const { error: insertError } = await supabase
-        .from('tags')
-        .insert({ name: newTagName, organization_id: currentOrganization.id });
-
-      if (insertError) throw insertError;
-
-      // Fetch the newly created tag
-      const { data: newTag, error: fetchError } = await supabase
-        .from('tags')
-        .select('*')
-        .eq('name', newTagName)
-        .eq('organization_id', currentOrganization.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      if (newTag) {
-        setTags(prevTags => [...prevTags.filter(tag => tag != null), newTag]);
-        setNewTagName('');
-        toast.success('Tag created successfully');
-
-        // If a question is selected, add the tag to that question
-        if (selectedQuestionId) {
-          await addTagToQuestion(selectedQuestionId, newTag.id);
-        }
-
-        // Close the appropriate dialog
-        if (isTagDialogOpen) {
-          setIsTagDialogOpen(false);
-        } else if (isManageTagsDialogOpen) {
-          setIsManageTagsDialogOpen(false);
-        }
-      } else {
-        throw new Error('Failed to retrieve the newly created tag');
-      }
-
-    } catch (error) {
-      console.error('Error creating tag:', error);
-      toast.error('Failed to create tag');
-    }
-  };
-
-  const addTagToQuestion = async (questionId, tagId) => {
-    const { error } = await supabase
-      .from('question_tags')
-      .insert({ question_id: questionId, tag_id: tagId });
-    if (error) {
-      console.error('Error adding tag to question:', error);
-      toast.error('Failed to add tag to question.');
-    } else {
-      await fetchQuestions(currentOrganization.id);
-    }
-  };
-
-  const fetchOrganizationTags = useCallback(async () => {
-    if (!currentOrganization) return;
-    const { data, error } = await supabase
-      .from('tags')
-      .select('*')
-      .eq('organization_id', currentOrganization.id);
-    if (error) {
-      console.error('Error fetching tags:', error);
-    } else {
-      setTags(data);
-    }
-  }, [currentOrganization]);
-
-  useEffect(() => {
-    if (currentOrganization) {
-      fetchOrganizationTags();
-    }
-  }, [currentOrganization, fetchOrganizationTags]);
-
   const handleDeleteTag = async (tagId) => {
+    if (!isAdmin) return;
+
     try {
-      // First, remove the tag from all questions
-      const { error: removeError } = await supabase
+      // Remove tags first (since it's a foreign key relationship)
+      const { error: tagsError } = await supabase
         .from('question_tags')
         .delete()
         .match({ tag_id: tagId });
 
-      if (removeError) throw removeError;
+      if (tagsError) throw tagsError;
 
-      // Then, delete the tag itself
       const { error: deleteError } = await supabase
         .from('tags')
         .delete()
@@ -924,8 +846,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
       if (deleteError) throw deleteError;
 
-      // Update the local state
-      setTags(prevTags => prevTags.filter(tag => tag != null && tag.id !== tagId));
+      // Update local state only after successful deletion
+      setTags(prevTags => prevTags.filter(tag => tag && tag.id !== tagId));
       toast.success('Tag deleted successfully');
     } catch (error) {
       console.error('Error deleting tag:', error);
@@ -1087,6 +1009,70 @@ const handleSearch = async () => {
       fetchTopQuestionsByCategory();
     }
   }, [currentOrganization, fetchLatestQuestions, fetchTopQuestionsByCategory]);
+
+  const createTag = async () => {
+    if (!isAdmin) return;
+    
+    if (newTagName.trim() === '' || !currentOrganization) {
+      toast.error('Tag name cannot be empty');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('tags')
+        .insert({ name: newTagName, organization_id: currentOrganization.id })
+        .select();
+
+      if (error) throw error;
+
+      setTags(prevTags => [...prevTags.filter(tag => tag != null), data[0]]);
+      setNewTagName('');
+      toast.success('Tag created successfully');
+
+      if (selectedQuestionId && data[0]) {
+        await addTagToQuestion(selectedQuestionId, data[0].id);
+      }
+
+      // Close dialogs
+      setIsTagDialogOpen(false);
+      setIsManageTagsDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      toast.error('Failed to create tag');
+    }
+  };
+
+  const addTagToQuestion = async (questionId, tagId) => {
+    const { error } = await supabase
+      .from('question_tags')
+      .insert({ question_id: questionId, tag_id: tagId });
+    if (error) {
+      console.error('Error adding tag to question:', error);
+      toast.error('Failed to add tag to question.');
+    } else {
+      await fetchQuestions(currentOrganization.id);
+    }
+  };
+
+  const fetchOrganizationTags = useCallback(async () => {
+    if (!currentOrganization) return;
+    const { data, error } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('organization_id', currentOrganization.id);
+    if (error) {
+      console.error('Error fetching tags:', error);
+    } else {
+      setTags(data);
+    }
+  }, [currentOrganization]);
+
+  useEffect(() => {
+    if (currentOrganization) {
+      fetchOrganizationTags();
+    }
+  }, [currentOrganization, fetchOrganizationTags]);
 
   return (
     <div className="flex">
@@ -1273,66 +1259,91 @@ const handleSearch = async () => {
         title="Confirm Making Question Public"
         message="Making a question public means your question and responses to this question will be in the public domain. This cannot be reversed. If you make the question public, this question will still be visible in your group dashboard, and you will follow and endorse this question also."
       />
-      <Dialog open={isTagDialogOpen} onClose={() => setIsTagDialogOpen(false)}>
+      <Dialog 
+        open={isTagDialogOpen && isAdmin} // Only open if admin
+        onClose={() => setIsTagDialogOpen(false)}
+      >
         <DialogTitle>Add Tag</DialogTitle>
         <DialogContent>
-          <Typography variant="subtitle1">Existing Tags:</Typography>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {tags.map(tag => (
-              <Chip
-                key={tag.id}
-                label={tag.name}
-                onClick={() => handleTagSelection(tag.id)}
-                clickable
+          {isAdmin ? ( // Only show content if admin
+            <>
+              <Typography variant="subtitle1">Existing Tags:</Typography>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {tags.map(tag => (
+                  <Chip
+                    key={tag.id}
+                    label={tag.name}
+                    onClick={() => handleTagSelection(tag.id)}
+                    clickable
+                  />
+                ))}
+              </div>
+              <Typography variant="subtitle1">Or create a new tag:</Typography>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="New Tag Name"
+                type="text"
+                fullWidth
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
               />
-            ))}
-          </div>
-          <Typography variant="subtitle1">Or create a new tag:</Typography>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="New Tag Name"
-            type="text"
-            fullWidth
-            value={newTagName}
-            onChange={(e) => setNewTagName(e.target.value)}
-          />
+            </>
+          ) : (
+            <Typography>You don't have permission to manage tags.</Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsTagDialogOpen(false)}>Cancel</Button>
-          <Button onClick={createTag}>Create New Tag</Button>
+          {isAdmin && <Button onClick={createTag}>Create New Tag</Button>}
         </DialogActions>
       </Dialog>
-      <Dialog open={isManageTagsDialogOpen} onClose={() => setIsManageTagsDialogOpen(false)}>
+
+      {/* Manage Tags Dialog */}
+      <Dialog 
+        open={isManageTagsDialogOpen && isAdmin} // Only open if admin
+        onClose={() => setIsManageTagsDialogOpen(false)}
+      >
         <DialogTitle>Manage Tags</DialogTitle>
         <DialogContent>
-          <Typography variant="subtitle1">Existing Tags:</Typography>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {tags.filter(tag => tag != null).map(tag => (
-              <Chip
-                key={tag.id}
-                label={tag.name}
-                onDelete={() => setTagToDelete(tag)}
+          {isAdmin ? ( // Only show content if admin
+            <>
+              <Typography variant="subtitle1">Existing Tags:</Typography>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {tags.filter(tag => tag != null).map(tag => (
+                  <Chip
+                    key={tag.id}
+                    label={tag.name}
+                    onDelete={() => setTagToDelete(tag)}
+                  />
+                ))}
+              </div>
+              <Typography variant="subtitle1">Create a new tag:</Typography>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="New Tag Name"
+                type="text"
+                fullWidth
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
               />
-            ))}
-          </div>
-          <Typography variant="subtitle1">Create a new tag:</Typography>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="New Tag Name"
-            type="text"
-            fullWidth
-            value={newTagName}
-            onChange={(e) => setNewTagName(e.target.value)}
-          />
+            </>
+          ) : (
+            <Typography>You don't have permission to manage tags.</Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsManageTagsDialogOpen(false)}>Close</Button>
-          <Button onClick={createTag}>Create New Tag</Button>
+          {isAdmin && <Button onClick={createTag}>Create New Tag</Button>}
         </DialogActions>
       </Dialog>
-      <Dialog open={!!tagToDelete} onClose={() => setTagToDelete(null)}>
+
+      {/* Delete Tag Confirmation Dialog */}
+      <Dialog 
+        open={!!tagToDelete && isAdmin} // Only open if admin
+        onClose={() => setTagToDelete(null)}
+      >
         <DialogTitle>Confirm Tag Deletion</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -1341,12 +1352,19 @@ const handleSearch = async () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setTagToDelete(null)}>Cancel</Button>
-          <Button onClick={() => {
-            handleDeleteTag(tagToDelete.id);
-            setTagToDelete(null);
-          }} color="error">
-            Delete
-          </Button>
+          {isAdmin && (
+            <Button 
+              onClick={() => {
+                if (isAdmin) {
+                  handleDeleteTag(tagToDelete.id);
+                  setTagToDelete(null);
+                }
+              }} 
+              color="error"
+            >
+              Delete
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
       <Dialog 
