@@ -103,18 +103,20 @@ const GroupMembers = () => {
 
   const sendInvitationEmail = async (email, token) => {
     const invitationLink = `${window.location.origin}/accept-invitation?token=${token}`;
-
+    const inviterName = session.user.user_metadata?.name || 'A team member'; // Get inviter's name
+  
     try {
       const response = await fetch('/api/send-invitation-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: email,
-          subject: 'You are invited to join our organization',
-          text: `You have been invited to join ${organization.name}. Click the link to accept the invitation: ${invitationLink}`,
+          organizationName: organization.name,
+          inviterName: inviterName,
+          invitationLink: invitationLink,
         }),
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to send invitation email.');
       }
