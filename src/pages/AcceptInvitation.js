@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { Button, Container, Typography } from '@mui/material';
+import { Container, Typography, Paper, Box } from '@mui/material';
+import Button from '../components/Button';
 
 const AcceptInvitation = () => {
   const [invitation, setInvitation] = useState(null);
@@ -82,23 +83,55 @@ const AcceptInvitation = () => {
 
   if (loading) {
     return (
-      <Container>
-        <Typography variant='h5'>Loading...</Typography>
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h5">Loading...</Typography>
+        </Paper>
       </Container>
     );
   }
 
   return (
-    <Container>
-      <Typography variant='h5'>
-        You've been invited to join an organization!
-      </Typography>
-      <Button variant='contained' color='primary' onClick={handleAccept}>
-        Accept Invitation
-      </Button>
-      <Button variant='outlined' color='secondary' onClick={handleDecline}>
-        Decline Invitation
-      </Button>
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          gap: 3
+        }}>
+          <Typography variant="h4" sx={{ 
+            fontWeight: 500,
+            color: 'primary.main',
+            textAlign: 'center',
+            mb: 2
+          }}>
+            You've been invited to join {invitation?.organization_name || 'an organization'}!
+          </Typography>
+          
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2,
+            justifyContent: 'center'
+          }}>
+            <Button
+              type="Submit"
+              size="lg"
+              onClick={handleAccept}
+            >
+              Accept Invitation
+            </Button>
+            
+            <Button
+              type="Cancel"
+              size="lg"
+              onClick={handleDecline}
+            >
+              Decline Invitation
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
     </Container>
   );
 };

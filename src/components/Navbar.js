@@ -10,6 +10,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { session } = useAuth();
+  const [isMemberOfGroup, setIsMemberOfGroup] = useState(false);
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
@@ -23,6 +24,22 @@ const Navbar = () => {
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const checkGroupMembership = async () => {
+      if (session?.user) {
+        const { data, error } = await supabase
+          .from('group_members')
+          .select('group_id')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        setIsMemberOfGroup(!!data);
+      }
+    };
+
+    checkGroupMembership();
+  }, [session]);
 
   return (
     <header className="bg-gradient-to-r from-slate-950 to-sky-900 text-white py-4 shadow-md">
@@ -45,9 +62,11 @@ const Navbar = () => {
               <Link to="/create-group" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
                 Create Group
               </Link>
-              <Link to="/group-dashboard" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
-                Group Dashboard
-              </Link>
+              {isMemberOfGroup && (
+                <Link to="/group-dashboard" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                  Group Dashboard
+                </Link>
+              )}
               <Link to="/profile" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition flex items-center">
                 Profile
                 
