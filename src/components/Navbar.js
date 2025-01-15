@@ -62,11 +62,9 @@ const Navbar = () => {
               <Link to="/create-group" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
                 Create Group
               </Link>
-              {isMemberOfGroup && (
-                <Link to="/group-dashboard" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
-                  Group Dashboard
-                </Link>
-              )}
+              <Link to="/group-dashboard" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
+                Group Dashboard
+              </Link>
               <Link to="/profile" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition flex items-center">
                 Profile
                 
