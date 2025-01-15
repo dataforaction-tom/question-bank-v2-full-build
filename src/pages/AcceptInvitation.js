@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { Button, Container, Typography, Paper, Box } from '@mui/material';
+import { Container, Typography, Paper, Box } from '@mui/material';
+import Button from '../components/Button';
 
 const AcceptInvitation = () => {
   const [invitation, setInvitation] = useState(null);
