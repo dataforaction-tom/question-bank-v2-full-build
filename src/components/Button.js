@@ -4,9 +4,9 @@ const buttonTypes = {
   Action: 'bg-gradient-to-r from-slate-950 to-sky-900 hover:bg-blue-700 text-white',
   ChangeView: 'bg-orange-700 hover:bg-pink-700 text-white',
   Submit: 'bg-gradient-to-r from-slate-950 to-sky-900 text-white rounded-xl  ',
-  Confirm: 'bg-yellow-600 hover:bg-yellow-700 text-black',
-  Cancel: 'bg-red-600 hover:bg-red-700 text-white',
-  Respond: 'bg-teal-500 hover:bg-teal-600 text-white',
+  Confirm: 'bg-yellow-600 hover:bg-yellow-700 text-black rounded-xl',
+  Cancel: 'bg-red-600 hover:bg-red-700 text-white rounded-xl',
+  Respond: 'bg-teal-500 hover:bg-teal-600 text-white rounded-xl',
 };
 
 const Button = ({ 

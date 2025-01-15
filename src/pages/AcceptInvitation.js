@@ -3,35 +3,51 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, Paper, Box } from '@mui/material';
-import Button from '../components/Button';
+import { Button, Container, Typography, Paper, Box } from '@mui/material';
 
 const AcceptInvitation = () => {
   const [invitation, setInvitation] = useState(null);
+  const [organization, setOrganization] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const query = new URLSearchParams(window.location.search);
   const token = query.get('token');
 
   useEffect(() => {
-    const fetchInvitation = async () => {
-      const { data, error } = await supabase
+    const fetchInvitationAndOrganization = async () => {
+      // First fetch the invitation
+      const { data: invitationData, error: invitationError } = await supabase
         .from('invitations')
         .select('*')
         .eq('token', token)
         .eq('status', 'pending')
         .single();
 
-      if (error || !data) {
+      if (invitationError || !invitationData) {
         alert('Invalid or expired invitation.');
         navigate('/');
-      } else {
-        setInvitation(data);
-        setLoading(false);
+        return;
       }
+
+      setInvitation(invitationData);
+
+      // Then fetch the organization details
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', invitationData.organization_id)
+        .single();
+
+      if (orgError) {
+        console.error('Error fetching organization:', orgError);
+      } else {
+        setOrganization(orgData);
+      }
+
+      setLoading(false);
     };
 
-    fetchInvitation();
+    fetchInvitationAndOrganization();
   }, [token, navigate]);
 
   const handleAccept = async () => {
@@ -83,10 +99,8 @@ const AcceptInvitation = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h5">Loading...</Typography>
-        </Paper>
+      <Container>
+        <Typography variant='h5'>Loading...</Typography>
       </Container>
     );
   }
@@ -106,7 +120,7 @@ const AcceptInvitation = () => {
             textAlign: 'center',
             mb: 2
           }}>
-            You've been invited to join {invitation?.organization_name || 'an organization'}!
+            You've been invited to join {organization?.name || 'a group'}!
           </Typography>
           
           <Box sx={{ 
@@ -116,7 +130,7 @@ const AcceptInvitation = () => {
           }}>
             <Button
               type="Submit"
-              size="lg"
+              
               onClick={handleAccept}
             >
               Accept Invitation
@@ -124,7 +138,7 @@ const AcceptInvitation = () => {
             
             <Button
               type="Cancel"
-              size="lg"
+              
               onClick={handleDecline}
             >
               Decline Invitation
