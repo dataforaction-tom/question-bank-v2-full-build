@@ -87,6 +87,9 @@ const TwoColumnLayout = styled('div')({
   },
 });
 
+
+
+
 const QuestionDetail = () => {
   const { id } = useParams();
   const { session } = useAuth();
@@ -798,7 +801,29 @@ const handleGoBack = () => {
                   </div>
                 </>
               )}
+              <div className="flex flex-wrap gap-3 mb-6">
+              {question.who && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-white rounded-full shadow-sm">
+                  <span className="text-white-500">Submitted by:</span>
+                  {question.who}
+                </div>
+              )}
+              
+              {question.who_details && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-white rounded-full shadow-smm">
+                  <span className="text-white-500">Organisation/Group:</span>
+                  {question.who_details}
+                </div>
+              )}
+              {question.role_type && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-white rounded-full shadow-sm">
+                  <span className="text-white-500">Role:</span>
+                  {question.role_type}
+                </div>
+              )}
             </div>
+            </div>
+              
           </div>
 
           {/* Right Column */}
