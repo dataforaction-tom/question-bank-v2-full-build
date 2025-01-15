@@ -103,8 +103,16 @@ const GroupMembers = () => {
 
   const sendInvitationEmail = async (email, token) => {
     const invitationLink = `${window.location.origin}/accept-invitation?token=${token}`;
-    const inviterName = session.user.user_metadata?.name || 'A team member'; // Get inviter's name
-  
+    
+    // Get the current user's name from Supabase
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', session.user.id)
+      .single();
+
+    const inviterName = userData?.name || session.user.email || 'A team member';
+
     try {
       const response = await fetch('/api/send-invitation-email', {
         method: 'POST',
@@ -116,7 +124,7 @@ const GroupMembers = () => {
           invitationLink: invitationLink,
         }),
       });
-  
+
       if (!response.ok) {
         throw new Error('Failed to send invitation email.');
       }
