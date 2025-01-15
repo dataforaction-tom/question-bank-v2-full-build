@@ -19,7 +19,7 @@ const TagManager = React.memo(({ questionId, organizationId, isAdmin = false, mo
       .eq('organization_id', organizationId)
       .order('name');
     if (error) {
-      console.error('Error fetching organization tags:', error);
+      console.error('Error fetching group tags:', error);
     } else {
       setOrganizationTags(data.filter(tag => tag != null));
     }
@@ -148,7 +148,7 @@ const TagManager = React.memo(({ questionId, organizationId, isAdmin = false, mo
 
     return mode === 'manage' ? (
       <>
-        <Typography variant="subtitle1" gutterBottom>Organization Tags</Typography>
+        <Typography variant="subtitle1" gutterBottom>Group Tags</Typography>
         {renderTags(organizationTags)}
         {isAdmin && (
           <div className="mt-4">

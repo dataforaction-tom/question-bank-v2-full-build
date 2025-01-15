@@ -32,7 +32,7 @@ import NotificationSystem from '../components/NotificationSystem';
 const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [organizations, setOrganizations] = useState([]);
-  const [profile, setProfile] = useState({ name: '', bio: '' });
+  const [profile, setProfile] = useState({ name: '', bio: '', ...user?.user_metadata });
   const [loading, setLoading] = useState(true);
   const [followedQuestions, setFollowedQuestions] = useState([]);
   const [endorsedQuestions, setEndorsedQuestions] = useState([]);
@@ -55,26 +55,13 @@ const UserProfile = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      // Get the current user
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (user) {
         setUser(user);
-
-        // Fetch user data from public.users table
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('name, bio')
-          .eq('id', user.id)
-          .single();
-
-        if (userError) {
-          console.error('Error fetching user data:', userError);
-        } else {
-          setProfile(userData);
-        }
+        setProfile(user.user_metadata || { name: '', bio: '' });
 
         // Fetch organizations the user belongs to
         const { data, error } = await supabase
@@ -140,21 +127,25 @@ const UserProfile = () => {
 
   const handleUpdateProfile = async () => {
     setLoading(true);
-    const { error } = await supabase
-      .from('users')
-      .update({
-        name: profile.name,
-        bio: profile.bio,
-      })
-      .eq('id', user.id);
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        data: {
+          ...user.user_metadata,
+          name: profile.name,
+          bio: profile.bio,
+        }
+      });
 
-    if (error) {
+      if (error) throw error;
+
+      setUser({ ...user, user_metadata: data.user.user_metadata });
+      alert('Profile updated successfully!');
+    } catch (error) {
       console.error('Error updating profile:', error);
       alert('Error updating profile: ' + error.message);
-    } else {
-      alert('Profile updated successfully!');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleChangePassword = async () => {

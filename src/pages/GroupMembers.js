@@ -55,24 +55,43 @@ const GroupMembers = () => {
   };
 
   const fetchMembers = async () => {
-    const { data, error } = await supabase
+    // First get organization users
+    const { data: orgUsers, error: orgError } = await supabase
       .from('organization_users')
-      .select(`
-        *,
-        users (
-          id,
-          name,
-          bio
-        )
-      `)
+      .select('*')
       .eq('organization_id', organizationId);
 
-    if (error) {
-      console.error('Error fetching members:', error);
-    } else {
-      setMembers(data);
-      setIsAdmin(data.find(member => member.user_id === session.user.id)?.role === 'admin');
+    if (orgError) {
+      console.error('Error fetching organization users:', orgError);
+      return;
     }
+
+    // Get user profiles using our secure function
+    const { data: profiles, error: profileError } = await supabase
+      .rpc('get_user_profiles', {
+        user_ids: orgUsers.map(member => member.user_id)
+      });
+
+    if (profileError) {
+      console.error('Error fetching user profiles:', profileError);
+      return;
+    }
+
+    // Combine the data
+    const transformedData = orgUsers.map(orgUser => {
+      const profile = profiles.find(p => p.id === orgUser.user_id);
+      return {
+        ...orgUser,
+        users: {
+          id: profile.id,
+          name: profile.name || 'Unknown User',
+          bio: profile.bio
+        }
+      };
+    });
+
+    setMembers(transformedData);
+    setIsAdmin(transformedData.find(member => member.user_id === session.user.id)?.role === 'admin');
   };
 
   const handleInvite = async () => {

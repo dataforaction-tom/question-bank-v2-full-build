@@ -225,7 +225,7 @@ const Sidebar = ({
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Manage Organization Tags</DialogTitle>
+        <DialogTitle>Manage Group Tags</DialogTitle>
         <DialogContent>
           <TagManager 
             organizationId={selectedOrganizationId}

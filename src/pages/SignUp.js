@@ -21,20 +21,28 @@ const SignUp = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
 
   const handleSignUp = async () => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      // Sign up the user with additional metadata
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name
+          }
+        }
+      });
 
-    if (error) {
+      if (signUpError) throw signUpError;
+
+      alert('Sign-up successful! Please check your email to confirm your account.');
+      navigate(redirect);
+    } catch (error) {
       console.error('Error signing up:', error);
       alert('Error signing up: ' + error.message);
-    } else {
-      alert('Sign-up successful! Please check your email to confirm your account.');
-      // Redirect to the desired page after sign-up
-      navigate(redirect);
     }
   };
 
@@ -58,6 +66,13 @@ const SignUp = () => {
         margin='normal'
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+      />
+      <TextField
+        label='Name'
+        fullWidth
+        margin='normal'
+        value={name}
+        onChange={(e) => setName(e.target.value)}
       />
       <Button
         variant='contained'

@@ -1,10 +1,10 @@
 import { loadStripe } from '@stripe/stripe-js';
 
-console.log('Stripe Key:', process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY); // Debug key
+
 
 export const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
-// Debug stripe loading
+
 stripePromise.then(stripe => {
   console.log('Stripe loaded:', !!stripe);
 }).catch(err => {
