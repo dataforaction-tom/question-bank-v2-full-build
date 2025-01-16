@@ -14,6 +14,27 @@ export default async function handler(req, res) {
   try {
     const { userId, priceId, organizationName } = req.body;
 
+    // Validate inputs
+    console.log('Received request with:', {
+      userId,
+      priceId,
+      organizationName
+    });
+
+    if (!userId || !priceId || !organizationName) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        details: {
+          userId: !userId,
+          priceId: !priceId,
+          organizationName: !organizationName
+        }
+      });
+    }
+
+    // Log Stripe key presence (not the actual key)
+    console.log('Stripe key present:', !!process.env.STRIPE_SECRET_KEY);
+
     // Create the checkout session
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -32,9 +53,24 @@ export default async function handler(req, res) {
       cancel_url: `${process.env.REACT_APP_CLIENT_URL}/organization-signup?canceled=true`,
     });
 
+    console.log('Session created successfully:', {
+      sessionId: session.id,
+      metadata: session.metadata
+    });
+
     return res.json({ sessionId: session.id });
   } catch (error) {
-    console.error('Checkout error:', error);
-    return res.status(500).json({ error: 'Failed to create checkout session' });
+    // Enhanced error logging
+    console.error('Checkout session error details:', {
+      message: error.message,
+      type: error.type,
+      stack: error.stack,
+      stripeCode: error.code
+    });
+
+    return res.status(500).json({ 
+      error: 'Failed to create checkout session',
+      details: error.message
+    });
   }
 } 
