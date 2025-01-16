@@ -15,8 +15,6 @@ import {
 } from '@mui/material';
 import { 
   ViewModule as CardsIcon,
-  ViewList as TableIcon,
-  ViewKanban as KanbanIcon,
   Leaderboard as EloIcon,
   Sort as ManualRankIcon,
   Dashboard as OverviewIcon,
@@ -132,9 +130,11 @@ const MobileNav = ({
           display: { xs: 'block', md: 'none' } 
         }} 
         elevation={3}
+        
       >
         <BottomNavigation
           value={viewMode}
+          className="bg-gradient-to-r from-slate-950 to-sky-900 text-white"
           onChange={(event, newValue) => {
             if (newValue === 'more') {
               setIsSpeedDialOpen(true);
@@ -150,6 +150,12 @@ const MobileNav = ({
               label={action.label}
               value={action.value}
               icon={action.icon}
+              sx={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                '&.Mui-selected': {
+                  color: 'white'
+                }
+              }}
             />
           ))}
         </BottomNavigation>
@@ -162,20 +168,31 @@ const MobileNav = ({
           position: 'fixed', 
           bottom: 80, 
           right: 16,
-          display: { xs: 'flex', md: 'none' }
+          display: { xs: 'flex', md: 'none' },
+          '& .MuiFab-primary': { // Main speed dial button
+            background: 'linear-gradient(to right, rgb(15, 23, 42), rgb(3, 105, 161))'
+          }
         }}
-        icon={<SpeedDialIcon />}
+        icon={<SpeedDialIcon className="text-white" />}
         onClose={() => setIsSpeedDialOpen(false)}
         onOpen={() => setIsSpeedDialOpen(true)}
         open={isSpeedDialOpen}
         direction="up"
+        classes={{
+          actions: 'space-y-2'
+        }}
       >
         {allSpeedDialActions.map((action) => (
           <SpeedDialAction
             key={action.name}
-            icon={action.icon}
-            tooltipTitle={action.name}
+            icon={<div className="text-slate-900">{action.icon}</div>}
+            tooltipTitle={
+              <div className="px-4 py-2 text-sm font-medium whitespace-nowrap bg-slate-900 text-white rounded shadow-lg">
+                {action.name}
+              </div>
+            }
             tooltipOpen
+            className="!bg-white hover:!bg-gray-50"
             onClick={() => {
               action.onClick();
               setIsSpeedDialOpen(false);

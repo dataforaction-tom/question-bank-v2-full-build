@@ -1193,11 +1193,13 @@ const handleKeyDown = (event) => {
                   )}
                   
                   <Divider style={{ margin: '2rem 0', backgroundColor: '#075985' }} />
-                  <Typography variant='h5' style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }}>
+                  
+                  {showPublicQuestions && (
+                    
+                    <>
+                    <Typography variant='h5' style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }}>
                     Public Questions
                   </Typography>
-                  {showPublicQuestions && (
-                    <>
                       {publicQuestionsLoading ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
                           <CircularProgress />
