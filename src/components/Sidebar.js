@@ -225,11 +225,11 @@ const Sidebar = ({
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Manage Group Tags</DialogTitle>
+        <DialogTitle className="text-2xl text-white font-bold text-center bg-gradient-to-r from-slate-950 to-sky-900">Manage Group Tags</DialogTitle>
         <DialogContent>
           <TagManager 
             organizationId={selectedOrganizationId}
-            isAdmin={isAdmin}
+            isAdmin={isAdmin} 
             mode="manage"
           />
         </DialogContent>

@@ -42,6 +42,7 @@ import Paper from '@mui/material/Paper';
 import Button from '../components/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Papa from 'papaparse';
+import MobileNav from '../components/MobileNav';
 
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
@@ -615,10 +616,22 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
     const displayQuestions = isOrganizationQuestion ? sortedQuestions : questions;
-    
-  
+    const isMobile = window.innerWidth < 768;
+
     switch (viewMode) {
       case 'table':
+      case 'kanban':
+        if (isMobile) {
+          return (
+            <div className="text-center p-4">
+              <h2 className="text-xl font-semibold mb-2">Desktop View Only</h2>
+              <p className="text-gray-600">
+                This view is optimized for desktop devices. 
+                Please switch to cards view for the best mobile experience.
+              </p>
+            </div>
+          );
+        }
         return (
           <>
             <div className="flex justify-end mb-4">
@@ -651,79 +664,86 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
         return (
           <>
             {isOrganizationQuestion && (
-               <div className="flex justify-between mb-4">
-              <div className="flex gap-4 mb-4">
-                <TextField
-                  select
-                  label="Filter by Category"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  variant="outlined"
-                  size="small"
-                  sx={{ minWidth: 200 }}
-                >
-                  <MenuItem value="">All Categories</MenuItem>
-                  {[...new Set(displayQuestions.map(q => q.category))].filter(Boolean).map((category) => (
-                    <MenuItem key={category} value={category}>
-                      {category}
-                    </MenuItem>
-                  ))}
-                </TextField>
+              <div className="mb-4 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <TextField
+                    select
+                    label="Filter by Category"
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    sx={{ minWidth: { sm: 200 } }}
+                  >
+                    <MenuItem value="">All Categories</MenuItem>
+                    {[...new Set(displayQuestions.map(q => q.category))].filter(Boolean).map((category) => (
+                      <MenuItem key={category} value={category}>
+                        {category}
+                      </MenuItem>
+                    ))}
+                  </TextField>
 
-                <TextField
-                  select
-                  label="Filter by Status"
-                  value={kanbanFilter}
-                  onChange={(e) => setKanbanFilter(e.target.value)}
-                  variant="outlined"
-                  size="small"
-                  sx={{ minWidth: 200 }}
-                >
-                  <MenuItem value="">All Statuses</MenuItem>
-                  {KANBAN_STATUSES.map((status) => (
-                    <MenuItem key={status} value={status}>
-                      {status}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  <TextField
+                    select
+                    label="Filter by Status"
+                    value={kanbanFilter}
+                    onChange={(e) => setKanbanFilter(e.target.value)}
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    sx={{ minWidth: { sm: 200 } }}
+                  >
+                    <MenuItem value="">All Statuses</MenuItem>
+                    {KANBAN_STATUSES.map((status) => (
+                      <MenuItem key={status} value={status}>
+                        {status}
+                      </MenuItem>
+                    ))}
+                  </TextField>
 
-                <TextField
-                  select
-                  label="Filter by Tag"
-                  value={tagFilter}
-                  onChange={(e) => setTagFilter(e.target.value)}
-                  variant="outlined"
-                  size="small"
-                  sx={{ minWidth: 200 }}
-                >
-                  <MenuItem value="">All Tags</MenuItem>
-                  {[...new Set(displayQuestions
-                    .flatMap(q => {
-                      // Ensure question has tags and they are an array
-                      if (!q.tags || !Array.isArray(q.tags)) return [];
-                      // Filter out null tags and map to names
-                      return q.tags
-                        .filter(tag => tag && typeof tag === 'object' && tag.name)
-                        .map(tag => tag.name);
-                    })
-                    .filter(Boolean) // Remove any null/undefined values
-                  )].map((tagName) => (
-                    <MenuItem key={tagName} value={tagName}>
-                      {tagName}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  <TextField
+                    select
+                    label="Filter by Tag"
+                    value={tagFilter}
+                    onChange={(e) => setTagFilter(e.target.value)}
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    sx={{ minWidth: { sm: 200 } }}
+                  >
+                    <MenuItem value="">All Tags</MenuItem>
+                    {[...new Set(displayQuestions
+                      .flatMap(q => {
+                        // Ensure question has tags and they are an array
+                        if (!q.tags || !Array.isArray(q.tags)) return [];
+                        // Filter out null tags and map to names
+                        return q.tags
+                          .filter(tag => tag && typeof tag === 'object' && tag.name)
+                          .map(tag => tag.name);
+                      })
+                      .filter(Boolean) // Remove any null/undefined values
+                    )].map((tagName) => (
+                      <MenuItem key={tagName} value={tagName}>
+                        {tagName}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button 
+                    type="button"
+                    onClick={exportToCSV}
+                    className="w-full sm:w-auto"
+                  >
+                    Export CSV
+                  </Button>
+                </div>
               </div>
-              <Button 
-                type="button"
-                onClick={exportToCSV}
-                className="p-2"
-              >
-                Export CSV
-              </Button>
-            </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2 sm:px-0">
               {displayQuestions
                 .filter(question => {
                   const matchesCategory = !categoryFilter || question.category === categoryFilter;
@@ -733,13 +753,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
                 })
                 .map(question => (
                   <QuestionCard 
-                    key={question.id} 
-                    question={{
-                      ...question,
-                      endorsements_count: question.endorsements_count || 0,
-                      followers_count: question.followers_count || 0,
-                      responses_count: question.responses_count || 0
-                    }}
+                    key={question.id}
+                    question={question}
                     onClick={() => handleQuestionClick(question.id)}
                     onAddToOrganization={isAdmin && !isOrganizationQuestion ? () => handleAddToOrganization(question.id) : null}
                     onRemoveFromOrganization={isAdmin && isOrganizationQuestion && !question.is_direct ? () => handleRemoveFromOrganization(question.id) : null}
@@ -756,13 +771,6 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
             </div>
           </>
         );
-        case 'kanban':
-          return <OrganizationKanban 
-            organizationId={currentOrganization.id}
-            questions={questions}
-            setQuestions={setQuestions}
-            tags={tags || []}  // Add default empty array
-          />;
         case 'elo-ranking':
           return <OrganizationELORanking organizationId={currentOrganization.id} />;
         case 'manual-ranking':
@@ -1027,22 +1035,30 @@ const handleKeyDown = (event) => {
   return (
     <div className="flex">
       <Toaster position="top-right" />
-      <Sidebar 
-        sidebarOpen={sidebarOpen}
-        toggleSidebar={toggleSidebar}
-        sortBy={sortBy}
-        toggleSortBy={toggleSortBy}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        selectedOrganizationId={currentOrganization?.id}
-        onManageTags={handleManageTags} // Add this prop
-        isAdmin={isAdmin}
-        currentOrganization={currentOrganization}
-        onTogglePublicQuestions={handleTogglePublicQuestions}
-        showPublicQuestions={showPublicQuestions}
-      />
+      
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block">
+        <Sidebar 
+          sidebarOpen={sidebarOpen}
+          toggleSidebar={toggleSidebar}
+          sortBy={sortBy}
+          toggleSortBy={toggleSortBy}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          selectedOrganizationId={currentOrganization?.id}
+          onManageTags={handleManageTags} // Add this prop
+          isAdmin={isAdmin}
+          currentOrganization={currentOrganization}
+          onTogglePublicQuestions={handleTogglePublicQuestions}
+          showPublicQuestions={showPublicQuestions}
+        />
+      </div>
+
       {/* Main Content */}
-      <div className={`flex-grow transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'} p-8`}>
+      <div className={`flex-grow transition-all duration-300 
+        ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'} 
+        p-4 md:p-8 pb-24 md:pb-8`}
+      >
         <Container maxWidth="xl">
           <OrganizationSelectorModal
             open={showOrgSelector}
@@ -1332,6 +1348,19 @@ const handleKeyDown = (event) => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Navigation */}
+      <MobileNav 
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        sortBy={sortBy}
+        toggleSortBy={toggleSortBy}
+        onTogglePublicQuestions={handleTogglePublicQuestions}
+        showPublicQuestions={showPublicQuestions}
+        selectedOrganizationId={currentOrganization?.id}
+        isAdmin={isAdmin}
+        currentOrganization={currentOrganization}
+      />
     </div>
   );
 };

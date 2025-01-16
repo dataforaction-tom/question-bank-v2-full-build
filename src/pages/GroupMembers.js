@@ -298,75 +298,105 @@ const GroupMembers = () => {
         </Box>
 
         {/* Members List Section */}
-        <Paper variant="outlined" sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-            Group Members
-          </Typography>
-          <List>
-            {members.map((member) => (
-              <ListItem
-                key={member.id}
-                sx={{
-                  backgroundColor: 'background.paper',
-                  mb: 1,
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
+        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, mb: 4 }}>
+  <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+    Group Members
+  </Typography>
+  <List>
+    {members.map((member) => (
+      <ListItem
+        key={member.id}
+        sx={{
+          backgroundColor: 'background.paper',
+          mb: 1,
+          borderRadius: 1,
+          border: '1px solid',
+          borderColor: 'divider',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          p: { xs: 2, sm: 3 }
+        }}
+        secondaryAction={
+          isAdmin && member.user_id !== session.user.id && (
+            <Box sx={{ 
+              display: 'flex',
+              mt: { xs: 2, sm: 0 },
+              width: { xs: '100%', sm: 'auto' },
+              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+              alignItems: 'center',
+              gap: 1
+            }}>
+              <FormControl 
+                variant='outlined' 
+                size='small' 
+                sx={{ 
+                  minWidth: { xs: '50%', sm: 120 },
+                  flexGrow: { xs: 1, sm: 0 }
                 }}
-                secondaryAction={
-                  isAdmin && member.user_id !== session.user.id && (
-                    <>
-                      <FormControl variant='outlined' size='small' style={{ minWidth: 120, marginRight: '1rem' }}>
-                        <InputLabel>Role</InputLabel>
-                        <Select
-                          value={member.role}
-                          onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                          label='Role'
-                          disabled={members.filter(m => m.role === 'admin').length === 1 && member.role === 'admin' || member.user_id === organization?.created_by}
-                        >
-                          <MenuItem value='member'>Member</MenuItem>
-                          <MenuItem value='admin'>Admin</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <IconButton 
-                        edge="end" 
-                        aria-label="delete" 
-                        onClick={() => setMemberToRemove(member)}
-                        color="error"
-                        disabled={member.user_id === organization?.created_by}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </>
-                  )
-                }
               >
-                <ListItemText
-                  primary={
-                    <Typography variant="subtitle1" fontWeight="medium">
-                      {member.users?.name || 'Unknown User'}
-                    </Typography>
-                  }
-                  secondary={
-                    <Box sx={{ mt: 0.5 }}>
-                      <Typography component="span" variant="body2" color="text.primary">
-                        Role: {member.role}
-                      </Typography>
-                      {member.users?.bio && (
-                        <>
-                          {' - '}
-                          <Typography component="span" variant="body2" color="text.secondary">
-                            {member.users.bio}
-                          </Typography>
-                        </>
-                      )}
-                    </Box>
-                  }
-                />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={member.role}
+                  onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                  label='Role'
+                  disabled={members.filter(m => m.role === 'admin').length === 1 && member.role === 'admin' || member.user_id === organization?.created_by}
+                >
+                  <MenuItem value='member'>Member</MenuItem>
+                  <MenuItem value='admin'>Admin</MenuItem>
+                </Select>
+              </FormControl>
+              <IconButton 
+                edge="end" 
+                aria-label="delete" 
+                onClick={() => setMemberToRemove(member)}
+                color="error"
+                disabled={member.user_id === organization?.created_by}
+                sx={{ ml: { xs: 0, sm: 1 } }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          )
+        }
+      >
+        <ListItemText
+          sx={{ 
+            width: '100%',
+            mb: { xs: isAdmin ? 1 : 0, sm: 0 }
+          }}
+          primary={
+            <Typography variant="subtitle1" fontWeight="medium">
+              {member.users?.name || 'Unknown User'}
+            </Typography>
+          }
+          secondary={
+            <Box sx={{ mt: 0.5 }}>
+              <Typography component="span" variant="body2" color="text.primary">
+                Role: {member.role}
+              </Typography>
+              {member.users?.bio && (
+                <>
+                  {' - '}
+                  <Typography 
+                    component="span" 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ 
+                      display: { xs: 'block', sm: 'inline' },
+                      mt: { xs: 0.5, sm: 0 }
+                    }}
+                  >
+                    {member.users.bio}
+                  </Typography>
+                </>
+              )}
+            </Box>
+          }
+        />
+      </ListItem>
+    ))}
+  </List>
+</Paper>
 
         {/* Invite Section */}
         {isAdmin && (

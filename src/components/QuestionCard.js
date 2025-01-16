@@ -140,14 +140,13 @@ const QuestionCard = ({
     <div 
       onClick={onClick}
       onKeyDown={handleKeyDown}
-      className="flex flex-col h-full rounded-xl overflow-hidden shadow-lg cursor-pointer hover:bg-zinc-50 transition duration-300"
+      className="flex flex-col h-full rounded-xl overflow-hidden shadow-lg cursor-pointer hover:bg-zinc-50 transition duration-300 w-full"
       tabIndex={0}
       role="button"
       aria-label={`Question: ${question.content}`}
     >
-      <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white pl-4 p-1 flex justify-between items-center rounded-t-xl">
-        
-        <div className="flex gap-2 pr-4">
+      <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-sm md:text-lg text-white p-2 flex flex-wrap gap-2 rounded-t-xl">
+        <div className="flex flex-wrap gap-2 w-full">
           <ColorTag category={question.category} />
           <ColorTag category={question.is_open ? 'Public' : 'Private'} />
           {question.kanban_status && (
@@ -156,12 +155,7 @@ const QuestionCard = ({
                 status={question.kanban_status} 
                 onClick={handleStatusClick}
                 tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleStatusClick(e);
-                  }
-                }}
+                className="text-sm"
               >
                 {question.kanban_status}
               </StatusChip>
@@ -171,12 +165,12 @@ const QuestionCard = ({
       </div>
 
       
-      <div className="font-semibold text-xl text-slate-900 p-4 flex-grow">
+      <div className="font-semibold text-base md:text-xl text-slate-900 p-3 md:p-4 flex-grow break-words">
         {question.content}
       </div>
       
-      <div className="px-4 py-2">
-        <div className="flex justify-between items-center mt-4">
+      <div className="p-2 md:px-4 md:py-2">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div className="flex space-x-4">
             <span className="flex items-center">
               <FaThumbsUp className="mr-1 text-blue-600" />
@@ -191,7 +185,8 @@ const QuestionCard = ({
               {question.responses_count || 0}
             </span>
           </div>
-          <div className="flex justify-between items-center">
+          
+          <div className="flex flex-wrap gap-2">
             {onAddToOrganization && (
               <Button 
                 type="Action"
@@ -199,7 +194,7 @@ const QuestionCard = ({
                   e.stopPropagation();
                   onAddToOrganization(question.id);
                 }}
-                className="mr-2 mt-4"
+                className="text-sm w-full sm:w-auto"
                 size="sm"
               >
                 Add to Org
@@ -212,7 +207,7 @@ const QuestionCard = ({
                   e.stopPropagation();
                   onRemoveFromOrganization(question.id);
                 }}
-                className="mr-2 mt-4"
+                className="text-sm w-full sm:w-auto"
                 size="sm"
               >
                 Remove
@@ -228,7 +223,7 @@ const QuestionCard = ({
                   }
                 }}
                 size="sm"
-                className="mr-2 mt-4"
+                className="text-sm w-full sm:w-auto"
               >
                 Delete
               </Button>
@@ -240,7 +235,7 @@ const QuestionCard = ({
                   e.stopPropagation();
                   onMakeQuestionOpen(question.id);
                 }}
-                className="mr-2 mt-4"
+                className="text-sm w-full sm:w-auto"
                 size="sm"
               >
                 Make Public
