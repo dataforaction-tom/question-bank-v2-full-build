@@ -13,31 +13,20 @@ export default async function handler(req, res) {
     return;
   }
 
-  console.log('Received checkout request:', req.body);
+  console.log('Received checkout request:', req.body); // Debug request
 
   try {
     const { userId, priceId, organizationName } = req.body;
 
-    // Get user email from Supabase
-    const { data: userData, error: userError } = await supabaseServer
-      .from('users')
-      .select('email')
-      .eq('id', userId)
-      .single();
-
-    if (userError) throw userError;
-
-    console.log('Creating checkout session with:', {
+    console.log('Creating checkout session with:', { // Debug params
       userId,
       priceId,
-      organizationName,
-      userEmail: userData.email
+      organizationName
     });
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
-      customer_creation: 'always', // Always create a new customer
       line_items: [
         {
           price: priceId,
@@ -48,23 +37,11 @@ export default async function handler(req, res) {
         userId,
         organizationName,
       },
-      subscription_data: {
-        metadata: {
-          userId,
-          organizationName,
-        },
-      },
-      customer_email: userData.email, // Pre-fill customer email
       success_url: `${process.env.CLIENT_URL}/organization-signup?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/organization-signup?canceled=true`,
     });
 
-    console.log('Created session:', {
-      sessionId: session.id,
-      customerId: session.customer,
-      subscriptionId: session.subscription
-    });
-
+    console.log('Created session:', session.id); // Debug session
     res.json({ sessionId: session.id });
   } catch (error) {
     console.error('Checkout error:', error);

@@ -47,45 +47,33 @@ const OrganizationSignUp = () => {
       if (sessionId) {
         setLoading(true);
         try {
-          console.log('Checking session:', sessionId);
+          console.log('Checking session:', sessionId); // Debug session check
           const { data: session } = await retrieveSession(sessionId);
-          console.log('Session data:', session);
+          console.log('Session data:', session); // Debug session data
 
           if (session.payment_status === 'paid') {
-            // Increase polling attempts and duration
+            // Poll for organization creation
             let attempts = 0;
-            const maxAttempts = 10; // Increase from 5 to 10
-            
             const checkOrganization = async () => {
-              console.log(`Checking for group... Attempt ${attempts + 1}`);
+              console.log('Checking for group...'); // Debug org check
               const { data: { user } } = await supabase.auth.getUser();
-              
-              // Check both organizations and organization_users tables
-              const { data: orgs, error } = await supabase
+              const { data: org, error } = await supabase
                 .from('organizations')
-                .select(`
-                  *,
-                  organization_users!inner(*)
-                `)
+                .select('*')
                 .eq('created_by', user.id)
-                .eq('organization_users.user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(1);
+                .eq('name', organizationName)
+                .single();
 
-              if (orgs && orgs.length > 0) {
-                console.log('Group found:', orgs[0]);
+              if (org) {
+                console.log('Group found:', org); // Debug org found
                 setSuccess(true);
                 setActiveStep(2);
-                // Navigate to dashboard with the new organization
-                navigate('/organization-dashboard', { 
-                  state: { organizationId: orgs[0].id }
-                });
                 return;
               }
 
-              if (attempts < maxAttempts) {
+              if (attempts < 5) {
                 attempts++;
-                setTimeout(checkOrganization, 3000); // Increase to 3 seconds
+                setTimeout(checkOrganization, 2000); // Check every 2 seconds
               } else {
                 throw new Error('Group creation timeout');
               }
