@@ -51,6 +51,8 @@ const SubmitQuestion = () => {
   const [userOrganizations, setUserOrganizations] = useState([]);
   const [selectedOrganization, setSelectedOrganization] = useState('');
 
+  const hasOrganizations = userOrganizations.length > 0;
+
   useEffect(() => {
     console.log('similarQuestions updated:', similarQuestions);
   }, [similarQuestions]);
@@ -432,18 +434,32 @@ const SubmitQuestion = () => {
               </div>
               <List>
                 {[
-                  'Be specific and clear in your question',
-                  'Provide context where necessary',
+                  'Public questions should have a social purpose',
+                  'Public questions are visible to all users',
                   'Focus on actionable outcomes',
-                  'Consider privacy implications',
-                  'Review similar questions first'
+                  'We reserve the right to remove any questions that are not in line with our guidelines',
+                  'You will be presented with similar questions to your question on submission'
                 ].map((text, index) => (
-                  <ListItem key={index} sx={{ py: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 30 }}>
-                      <CircleIcon sx={{ fontSize: 8 }} />
-                    </ListItemIcon>
-                    {text}
-                  </ListItem>
+                  <ListItem
+                key={index}
+                sx={{
+                  py: 0,
+                  alignItems: 'flex-start', 
+                  gap: 1 
+                }}
+              >
+                <ListItemIcon 
+                  sx={{ 
+                    minWidth: 'auto', 
+                    mt: 1.5, 
+                    display: 'flex',
+                    alignItems: 'flex-start'
+                  }}
+                >
+                  <CircleIcon sx={{ fontSize: 8 }} />
+                </ListItemIcon>
+                {text}
+              </ListItem>
                 ))}
               </List>
             </CardContent>
@@ -461,15 +477,31 @@ const SubmitQuestion = () => {
                 {[
                   'Public questions are visible to all users',
                   'Private questions stay within your group',
-                  'Similar questions will be suggested',
-                  'You can endorse existing questions'
+                  'Private groups are a paid feature',
+                  'You may choose to make private questions public at any time',
+                  'Once a question is made public, it will be visible to all users and you will not be able to make it private again'
+                  
                 ].map((text, index) => (
-                  <ListItem key={index} sx={{ py: 0 }}>
-                    <ListItemIcon sx={{ minWidth: 30 }}>
-                      <CircleIcon sx={{ fontSize: 8 }} />
-                    </ListItemIcon>
-                    {text}
-                  </ListItem>
+                <ListItem
+                key={index}
+                sx={{
+                  py: 0,
+                  alignItems: 'flex-start',
+                  gap: 1 
+                }}
+              >
+                <ListItemIcon 
+                  sx={{ 
+                    minWidth: 'auto', 
+                    mt: 1.5, 
+                    display: 'flex',
+                    alignItems: 'flex-start'
+                  }}
+                >
+                  <CircleIcon sx={{ fontSize: 8 }} />
+                </ListItemIcon>
+                {text}
+              </ListItem>
                 ))}
               </List>
             </CardContent>
@@ -486,7 +518,14 @@ const SubmitQuestion = () => {
         </div>
 
         <Formik
-          initialValues={{ content: '', answer: '', is_open: true, organization_id: '', who: '', role_type: '' }}
+          initialValues={{ 
+            content: '', 
+            answer: '', 
+            is_open: !hasOrganizations || true, // Default to true if no orgs
+            organization_id: '', 
+            who: '', 
+            role_type: '' 
+          }}
           validationSchema={QuestionSchema}
           onSubmit={handleSubmit}
         >
@@ -500,6 +539,28 @@ const SubmitQuestion = () => {
             setFieldValue,
           }) => (
             <Form>
+              {hasOrganizations && (
+                  <TextField
+                    select
+                    label="Question Visibility"
+                    name="is_open"
+                    value={values.is_open ? 'public' : 'private'}
+                    onChange={(e) => {
+                      const isPublic = e.target.value === 'public';
+                      setFieldValue('is_open', isPublic);
+                      if (!isPublic && userOrganizations.length > 0) {
+                        setFieldValue('organization_id', userOrganizations[0].id);
+                      } else {
+                        setFieldValue('organization_id', '');
+                      }
+                    }}
+                    fullWidth
+                    margin="normal"
+                  >
+                    <MenuItem value="public">Public</MenuItem>
+                    <MenuItem value="private">Private Group</MenuItem>
+                  </TextField>
+                )}
               <Box sx={{ mt: 2 }}>
                 <TextField
                   label="Your Question"
@@ -514,6 +575,8 @@ const SubmitQuestion = () => {
                   error={touched.content && Boolean(errors.content)}
                   helperText={touched.content && errors.content}
                 />
+
+
                 <TextField
                   label="Answering this question means you will be able to do what?"
                   name="answer"
@@ -601,30 +664,12 @@ const SubmitQuestion = () => {
   )}
 />
                 
-                <Box sx={{ mt: 2, mb: 2 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        name="is_open"
-                        checked={values.is_open}
-                        onChange={(e) => {
-                          handleChange(e);
-                          if (!e.target.checked && userOrganizations.length > 0) {
-                            setFieldValue('organization_id', userOrganizations[0].id);
-                          } else {
-                            setFieldValue('organization_id', '');
-                          }
-                        }}
-                      />
-                    }
-                    label="Make this question public"
-                  />
-                </Box>
+                
 
-                {!values.is_open && (
+                {!values.is_open && hasOrganizations && (
                   <TextField
                     select
-                    label="Select Organization"
+                    label="Select Group"
                     name="organization_id"
                     value={values.organization_id}
                     onChange={handleChange}
