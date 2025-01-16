@@ -54,6 +54,16 @@ const MobileNav = ({
     }
   }, [viewMode, setViewMode]);
 
+  // Add debug logging
+  useEffect(() => {
+    console.log('MobileNav Debug Info:', {
+      isAdmin,
+      currentOrganization,
+      selectedOrganizationId,
+      isTagManagerOpen
+    });
+  }, [isAdmin, currentOrganization, selectedOrganizationId, isTagManagerOpen]);
+
   // Primary navigation actions
   const primaryActions = [
     { label: 'Overview', value: 'overview', icon: <OverviewIcon /> },
@@ -90,8 +100,28 @@ const MobileNav = ({
     {
       icon: <TagIcon />,
       name: 'Manage Tags',
-      onClick: () => setIsTagManagerOpen(true),
-      adminOnly: true
+      onClick: () => {
+        console.log('Tag management attempt:', {
+          isAdmin,
+          currentOrganization,
+          selectedOrganizationId
+        });
+        
+        if (!isAdmin) {
+          console.log('Tag management blocked: User is not admin');
+          return;
+        }
+        
+        if (!currentOrganization) {
+          console.log('Tag management blocked: No current organization');
+          return;
+        }
+        
+        console.log('Opening tag manager modal');
+        setIsTagManagerOpen(true);
+      },
+      adminOnly: true,
+      disabled: !selectedOrganizationId || !isAdmin || !currentOrganization
     },
     {
       icon: <BillingIcon />,
@@ -99,13 +129,15 @@ const MobileNav = ({
       onClick: () => {
         // Handle billing portal navigation
       },
-      adminOnly: true
+      adminOnly: true,
+      disabled: !selectedOrganizationId || !isAdmin
     },
     {
       icon: <PeopleIcon />,
       name: 'Manage Members',
       onClick: () => navigate(`/group-members/${selectedOrganizationId}`),
-      adminOnly: false
+      adminOnly: false,
+      disabled: !selectedOrganizationId
     }
   ];
 
@@ -185,17 +217,19 @@ const MobileNav = ({
         {allSpeedDialActions.map((action) => (
           <SpeedDialAction
             key={action.name}
-            icon={<div className="text-slate-900">{action.icon}</div>}
+            icon={<div className={`text-slate-900 ${action.disabled ? 'opacity-50' : ''}`}>{action.icon}</div>}
             tooltipTitle={
               <div className="px-4 py-2 text-sm font-medium whitespace-nowrap bg-slate-900 text-white rounded shadow-lg">
                 {action.name}
               </div>
             }
             tooltipOpen
-            className="!bg-white hover:!bg-gray-50"
+            className={`!bg-white hover:!bg-gray-50 ${action.disabled ? '!cursor-not-allowed' : ''}`}
             onClick={() => {
-              action.onClick();
-              setIsSpeedDialOpen(false);
+              if (!action.disabled) {
+                action.onClick();
+                setIsSpeedDialOpen(false);
+              }
             }}
           />
         ))}
