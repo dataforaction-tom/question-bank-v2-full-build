@@ -38,18 +38,16 @@ export default async function handler(req, res) {
 
         if (existingOrg) {
           console.log('Group already exists:', existingOrg);
-          return res.json({ 
-            received: true, 
-            message: 'Group already processed' 
-          });
+          return res.json({ received: true, message: 'Group already processed' });
         }
 
+        // Add logging to debug metadata
+        console.log('Session metadata:', session.metadata);
+        
         // Validate required metadata
         if (!session.metadata?.organizationName || !session.metadata?.userId) {
           console.error('Missing required metadata:', session.metadata);
-          return res.status(400).json({ 
-            error: 'Missing required metadata' 
-          });
+          return res.status(400).json({ error: 'Missing required metadata' });
         }
 
         const organizationData = {
@@ -60,14 +58,22 @@ export default async function handler(req, res) {
           stripe_customer_id: session.customer
         };
 
-        // Create organization and admin user
+        // Add logging for organization creation
+        console.log('Creating organization:', organizationData);
+
+        // Create organization and admin user in a transaction
         const { data: org, error: orgError } = await supabaseServer
           .from('organizations')
           .insert([organizationData])
           .select()
           .single();
 
-        if (orgError) throw orgError;
+        if (orgError) {
+          console.error('Organization creation error:', orgError);
+          throw orgError;
+        }
+
+        console.log('Organization created:', org);
 
         const { error: userError } = await supabaseServer
           .from('organization_users')
@@ -77,7 +83,12 @@ export default async function handler(req, res) {
             role: 'admin'
           }]);
 
-        if (userError) throw userError;
+        if (userError) {
+          console.error('User association error:', userError);
+          throw userError;
+        }
+
+        console.log('User associated with organization');
         break;
       }
 
