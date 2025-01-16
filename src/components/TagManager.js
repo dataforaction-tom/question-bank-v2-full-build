@@ -148,7 +148,7 @@ const TagManager = React.memo(({ questionId, organizationId, isAdmin = false, mo
 
     return mode === 'manage' ? (
       <>
-        <Typography variant="subtitle1" gutterBottom>Group Tags</Typography>
+        <Typography variant="h6" gutterBottom className="font-bold text-black text-2xl">Current Group Tags:-</Typography>
         {renderTags(organizationTags)}
         {isAdmin && (
           <div className="mt-4">
