@@ -8,22 +8,13 @@ const supabaseServer = createClient(supabaseUrl, supabaseServiceKey);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    res.status(405).end('Method Not Allowed');
-    return;
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-
-  console.log('Received checkout request:', req.body); // Debug request
 
   try {
     const { userId, priceId, organizationName } = req.body;
 
-    console.log('Creating checkout session with:', { // Debug params
-      userId,
-      priceId,
-      organizationName
-    });
-
+    // Create the checkout session
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -37,17 +28,13 @@ export default async function handler(req, res) {
         userId,
         organizationName,
       },
-      success_url: `${process.env.CLIENT_URL}/organization-signup?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/organization-signup?canceled=true`,
+      success_url: `${process.env.REACT_APP_CLIENT_URL}/organization-signup?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.REACT_APP_CLIENT_URL}/organization-signup?canceled=true`,
     });
 
-    console.log('Created session:', session.id); // Debug session
-    res.json({ sessionId: session.id });
+    return res.json({ sessionId: session.id });
   } catch (error) {
     console.error('Checkout error:', error);
-    res.status(500).json({ 
-      error: 'Failed to create checkout session',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return res.status(500).json({ error: 'Failed to create checkout session' });
   }
 } 

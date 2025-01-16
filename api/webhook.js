@@ -29,18 +29,6 @@ export default async function handler(req, res) {
       case 'checkout.session.completed': {
         const session = event.data.object;
         
-        // First, check if a group with this stripe_customer_id already exists
-        const { data: existingOrg } = await supabaseServer
-          .from('organizations')
-          .select()
-          .eq('stripe_customer_id', session.customer)
-          .single();
-
-        if (existingOrg) {
-          console.log('Group already exists:', existingOrg);
-          return res.json({ received: true, message: 'Group already processed' });
-        }
-
         // Add logging to debug metadata
         console.log('Session metadata:', session.metadata);
         
@@ -50,21 +38,15 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Missing required metadata' });
         }
 
-        const organizationData = {
-          name: session.metadata.organizationName,
-          created_by: session.metadata.userId,
-          subscription_status: 'active',
-          stripe_subscription_id: session.subscription,
-          stripe_customer_id: session.customer
-        };
-
-        // Add logging for organization creation
-        console.log('Creating organization:', organizationData);
-
-        // Create organization and admin user in a transaction
+        // 1. Create the organization
         const { data: org, error: orgError } = await supabaseServer
           .from('organizations')
-          .insert([organizationData])
+          .insert([{
+            name: session.metadata.organizationName,
+            created_by: session.metadata.userId,
+            subscription_status: 'active',
+            stripe_customer_id: session.customer
+          }])
           .select()
           .single();
 
@@ -73,8 +55,7 @@ export default async function handler(req, res) {
           throw orgError;
         }
 
-        console.log('Organization created:', org);
-
+        // 2. Add the user as an admin
         const { error: userError } = await supabaseServer
           .from('organization_users')
           .insert([{
@@ -88,7 +69,7 @@ export default async function handler(req, res) {
           throw userError;
         }
 
-        console.log('User associated with organization');
+        return res.json({ received: true });
         break;
       }
 
