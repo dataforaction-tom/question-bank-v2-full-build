@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BottomNavigation, 
@@ -27,7 +27,6 @@ import {
 } from '@mui/icons-material';
 import TagManager from './TagManager';
 import BillingPortal from './BillingPortal';
-import { Snackbar, Alert } from '@mui/material';
 
 
 const MobileNav = ({ 
@@ -44,25 +43,6 @@ const MobileNav = ({
   const navigate = useNavigate();
   const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
-  const [showUnsupportedMessage, setShowUnsupportedMessage] = useState(false);
-
-   // Check and redirect if on unsupported view
-   useEffect(() => {
-    if (['table', 'kanban'].includes(viewMode)) {
-      setViewMode('cards');
-      setShowUnsupportedMessage(true);
-    }
-  }, [viewMode, setViewMode]);
-
-  // Add debug logging
-  useEffect(() => {
-    console.log('MobileNav Debug Info:', {
-      isAdmin,
-      currentOrganization,
-      selectedOrganizationId,
-      isTagManagerOpen
-    });
-  }, [isAdmin, currentOrganization, selectedOrganizationId, isTagManagerOpen]);
 
   // Primary navigation actions
   const primaryActions = [
@@ -100,28 +80,8 @@ const MobileNav = ({
     {
       icon: <TagIcon />,
       name: 'Manage Tags',
-      onClick: () => {
-        console.log('Tag management attempt:', {
-          isAdmin,
-          currentOrganization,
-          selectedOrganizationId
-        });
-        
-        if (!isAdmin) {
-          console.log('Tag management blocked: User is not admin');
-          return;
-        }
-        
-        if (!currentOrganization) {
-          console.log('Tag management blocked: No current organization');
-          return;
-        }
-        
-        console.log('Opening tag manager modal');
-        setIsTagManagerOpen(true);
-      },
-      adminOnly: true,
-      disabled: !selectedOrganizationId || !isAdmin || !currentOrganization
+      onClick: () => setIsTagManagerOpen(true),
+      adminOnly: true
     },
     {
       icon: <BillingIcon />,
@@ -129,15 +89,13 @@ const MobileNav = ({
       onClick: () => {
         // Handle billing portal navigation
       },
-      adminOnly: true,
-      disabled: !selectedOrganizationId || !isAdmin
+      adminOnly: true
     },
     {
       icon: <PeopleIcon />,
       name: 'Manage Members',
       onClick: () => navigate(`/group-members/${selectedOrganizationId}`),
-      adminOnly: false,
-      disabled: !selectedOrganizationId
+      adminOnly: false
     }
   ];
 
@@ -217,19 +175,17 @@ const MobileNav = ({
         {allSpeedDialActions.map((action) => (
           <SpeedDialAction
             key={action.name}
-            icon={<div className={`text-slate-900 ${action.disabled ? 'opacity-50' : ''}`}>{action.icon}</div>}
+            icon={<div className="text-slate-900">{action.icon}</div>}
             tooltipTitle={
               <div className="px-4 py-2 text-sm font-medium whitespace-nowrap bg-slate-900 text-white rounded shadow-lg">
                 {action.name}
               </div>
             }
             tooltipOpen
-            className={`!bg-white hover:!bg-gray-50 ${action.disabled ? '!cursor-not-allowed' : ''}`}
+            className="!bg-white hover:!bg-gray-50"
             onClick={() => {
-              if (!action.disabled) {
-                action.onClick();
-                setIsSpeedDialOpen(false);
-              }
+              action.onClick();
+              setIsSpeedDialOpen(false);
             }}
           />
         ))}
@@ -262,20 +218,6 @@ const MobileNav = ({
           </Button>
         </DialogActions>
       </Dialog>
-      <Snackbar
-        open={showUnsupportedMessage}
-        autoHideDuration={6000}
-        onClose={() => setShowUnsupportedMessage(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setShowUnsupportedMessage(false)} 
-          severity="info"
-          sx={{ width: '100%' }}
-        >
-          Table and Kanban views are only available on desktop devices
-        </Alert>
-      </Snackbar>
     </>
   );
 };

@@ -84,6 +84,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   const [categoryFilter, setCategoryFilter] = useState('');
   const [kanbanFilter, setKanbanFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
 
   // Add this useEffect to check when to show the modal
@@ -106,19 +107,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
   
 
-  const fetchTags = useCallback(async () => {
-    if (!currentOrganization) return;
-    const { data, error } = await supabase
-      .from('tags')
-      .select('*')
-      .eq('organization_id', currentOrganization.id);
-    if (error) {
-      console.error('Error fetching tags:', error);
-    } else {
-      // Filter out any null values
-      setTags(data.filter(tag => tag != null));
-    }
-  }, [currentOrganization]);
+  
 
   const fetchPublicQuestions = async () => {
     setPublicQuestionsLoading(true);
@@ -129,20 +118,22 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
           *,
           endorsements:endorsements(count),
           followers:question_followers(count),
-          responses:responses(count)
+          responses:responses(count),
+          tags:question_tags(tags(*))
         `)
         .eq('is_open', true);
-
+  
       if (openError) throw openError;
-
-      const openQuestions = openQuestionsData.map(q => ({
+  
+      const formattedQuestions = openQuestionsData.map(q => ({
         ...q,
         endorsements_count: q.endorsements?.[0]?.count || 0,
         followers_count: q.followers?.[0]?.count || 0,
-        responses_count: q.responses?.[0]?.count || 0
+        responses_count: q.responses?.[0]?.count || 0,
+        tags: q.tags?.map(t => t.tags) || []
       }));
-
-      setOpenQuestions(openQuestions);
+  
+      setOpenQuestions(formattedQuestions);
     } catch (error) {
       console.error('Error fetching public questions:', error);
       toast.error('Failed to load public questions');
@@ -189,56 +180,68 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   }, []);
 
   // Then define fetchQuestions which depends on them
-  const fetchQuestions = useCallback(async (organizationId) => {
+  const fetchOrganizationData = useCallback(async (organizationId) => {
+    setIsLoading(true);
     try {
-      console.log('Fetching questions for organization:', organizationId);
-
-      // Fetch all questions associated with the organization
-      const { data: allQuestions, error: allQuestionsError } = await supabase
-        .from('questions')
-        .select(`
-          *,
-          endorsements:endorsements(count),
-          followers:question_followers(count),
-          responses:responses(count),
-          tags:question_tags(tags(*))
-        `)
-        .eq('organization_id', organizationId);
-
-      if (allQuestionsError) throw allQuestionsError;
-
-      // Fetch indirect questions (from organization_questions)
-      const { data: indirectQuestions, error: indirectError } = await supabase
-        .from('organization_questions')
-        .select(`
-          question_id,
-          questions (
+      const [
+        // Fetch questions data
+        { data: allQuestions, error: allQuestionsError },
+        // Fetch indirect questions
+        { data: indirectQuestions, error: indirectError },
+        // Fetch rankings
+        { data: rankings, error: rankingsError },
+        // Fetch tags
+        { data: tags, error: tagsError }
+      ] = await Promise.all([
+        supabase
+          .from('questions')
+          .select(`
             *,
             endorsements:endorsements(count),
             followers:question_followers(count),
             responses:responses(count),
             tags:question_tags(tags(*))
-          )
-        `)
-        .eq('organization_id', organizationId);
+          `)
+          .eq('organization_id', organizationId),
+        
+        supabase
+          .from('organization_questions')
+          .select(`
+            question_id,
+            questions (
+              *,
+              endorsements:endorsements(count),
+              followers:question_followers(count),
+              responses:responses(count),
+              tags:question_tags(tags(*))
+            )
+          `)
+          .eq('organization_id', organizationId),
+        
+        supabase
+          .from('organization_question_rankings')
+          .select('*')
+          .eq('organization_id', organizationId),
+        
+        supabase
+          .from('tags')
+          .select('*')
+          .eq('organization_id', organizationId)
+      ]);
 
+      // Check for errors
+      if (allQuestionsError) throw allQuestionsError;
       if (indirectError) throw indirectError;
-
-      // Fetch rankings separately
-      const { data: rankings, error: rankingsError } = await supabase
-        .from('organization_question_rankings')
-        .select('*')
-        .eq('organization_id', organizationId);
-
       if (rankingsError) throw rankingsError;
+      if (tagsError) throw tagsError;
 
-      // Create a map of rankings for quick lookup
+      // Process rankings
       const rankingsMap = rankings.reduce((acc, rank) => {
         acc[rank.question_id] = rank;
         return acc;
       }, {});
 
-      // Combine and format all questions
+      // Process questions
       const formattedQuestions = [
         ...allQuestions.map(q => ({
           ...q,
@@ -274,17 +277,24 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
         return acc;
       }, {});
 
+      // Update all states at once
       setQuestions(groupedQuestions);
       setOrganizationQuestions(uniqueQuestions);
       sortQuestions(uniqueQuestions, sortBy);
-
+      setTags(tags.filter(tag => tag != null));
+      
       // Process overview data
       processLatestQuestions(uniqueQuestions);
       processTopQuestionsByCategory(uniqueQuestions);
 
+      return true; // Successfully loaded
+
     } catch (error) {
-      console.error('Error fetching questions:', error);
-      toast.error('Failed to load organization questions');
+      console.error('Error fetching organization data:', error);
+      toast.error('Failed to load organization data');
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   }, [sortBy, processLatestQuestions, processTopQuestionsByCategory]);
 
@@ -293,8 +303,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     const adminStatus = org.organization_users[0].role === 'admin';
     updateIsAdmin(adminStatus);
     setShowOrgSelector(false);
-    fetchQuestions(org.id);
-  }, [updateCurrentOrganization, updateIsAdmin, fetchQuestions]);
+    fetchOrganizationData(org.id);
+  }, [updateCurrentOrganization, updateIsAdmin, fetchOrganizationData]);
 
   useEffect(() => {
     if (location.state?.viewMode) {
@@ -322,11 +332,11 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
         .eq('organization_users.user_id', session.user.id);
 
       if (error) {
-        console.error('Error fetching organizations:', error);
-        toast.error('Error fetching your organizations.');
+        console.error('Error fetching groups:', error);
+        toast.error('Error fetching your groups.');
         navigate('/');
       } else if (data.length === 0) {
-        toast.error('You are not a member of any organization.');
+        toast.error('You are not a member of any group.');
         navigate('/');
       } else {
         setOrganizations(data);
@@ -349,10 +359,9 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
   useEffect(() => {
     if (currentOrganization) {
-      fetchQuestions(currentOrganization.id);
-      fetchTags();
+      fetchOrganizationData(currentOrganization.id);
     }
-  }, [currentOrganization, fetchQuestions, fetchTags]);
+  }, [currentOrganization, fetchOrganizationData]);
 
   const displayQuestions = organizationQuestions.filter(question => {
     const matchesCategory = !categoryFilter || question.category === categoryFilter;
@@ -458,7 +467,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
       if (rankError) throw rankError;
 
       // Refresh the questions
-      await fetchQuestions(currentOrganization.id);
+      await fetchOrganizationData(currentOrganization.id);
       toast.success('Question added to organization successfully!');
     } catch (error) {
       console.error('Error adding question to organization:', error);
@@ -493,7 +502,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
       if (rankingError) throw rankingError;
   
       // Refresh the questions
-      await fetchQuestions(currentOrganization.id);
+      await fetchOrganizationData(currentOrganization.id);
       toast.success('Question removed from organization successfully!');
     } catch (error) {
       console.error('Error removing question from organization:', error);
@@ -511,7 +520,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
       if (error) throw error;
 
       // Refresh the questions
-      await fetchQuestions(currentOrganization.id);
+      await fetchOrganizationData(currentOrganization.id);
       toast.success('Question deleted successfully!');
     } catch (error) {
       console.error('Error deleting question:', error);
@@ -553,7 +562,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
       ]);
 
       // Refresh the questions to ensure consistency
-      await fetchQuestions(currentOrganization.id);
+      await fetchOrganizationData(currentOrganization.id);
 
       toast.success('Question made open successfully!');
     } catch (error) {
@@ -617,6 +626,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   const renderQuestions = (questions, isOrganizationQuestion = false) => {
     const displayQuestions = isOrganizationQuestion ? sortedQuestions : questions;
     const isMobile = window.innerWidth < 768;
+
+    
 
     switch (viewMode) {
       case 'table':
@@ -1009,7 +1020,7 @@ const handleKeyDown = (event) => {
       console.error('Error adding tag to question:', error);
       toast.error('Failed to add tag to question.');
     } else {
-      await fetchQuestions(currentOrganization.id);
+      await fetchOrganizationData(currentOrganization.id);
     }
   };
 
@@ -1060,165 +1071,169 @@ const handleKeyDown = (event) => {
         p-4 md:p-8 pb-24 md:pb-8`}
       >
         <Container maxWidth="xl">
-          <OrganizationSelectorModal
-            open={showOrgSelector}
-            organizations={organizations}
-            onSelect={handleOrganizationSelect}
-          />
-          {currentOrganization && (
-            <>
-              <Typography variant='h4'>{currentOrganization.name} Dashboard</Typography>
-              {organizations.length > 1 && (
-      <CustomButton 
-        type="Action"
-        onClick={() => {
-          updateCurrentOrganization(null);
-          setShowOrgSelector(true);
-        }}
-        className="w-auto"
-      >
-        Change Group
-      </CustomButton>
-    )}
-              {viewMode !== 'table' && viewMode !== 'kanban' && (
-
-              <Paper elevation={3} sx={{ 
-                p: 3, 
-                my: 4,
-                borderRadius: 4,
-              }}>
-                <div className="flex items-center gap-4">
-                  <TextField
-                    fullWidth
-                    variant="outlined"
-                    placeholder="Search questions by content or category..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={handleKeyDown} 
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon color="action" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: isSearching && (
-                        <InputAdornment position="end">
-                          <CircularProgress size={20} />
-                        </InputAdornment>
-                      ),
-                      sx: {
-                        borderRadius: 28,
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderRadius: 28,
-                        },
-                        '&:hover': {
-                          '& .MuiOutlinedInput-notchedOutline': {
-                            borderColor: 'primary.main',
-                          },
-                        },
-                      },
+          {isLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            currentOrganization && (
+              <>
+                <OrganizationSelectorModal
+                  open={showOrgSelector}
+                  organizations={organizations}
+                  onSelect={handleOrganizationSelect}
+                />
+                <Typography variant='h4'>{currentOrganization.name} Dashboard</Typography>
+                {organizations.length > 1 && (
+                  <CustomButton 
+                    type="Action"
+                    onClick={() => {
+                      updateCurrentOrganization(null);
+                      setShowOrgSelector(true);
                     }}
-                  />
+                    className="w-auto"
+                  >
+                    Change Group
+                  </CustomButton>
+                )}
+                {viewMode !== 'table' && viewMode !== 'kanban' && (
+                  <Paper elevation={3} sx={{ 
+                    p: 3, 
+                    my: 4,
+                    borderRadius: 4,
+                  }}>
+                    <div className="flex items-center gap-4">
+                      <TextField
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Search questions by content or category..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={handleKeyDown} 
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon color="action" />
+                            </InputAdornment>
+                          ),
+                          endAdornment: isSearching && (
+                            <InputAdornment position="end">
+                              <CircularProgress size={20} />
+                            </InputAdornment>
+                          ),
+                          sx: {
+                            borderRadius: 28,
+                            '& .MuiOutlinedInput-notchedOutline': {
+                              borderRadius: 28,
+                            },
+                            '&:hover': {
+                              '& .MuiOutlinedInput-notchedOutline': {
+                                borderColor: 'primary.main',
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </Paper>
+                )}
+
+                {showSearchResults && (
+                  <Box sx={{ mb: 6 }}>
+                    <div className="flex justify-between items-center mb-3">
+                      <Typography variant="h5">
+                        Search Results {searchResults.length > 0 && `(${searchResults.length})`}
+                      </Typography>
+                      <Button 
+                        type="Submit" 
+                        onClick={() => {
+                          setShowSearchResults(false);
+                          setSearchResults([]);
+                          setSearchQuery('');
+                        }}
+                      >
+                        Clear Search
+                      </Button>
+                    </div>
+                    {searchResults.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {searchResults.map(question => (
+                          <QuestionCard
+                            key={question.id}
+                            question={question}
+                            onClick={() => handleQuestionClick(question.id)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
+                        <Typography color="text.secondary">
+                          No questions found matching your search.
+                        </Typography>
+                      </Paper>
+                    )}
+                  </Box>
+                )}
+
+                <Divider style={{ margin: '2rem 0' }} />
+                <div className="mb-4">
+                  <Typography style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }} variant='h5'>Group Questions</Typography>
                 </div>
-              </Paper>
-              )}
-
-              {showSearchResults && (
-  <Box sx={{ mb: 6 }}>
-    <div className="flex justify-between items-center mb-3">
-      <Typography variant="h5">
-        Search Results {searchResults.length > 0 && `(${searchResults.length})`}
-      </Typography>
-      <Button 
-        type="Submit" 
-        onClick={() => {
-          setShowSearchResults(false);
-          setSearchResults([]);
-          setSearchQuery('');
-        }}
-      >
-        Clear Search
-      </Button>
-    </div>
-    {searchResults.length > 0 ? (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {searchResults.map(question => (
-          <QuestionCard
-            key={question.id}
-            question={question}
-            onClick={() => handleQuestionClick(question.id)}
-          />
-        ))}
-      </div>
-    ) : (
-      <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
-        <Typography color="text.secondary">
-          No questions found matching your search.
-        </Typography>
-      </Paper>
-    )}
-  </Box>
-)}
-
-              <Divider style={{ margin: '2rem 0' }} />
-              <div className="mb-4">
-                <Typography style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }} variant='h5'>Group Questions</Typography>
-              </div>
-              {viewMode === 'overview' ? (
-                <QuestionOverviewSection
-                  latestQuestions={latestQuestions}
-                  topQuestionsByCategory={topQuestionsByCategory}
-                  handleQuestionClick={handleQuestionClick}
-                  isOrganizationView={true}
-                />
-              ) : viewMode === 'kanban' ? (
-                <OrganizationKanban 
-                  organizationId={currentOrganization.id}
-                  questions={questions}
-                  setQuestions={setQuestions}
-                />
-              ) : viewMode === 'elo-ranking' ? (  
-                <OrganizationELORanking 
-                  organizationId={currentOrganization.id}
-                />
-              ) : viewMode === 'manual-ranking' ? (
-                <OrganizationManualRanking 
-                  organizationId={currentOrganization.id}
-                />
-              ) : (
-                <>
-                  {renderQuestions(sortedQuestions, true)}
-                  {organizationQuestions.length === 0 && (
-                    <Typography variant='body1'>No questions found for this group.</Typography>
-                  )}
-                  
-                  <Divider style={{ margin: '2rem 0', backgroundColor: '#075985' }} />
-                  
-                  {showPublicQuestions && (
+                {viewMode === 'overview' ? (
+                  <QuestionOverviewSection
+                    latestQuestions={latestQuestions}
+                    topQuestionsByCategory={topQuestionsByCategory}
+                    handleQuestionClick={handleQuestionClick}
+                    isOrganizationView={true}
+                  />
+                ) : viewMode === 'kanban' ? (
+                  <OrganizationKanban 
+                    organizationId={currentOrganization.id}
+                    questions={questions}
+                    setQuestions={setQuestions}
+                  />
+                ) : viewMode === 'elo-ranking' ? (  
+                  <OrganizationELORanking 
+                    organizationId={currentOrganization.id}
+                  />
+                ) : viewMode === 'manual-ranking' ? (
+                  <OrganizationManualRanking 
+                    organizationId={currentOrganization.id}
+                  />
+                ) : (
+                  <>
+                    {renderQuestions(sortedQuestions, true)}
+                    {organizationQuestions.length === 0 && (
+                      <Typography variant='body1'>No questions found for this group.</Typography>
+                    )}
                     
-                    <>
-                    <Typography variant='h5' style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }}>
-                    Public Questions
-                  </Typography>
-                      {publicQuestionsLoading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-                          <CircularProgress />
-                        </Box>
-                      ) : (
-                        <>
-                          {renderQuestions(openQuestions, false)}
-                          {openQuestions.length === 0 && (
-                            <Typography variant='body1'>
-                              No public questions available.
-                            </Typography>
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-            </>
+                    <Divider style={{ margin: '2rem 0', backgroundColor: '#075985' }} />
+                    
+                    {showPublicQuestions && (
+                      <>
+                        <Typography variant='h5' style={{ marginBottom: '1rem', textDecoration: 'underline #075985' }}>
+                          Public Questions
+                        </Typography>
+                        {publicQuestionsLoading ? (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                            <CircularProgress />
+                          </Box>
+                        ) : (
+                          <>
+                            {renderQuestions(openQuestions, false)}
+                            {openQuestions.length === 0 && (
+                              <Typography variant='body1'>
+                                No public questions available.
+                              </Typography>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </>
+            )
           )}
         </Container>
       </div>

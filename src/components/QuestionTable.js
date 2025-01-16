@@ -71,6 +71,8 @@ const QuestionTable = ({
   const [categoryFilter, setCategoryFilter] = useState('');
   const [kanbanFilter, setKanbanFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [isTableReady, setIsTableReady] = useState(false);
+  const tableRef = useRef(null);
 
   const handleQuestionClick = (questionId) => {
     if (onQuestionClick) {
@@ -161,6 +163,24 @@ const QuestionTable = ({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [dropdownState.isOpen]);
+
+  useEffect(() => {
+    if (questions?.length > 0) {
+      const timer = setTimeout(() => {
+        setIsTableReady(true);
+        // Force table layout recalculation
+        if (tableRef.current) {
+          const table = tableRef.current;
+          table.style.opacity = '0';
+          requestAnimationFrame(() => {
+            table.style.opacity = '1';
+          });
+        }
+      }, 600); 
+
+      return () => clearTimeout(timer);
+    }
+  }, [questions]);
 
   const columns = [
     {
@@ -369,43 +389,59 @@ const QuestionTable = ({
         </div>
       )}
 
-      <table className="min-w-full bg-white shadow-md rounded border border-gray-300">
-        <thead>
-          {table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id} className="bg-gradient-to-r from-slate-950 to-sky-950 text-white text-xl">
-              {headerGroup.headers.map(header => (
-                <th key={header.id} className="px-4 py-2 border">
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map(row => (
-            <tr 
-              key={row.id} 
-              
-              onKeyDown={(e) => handleRowKeyDown(e, row.original.id)}
-              className="cursor-pointer hover:bg-gray-100"
-              tabIndex={0}
-              role="button"
-              aria-label={`Question: ${row.original.content}`}
-            >
-              {row.getVisibleCells().map(cell => (
+      {!isTableReady ? (
+        <div className="min-h-[200px] flex items-center justify-center">
+          <div className="animate-pulse flex space-x-4">
+            <div className="h-12 w-12 bg-slate-200 rounded-full"></div>
+            <div className="space-y-3">
+              <div className="h-4 w-[250px] bg-slate-200 rounded"></div>
+              <div className="h-4 w-[200px] bg-slate-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <table 
+          ref={tableRef}
+          className="min-w-full bg-white shadow-md rounded border border-gray-300"
+          style={{ transition: 'opacity 0.2s ease-in-out' }}
+        >
+          <thead>
+            {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id} className="bg-gradient-to-r from-slate-950 to-sky-950 text-white text-xl">
+                {headerGroup.headers.map(header => (
+                  <th key={header.id} className="px-4 py-2 border">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map(row => (
+              <tr 
+                key={row.id} 
+                
+                onKeyDown={(e) => handleRowKeyDown(e, row.original.id)}
+                className="cursor-pointer hover:bg-gray-100"
+                tabIndex={0}
+                role="button"
+                aria-label={`Question: ${row.original.content}`}
+              >
+                {row.getVisibleCells().map(cell => (
       <td 
         key={cell.id} 
         className="px-4 py-2 border"
         onClick={() => cell.column.id === 'content' ? handleQuestionClick(row.original.id) : null}
         style={{ cursor: cell.column.id === 'content' ? 'pointer' : 'default' }}
       >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
       {dropdownState.isOpen && createPortal(
         <Dropdown 
           ref={dropdownRef} 
