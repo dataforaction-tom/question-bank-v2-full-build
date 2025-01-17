@@ -14,14 +14,26 @@ export default async function handler(req, res) {
   try {
     const { userId, priceId, organizationName } = req.body;
 
-    // Validate environment variables
-    if (!process.env.CLIENT_URL) {  // Changed from REACT_APP_CLIENT_URL
-      console.error('Missing CLIENT_URL environment variable');
-      throw new Error('Server configuration error');
+    // Validate inputs
+    console.log('Received request with:', {
+      userId,
+      priceId,
+      organizationName
+    });
+
+    if (!userId || !priceId || !organizationName) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        details: {
+          userId: !userId,
+          priceId: !priceId,
+          organizationName: !organizationName
+        }
+      });
     }
 
-    // Log the URL we're using (for debugging)
-    console.log('Client URL:', process.env.CLIENT_URL);
+    // Log Stripe key presence (not the actual key)
+    console.log('Stripe key present:', !!process.env.STRIPE_SECRET_KEY);
 
     // Create the checkout session
     const session = await stripe.checkout.sessions.create({
@@ -37,22 +49,18 @@ export default async function handler(req, res) {
         userId,
         organizationName,
       },
-      // Use CLIENT_URL instead of REACT_APP_CLIENT_URL
-      success_url: new URL('/organization-signup?session_id={CHECKOUT_SESSION_ID}', 
-        process.env.CLIENT_URL).toString(),
-      cancel_url: new URL('/organization-signup?canceled=true', 
-        process.env.CLIENT_URL).toString(),
+      success_url: `${process.env.REACT_APP_CLIENT_URL}/organization-signup?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.REACT_APP_CLIENT_URL}/organization-signup?canceled=true`,
     });
 
     console.log('Session created successfully:', {
       sessionId: session.id,
-      metadata: session.metadata,
-      successUrl: session.success_url,
-      cancelUrl: session.cancel_url
+      metadata: session.metadata
     });
 
     return res.json({ sessionId: session.id });
   } catch (error) {
+    // Enhanced error logging
     console.error('Checkout session error details:', {
       message: error.message,
       type: error.type,
