@@ -44,7 +44,6 @@ export default async function handler(req, res) {
         userId: userId.toString(),
         organizationName: organizationName.toString(),
       },
-      customer_creation: 'always',
       subscription_data: {
         metadata: {
           userId: userId.toString(),
