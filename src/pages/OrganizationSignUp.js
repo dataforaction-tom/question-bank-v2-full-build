@@ -118,7 +118,7 @@ const OrganizationSignUp = () => {
     setLoading(true);
     setError(null);
     
-    console.log('Stripe instance:', stripe); // Debug stripe instance
+    console.log('🚀 Starting subscription process');
     
     try {
       if (!stripe) {
@@ -126,30 +126,24 @@ const OrganizationSignUp = () => {
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('User:', user); // Debug user
+      console.log('👤 User:', user?.id); // Only log the ID for security
       
-      if (!user) {
-        throw new Error('You need to be signed in to create a group.');
-      }
-
-      console.log('Making checkout session request with:', { // Debug request
+      const requestBody = {
         userId: user.id,
         priceId: process.env.REACT_APP_STRIPE_PRICE_ID,
         organizationName
-      });
+      };
+      
+      console.log('📤 Making checkout session request:', requestBody);
 
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          priceId: process.env.REACT_APP_STRIPE_PRICE_ID,
-          organizationName
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
-      console.log('Checkout session response:', data); // Debug response
+      console.log('📥 Checkout session response:', data);
 
       if (data.error) {
         throw new Error(data.error);

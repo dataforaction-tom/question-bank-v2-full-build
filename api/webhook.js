@@ -24,10 +24,12 @@ export default async function handler(req, res) {
     );
 
     console.log('✅ Event type:', event.type);
+    console.log('📦 Event data:', JSON.stringify(event.data.object, null, 2));
 
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
+        console.log('🔍 Session metadata:', session.metadata);
         
         // First, check if a group with this stripe_customer_id already exists
         const { data: existingOrg } = await supabaseServer
@@ -60,14 +62,18 @@ export default async function handler(req, res) {
           stripe_customer_id: session.customer
         };
 
-        // Create organization and admin user
+        console.log('📝 Creating organization with data:', organizationData);
         const { data: org, error: orgError } = await supabaseServer
           .from('organizations')
           .insert([organizationData])
           .select()
           .single();
 
-        if (orgError) throw orgError;
+        if (orgError) {
+          console.error('❌ Error creating organization:', orgError);
+          throw orgError;
+        }
+        console.log('✅ Organization created:', org);
 
         const { error: userError } = await supabaseServer
           .from('organization_users')
