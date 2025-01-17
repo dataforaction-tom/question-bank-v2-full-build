@@ -24,6 +24,13 @@ export default async function handler(req, res) {
       organizationName
     });
 
+    if (!userId || !organizationName) {
+      console.error('Missing required parameters');
+      return res.status(400).json({
+        error: 'Missing required parameters'
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -34,14 +41,26 @@ export default async function handler(req, res) {
         },
       ],
       metadata: {
-        userId,
-        organizationName,
+        userId: userId.toString(),
+        organizationName: organizationName.toString(),
+      },
+      customer_creation: 'always',
+      subscription_data: {
+        metadata: {
+          userId: userId.toString(),
+          organizationName: organizationName.toString(),
+        },
       },
       success_url: `${process.env.CLIENT_URL}/organization-signup?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/organization-signup?canceled=true`,
     });
 
-    console.log('Created session:', session.id); // Debug session
+    console.log('Created session with metadata:', { // Debug session metadata
+      sessionId: session.id,
+      metadata: session.metadata,
+      customerId: session.customer,
+    });
+
     res.json({ sessionId: session.id });
   } catch (error) {
     console.error('Checkout error:', error);
