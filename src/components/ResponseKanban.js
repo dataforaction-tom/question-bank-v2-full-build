@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import { Box, Typography, Card, CardContent } from '@mui/material';
 import toast from 'react-hot-toast';
 import { useOrganization } from '../context/OrganizationContext';
+import ResponseTypePill from './ResponseTypePill';
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'No Action'];
 
@@ -14,6 +15,8 @@ const COLUMN_COLORS = {
   'Parked': '#6a7efc', // Blue
   'No Action': '#53c4af' // Teal
 };
+
+
 
 const ResponseKanban = ({ questionId, organizationId, fetchMode = 'question' }) => {
   const { isAdmin } = useOrganization();
@@ -55,11 +58,11 @@ const ResponseKanban = ({ questionId, organizationId, fetchMode = 'question' }) 
         .from('responses')
         .select(`
           *,
-          questions!inner(
+          questions(
             id,
             content
           ),
-          response_rankings!left (
+          response_rankings (
             manual_rank,
             elo_score,
             kanban_status,
@@ -175,12 +178,16 @@ const ResponseKanban = ({ questionId, organizationId, fetchMode = 'question' }) 
             >
               {status} ({responses[status]?.length || 0})
             </Typography>
-            <Droppable droppableId={status}>
-              {(provided) => (
+            <Droppable droppableId={status} key={status}>
+              {(provided, snapshot = {}) => (
                 <Box
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  sx={{ minHeight: 500 }}
+                  sx={{ 
+                    minHeight: 500,
+                    backgroundColor: snapshot.isDraggingOver ? '#e8e8e8' : '#f4f4f4',
+                    transition: 'background-color 0.2s ease'
+                  }}
                 >
                   {responses[status]?.map((response, index) => (
                     <Draggable
@@ -188,18 +195,21 @@ const ResponseKanban = ({ questionId, organizationId, fetchMode = 'question' }) 
                       draggableId={response.id}
                       index={index}
                     >
-                      {(provided) => (
+                      {(provided, snapshot = {}) => (
                         <Card
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          sx={{ marginBottom: 2 }}
+                          sx={{ 
+                            marginBottom: 2,
+                            transform: snapshot.isDragging ? 'rotate(2deg)' : 'none',
+                            transition: 'transform 0.2s ease'
+                          }}
                         >
                           <CardContent>
-                            <Typography variant="body2" color="textSecondary" gutterBottom>
-                              Question: {response.questions.content.substring(0, 100)}...
-                            </Typography>
+                            
                             <Typography>{response.content}</Typography>
+                            <ResponseTypePill type={response.response_type} />
                           </CardContent>
                         </Card>
                       )}
