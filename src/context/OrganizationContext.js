@@ -1,21 +1,43 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { supabase } from '../supabaseClient';
+import { useAuth } from '../hooks/useAuth';
 
 const OrganizationContext = createContext();
 
 export const OrganizationProvider = ({ children }) => {
   const [currentOrganization, setCurrentOrganization] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { session } = useAuth();
 
   useEffect(() => {
-    const storedOrg = localStorage.getItem('currentOrganization');
-    const storedIsAdmin = localStorage.getItem('isAdmin');
-    if (storedOrg) {
-      setCurrentOrganization(JSON.parse(storedOrg));
-    }
-    if (storedIsAdmin) {
-      setIsAdmin(JSON.parse(storedIsAdmin));
-    }
-  }, []);
+    const validateAndSetOrganization = async () => {
+      const storedOrg = localStorage.getItem('currentOrganization');
+      if (!storedOrg || !session?.user?.id) return;
+
+      const parsedOrg = JSON.parse(storedOrg);
+
+      const { data, error } = await supabase
+        .from('organization_users')
+        .select('organization_id, role')
+        .eq('user_id', session.user.id)
+        .eq('organization_id', parsedOrg.id)
+        .single();
+
+      if (error || !data) {
+        console.log('User no longer has access to stored organization');
+        setCurrentOrganization(null);
+        setIsAdmin(false);
+        localStorage.removeItem('currentOrganization');
+        localStorage.removeItem('isAdmin');
+        return;
+      }
+
+      setCurrentOrganization(parsedOrg);
+      setIsAdmin(data.role === 'admin');
+    };
+
+    validateAndSetOrganization();
+  }, [session?.user?.id]);
 
   const updateCurrentOrganization = (org) => {
     setCurrentOrganization(org);
@@ -32,7 +54,12 @@ export const OrganizationProvider = ({ children }) => {
   };
 
   return (
-    <OrganizationContext.Provider value={{ currentOrganization, isAdmin, updateCurrentOrganization, updateIsAdmin }}>
+    <OrganizationContext.Provider value={{ 
+      currentOrganization, 
+      isAdmin, 
+      updateCurrentOrganization, 
+      updateIsAdmin 
+    }}>
       {children}
     </OrganizationContext.Provider>
   );
