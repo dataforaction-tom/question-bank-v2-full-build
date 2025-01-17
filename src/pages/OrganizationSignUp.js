@@ -47,22 +47,39 @@ const OrganizationSignUp = () => {
       if (sessionId) {
         setLoading(true);
         try {
+          console.log('Checking session:', sessionId); // Debug session check
           const { data: session } = await retrieveSession(sessionId);
+          console.log('Session data:', session); // Debug session data
 
           if (session.payment_status === 'paid') {
-            // Check for the organization
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data: org } = await supabase
-              .from('organizations')
-              .select('*')
-              .eq('created_by', user.id)
-              .eq('name', organizationName)
-              .single();
+            // Poll for organization creation
+            let attempts = 0;
+            const checkOrganization = async () => {
+              console.log('Checking for group...'); // Debug org check
+              const { data: { user } } = await supabase.auth.getUser();
+              const { data: org, error } = await supabase
+                .from('organizations')
+                .select('*')
+                .eq('created_by', user.id)
+                .eq('name', organizationName)
+                .single();
 
-            if (org) {
-              setSuccess(true);
-              navigate('/organization-dashboard');
-            }
+              if (org) {
+                console.log('Group found:', org); // Debug org found
+                setSuccess(true);
+                setActiveStep(2);
+                return;
+              }
+
+              if (attempts < 5) {
+                attempts++;
+                setTimeout(checkOrganization, 2000); // Check every 2 seconds
+              } else {
+                throw new Error('Group creation timeout');
+              }
+            };
+
+            await checkOrganization();
           }
         } catch (err) {
           console.error('Error handling redirect:', err);
