@@ -16,12 +16,29 @@ const supabaseServer = createClient(supabaseUrl, supabaseServiceKey);
 
 export default async function handler(req, res) {
   try {
+    // Log the incoming request details
+    console.log('Webhook received');
+    console.log('Stripe-Signature:', req.headers['stripe-signature']);
+
     const rawBody = await getRawBody(req);
-    const event = stripe.webhooks.constructEvent(
-      rawBody,
-      req.headers['stripe-signature'],
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+    
+    // Verify we're getting the raw body
+    console.log('Raw body received:', rawBody.toString());
+
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        rawBody,
+        req.headers['stripe-signature'],
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.error('⚠️ Webhook signature verification failed:', err.message);
+      console.log('🔑 Webhook Secret (first 4 chars):', process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 4));
+      return res.status(400).json({
+        error: `Webhook Error: ${err.message}`
+      });
+    }
 
     console.log('✅ Event type:', event.type);
     console.log('📦 Event data:', JSON.stringify(event.data.object, null, 2));
