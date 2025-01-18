@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+
 import { supabase } from '../supabaseClient';
 import { Container, Typography, Button, List, ListItem, ListItemText } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -141,7 +141,7 @@ const OrganizationELORanking = ({ organizationId, onSubmitSuccess }) => {
   return (
     <Container maxWidth="md">
       <Typography variant="h4" component="h1" gutterBottom>
-        {organization ? `${organization.name} - ELO Ranking` : 'ELO Ranking'}
+        {organization ? `${organization.name} - Continous group ranking` : 'ELO Ranking'}
       </Typography>
       <Typography variant="body1" gutterBottom>
         Drag and drop the questions to rank them from most important (top) to least important (bottom).

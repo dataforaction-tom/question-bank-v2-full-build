@@ -146,9 +146,21 @@ const QuestionCard = ({
       aria-label={`Question: ${question.content}`}
     >
       <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-sm md:text-lg text-white p-2 flex flex-wrap gap-2 rounded-t-xl">
+        
+      </div>
+
+      
+      <div className="font-semibold text-base md:text-xl text-slate-900 p-3 md:p-4 flex-grow break-words">
+        {question.content}
+      </div>
+     
+      
+      <div className="p-2 md:px-4 md:py-2">
+      
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
         <div className="flex flex-wrap gap-2 w-full">
           <ColorTag category={question.category} />
-          <ColorTag category={question.is_open ? 'Public' : 'Private'} />
+          {!question.is_open && <ColorTag category="Private" />}
           {question.kanban_status && (
             <div ref={statusChipRef}>
               <StatusChip 
@@ -162,26 +174,17 @@ const QuestionCard = ({
             </div>
           )}
         </div>
-      </div>
-
-      
-      <div className="font-semibold text-base md:text-xl text-slate-900 p-3 md:p-4 flex-grow break-words">
-        {question.content}
-      </div>
-      
-      <div className="p-2 md:px-4 md:py-2">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div className="flex space-x-4">
             <span className="flex items-center">
-              <FaThumbsUp className="mr-1 text-blue-600" />
+              <FaThumbsUp className="mr-1 text-slate-600" />
               {question.endorsements_count || 0}
             </span>
             <span className="flex items-center">
-              <FaBell className="mr-1 text-pink-700" />
+              <FaBell className="mr-1 text-slate-600" />
               {question.followers_count || 0}
             </span>
             <span className="flex items-center">
-              <FaComment className="mr-1 text-teal-500" />
+              <FaComment className="mr-1 text-slate-600" />
               {question.responses_count || 0}
             </span>
           </div>

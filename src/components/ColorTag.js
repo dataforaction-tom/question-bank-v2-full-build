@@ -13,12 +13,12 @@ const ColorTag = ({ category, variant = 'default' }) => {
     <Chip
       label={category}
       sx={{
-        backgroundColor: variant === 'outlined' ? 'transparent' : color.bg,
-        color: color.text,
-        border: `2px  ${color.border}`,
+        backgroundColor: 'transparent',
+        color: '#0f172a',
+        border: `2px solid ${color.border}`,
         fontWeight: 'bold',
         '&:hover': {
-          backgroundColor: variant === 'outlined' ? 'rgba(0, 0, 0, 0.04)' : color.bg,
+          backgroundColor: 'rgba(0, 0, 0, 0.04)',
         },
       }}
     />
