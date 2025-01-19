@@ -145,7 +145,7 @@ const QuestionOverview = () => {
     <div className="container mx-auto px-4 py-8">
     <div className="text-center mb-12">
       <h1 className="text-4xl font-bold mb-4">
-        Welcome to the Data For Action Question Bank
+        Welcome to Impact Questions
       </h1>
       <p className="text-xl text-gray-600 max-w-2xl mx-auto">
         Search, browse, or ask your own open questions so we can all work together to answer them.

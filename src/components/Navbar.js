@@ -45,7 +45,7 @@ const Navbar = () => {
     <header className="bg-gradient-to-r from-slate-950 to-sky-900 text-white py-4 shadow-md">
       <div className="container mx-auto px-4 max-w-full">
         <div className="flex justify-between items-center sm:hidden">
-          <h1 className="text-2xl sm:text-4xl font-bold">Question Bank V2</h1>
+          <h1 className="text-2xl sm:text-4xl font-bold">Impact Questions</h1>
           <div>
             <button onClick={toggleMenu} className="text-2xl focus:outline-none">
               {menuOpen ? <FaTimes /> : <FaBars />}
@@ -54,7 +54,7 @@ const Navbar = () => {
         </div>
 
         <div className="hidden sm:flex flex-col lg:flex-row justify-between items-center">
-          <h1 className="text-4xl font-bold mb-4 lg:mb-0">Question Bank V2</h1>
+          <h1 className="text-4xl font-bold mb-4 lg:mb-0">Impact Questions</h1>
           <nav className="flex items-center flex-wrap justify-center gap-2">
             <Link to="/question-overview" className="block px-3 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
               Questions
