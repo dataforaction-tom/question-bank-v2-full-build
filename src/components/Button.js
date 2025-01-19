@@ -1,8 +1,8 @@
 import React from 'react';
 
 const buttonTypes = {
-  Action: 'bg-gradient-to-r from-slate-950 to-sky-900 hover:bg-blue-700 text-white',
-  ChangeView: 'bg-orange-700 hover:bg-pink-700 text-white',
+  Action: 'bg-gradient-to-r from-slate-950 to-sky-900 hover:bg-blue-700 text-white rounded-xl',
+  ChangeView: 'bg-sky-800 hover:bg-pink-600 text-white rounded-xl',
   Submit: 'bg-gradient-to-r from-slate-950 to-sky-900 text-white rounded-xl  ',
   Confirm: 'bg-yellow-600 hover:bg-yellow-700 text-black rounded-xl',
   Cancel: 'bg-red-600 hover:bg-red-700 text-white rounded-xl',

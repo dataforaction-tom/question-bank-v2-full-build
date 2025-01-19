@@ -42,6 +42,7 @@ const QuestionSchema = Yup.object().shape({
     otherwise: () => Yup.string().notRequired(),
   }),
   role_type:Yup.string().required('What is your role?'),
+  user_category:Yup.string().notRequired('Select your own category here'),
 });
 
 const SubmitQuestion = () => {
@@ -226,6 +227,7 @@ const SubmitQuestion = () => {
         category: category,
         who: values.who,
         role_type: values.role_type,
+        user_category: values.user_category,
       },
     ]);
 
@@ -524,7 +526,8 @@ const SubmitQuestion = () => {
             is_open: !hasOrganizations || true, // Default to true if no orgs
             organization_id: '', 
             who: '', 
-            role_type: '' 
+            role_type: '' ,
+            user_category: ''
           }}
           validationSchema={QuestionSchema}
           onSubmit={handleSubmit}
@@ -590,34 +593,66 @@ const SubmitQuestion = () => {
                   error={touched.answer && Boolean(errors.answer)}
                   helperText={touched.answer && errors.answer}
                 />
+                {!values.is_open && hasOrganizations && (
+                <Autocomplete
+                  freeSolo
+                  options={[
+                    'Environment',
+                    'Health',
+                    'Education',
+                    'Social',
+                    'Economy',
+                    'Other'
+                  ]}
+                  value={values.user_category}
+                  onChange={(event, newValue) => {
+                    setFieldValue('user_category', newValue);
+                  }}
+                  onInputChange={(event, newInputValue) => {
+                    setFieldValue('user_category', newInputValue);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Add your own user defined category here if you prefer"
+                      name="user_category"
+                      fullWidth
+                      margin="normal"
+                      error={touched.user_category && Boolean(errors.user_category)}
+                      helperText={touched.user_category && errors.user_category}
+                      onBlur={handleBlur}
+                    />
+                  )}
+                />
+                )}
 
-<TextField
-        select
-        label="Who is asking this question?"
-        name="who"
-        fullWidth
-        margin="normal"
-        value={values.who}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        error={touched.who && Boolean(errors.who)}
-        helperText={touched.who && errors.who}
-        SelectProps={{
-          freeSolo: true,
-          renderInput: (params) => <TextField {...params} />,
-        }}
-      >
-        {[
-          'Individual',
-          'Organisation',
-          'Group',
-          'Other'
-        ].map((option) => (
-          <MenuItem key={option} value={option}>
-            {option}
-          </MenuItem>
-        ))}
-      </TextField>
+                <TextField
+                  select
+                  label="Who is asking this question?"
+                  name="who"
+                  fullWidth
+                  margin="normal"
+                  value={values.who}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={touched.who && Boolean(errors.who)}
+                  helperText={touched.who && errors.who}
+                  SelectProps={{
+                    freeSolo: true,
+                    renderInput: (params) => <TextField {...params} />,
+                  }}
+                >
+                  {[
+                    'Individual',
+                    'Organisation',
+                    'Group',
+                    'Other'
+                  ].map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </TextField>
 
       {(values.who === 'Organisation' || values.who === 'Group') && (
       <TextField
@@ -633,36 +668,36 @@ const SubmitQuestion = () => {
       />
       )}
 
-<Autocomplete
-  freeSolo
-  options={[
-    'Research',
-    'Fundraising',
-    'Delivery',
-    'Management or Executive',
-    'Policy',
-    'Finance or Operations'
-  ]}
-  value={values.role_type}
-  onChange={(event, newValue) => {
-    setFieldValue('role_type', newValue);
-  }}
-  onInputChange={(event, newInputValue) => {
-    setFieldValue('role_type', newInputValue);
-  }}
-  renderInput={(params) => (
-    <TextField
-      {...params}
-      label="Please fill in your role type"
-      name="role_type"
-      fullWidth
-      margin="normal"
-      error={touched.role_type && Boolean(errors.role_type)}
-      helperText={touched.role_type && errors.role_type}
-      onBlur={handleBlur}
-    />
-  )}
-/>
+                <Autocomplete
+                  freeSolo
+                  options={[
+                    'Research',
+                    'Fundraising',
+                    'Delivery',
+                    'Management or Executive',
+                    'Policy',
+                    'Finance or Operations'
+                  ]}
+                  value={values.role_type}
+                  onChange={(event, newValue) => {
+                    setFieldValue('role_type', newValue);
+                  }}
+                  onInputChange={(event, newInputValue) => {
+                    setFieldValue('role_type', newInputValue);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Please fill in your role type"
+                      name="role_type"
+                      fullWidth
+                      margin="normal"
+                      error={touched.role_type && Boolean(errors.role_type)}
+                      helperText={touched.role_type && errors.role_type}
+                      onBlur={handleBlur}
+                    />
+                  )}
+                />
                 
                 
 

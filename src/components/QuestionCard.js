@@ -145,8 +145,22 @@ const QuestionCard = ({
       role="button"
       aria-label={`Question: ${question.content}`}
     >
-      <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-sm md:text-lg text-white p-2 flex flex-wrap gap-2 rounded-t-xl">
-        
+      <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-sm md:text-sm text-white p-2 flex justify-between items-center rounded-t-xl">
+        <div></div>
+        <div className="flex space-x-4 ml-auto">
+          <span className="flex items-center">
+            <FaThumbsUp className="mr-1 text-white-600" />
+            {question.endorsements_count || 0}
+          </span>
+          <span className="flex items-center">
+            <FaBell className="mr-1 text-white-600" />
+            {question.followers_count || 0}
+          </span>
+          <span className="flex items-center">
+            <FaComment className="mr-1 text-white-600" />
+            {question.responses_count || 0}
+          </span>
+        </div>
       </div>
 
       
@@ -156,40 +170,29 @@ const QuestionCard = ({
      
       
       <div className="p-2 md:px-4 md:py-2">
-      
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-        <div className="flex flex-wrap gap-2 w-full">
-          <ColorTag category={question.category} />
-          {!question.is_open && <ColorTag category="Private" />}
-          {question.kanban_status && (
-            <div ref={statusChipRef}>
-              <StatusChip 
-                status={question.kanban_status} 
-                onClick={handleStatusClick}
-                tabIndex={0}
-                className="text-sm"
-              >
-                {question.kanban_status}
-              </StatusChip>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <div className="flex flex-wrap gap-2 w-full">
+              <ColorTag category={question.category} />
+              {question.user_category && <ColorTag category={question.user_category} />}
+              {!question.is_open && <ColorTag category="Private" />}
+              {question.kanban_status && (
+                <div ref={statusChipRef}>
+                  <StatusChip 
+                    status={question.kanban_status} 
+                    onClick={handleStatusClick}
+                    tabIndex={0}
+                    className="text-sm"
+                  >
+                    {question.kanban_status}
+                  </StatusChip>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-          <div className="flex space-x-4">
-            <span className="flex items-center">
-              <FaThumbsUp className="mr-1 text-slate-600" />
-              {question.endorsements_count || 0}
-            </span>
-            <span className="flex items-center">
-              <FaBell className="mr-1 text-slate-600" />
-              {question.followers_count || 0}
-            </span>
-            <span className="flex items-center">
-              <FaComment className="mr-1 text-slate-600" />
-              {question.responses_count || 0}
-            </span>
+            
           </div>
-          
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap gap-2 mt-2 border-t pt-2">
             {onAddToOrganization && (
               <Button 
                 type="Action"
@@ -246,7 +249,6 @@ const QuestionCard = ({
             )}
           </div>
         </div>
-        
       </div>
 
       {dropdownState.isOpen && createPortal(

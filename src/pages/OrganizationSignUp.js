@@ -30,7 +30,7 @@ const OrganizationSignUp = () => {
   const [organizationName, setOrganizationName] = useState('');
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [hasSubscription, setHasSubscription] = useState(false);
+  const [setHasSubscription] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   
@@ -106,13 +106,13 @@ const OrganizationSignUp = () => {
 
         if (data?.subscription_status === 'active') {
           setHasSubscription(true);
-          setActiveStep(2); // Skip to final step
+          setActiveStep(2); 
         }
       }
     };
 
     checkSubscription();
-  }, []);
+  }, [setHasSubscription]);
 
   const handleSubscribe = async () => {
     setLoading(true);

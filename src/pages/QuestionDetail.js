@@ -8,7 +8,7 @@ import Modal from '../components/Modal';
 import ResponseForm from '../components/ResponseForm';
 import ResponseList from '../components/ResponseList';
 import Button from '../components/Button';
-import { FaThumbsUp, FaBell, FaComment, FaLinkedin, FaLink, FaEnvelope, FaTrash, FaCircularProgress } from 'react-icons/fa';
+import { FaThumbsUp, FaBell, FaComment, FaLinkedin, FaLink, FaEnvelope, FaTrash, FaCircularProgress, FaEdit } from 'react-icons/fa';
 import { styled, Box, Dialog, DialogTitle, DialogContent, DialogActions, Typography, CircularProgress } from '@mui/material';
 import { createPortal } from 'react-dom';
 import TagManager from '../components/TagManager';  // Import the new TagManager component
@@ -16,6 +16,7 @@ import ResponseKanban from '../components/ResponseKanban';
 import ResponseManualRanking from '../components/ResponseManualRanking';
 import toast from 'react-hot-toast'; // Add this import
 import QuestionCard from '../components/QuestionCard';
+import EditQuestionModal from '../components/EditQuestionModal'; // New component we'll create
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
 const COLUMN_COLORS = {
@@ -115,6 +116,7 @@ const QuestionDetail = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [similarQuestions, setSimilarQuestions] = useState([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const navigate = useNavigate();
 const location = useLocation();
@@ -651,7 +653,7 @@ const handleGoBack = () => {
         <Button
           type="Delete"
           onClick={() => setDeleteDialogOpen(true)}
-          className="flex items-center w-full bg-red-600 hover:bg-red-700 text-white"
+          className="flex items-center w-full bg-red-600 hover:bg-red-700 text-white rounded-xl"
         >
           <FaTrash className="mr-2" />
           Delete Question
@@ -772,6 +774,53 @@ const handleGoBack = () => {
     }
   };
 
+  const renderEditButton = () => {
+    if (!currentUser || !question) return null;
+
+    if (currentUser.id === question.created_by) {
+      return (
+        <Button
+          type="Edit"
+          onClick={() => setIsEditModalOpen(true)}
+          className="flex items-center w-full bg-sky-700 hover:bg-sky-800 text-white rounded-xl"
+        >
+          <FaEdit className="mr-2" />
+          Edit Question
+        </Button>
+      );
+    }
+    return null;
+  };
+
+  const handleQuestionUpdate = async (updatedValues) => {
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .update({
+          content: updatedValues.content,
+          answer: updatedValues.answer,
+          who: updatedValues.who,
+          who_details: updatedValues.who_details,
+          role_type: updatedValues.role_type,
+          user_category: updatedValues.user_category,
+          // Don't allow changing is_open status after creation
+          // Don't update organization_id after creation
+        })
+        .eq('id', id)
+        .eq('created_by', currentUser.id);
+
+      if (error) throw error;
+
+      // Refresh question data
+      await fetchQuestion();
+      setIsEditModalOpen(false);
+      toast.success('Question updated successfully');
+    } catch (error) {
+      console.error('Error updating question:', error);
+      toast.error('Failed to update question');
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 pb-16">
       <div className="mb-12">
@@ -838,6 +887,7 @@ const handleGoBack = () => {
               {/* Category and Status Tags */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {question.category && <ColorTag category={question.category} />}
+                {question.user_category && <ColorTag category={question.user_category} />}
                 <ColorTag category={question.is_open ? 'Public' : 'Private'} />
                 {isAdmin && currentOrganization && (
                   <div ref={statusChipRef}>
@@ -884,6 +934,7 @@ const handleGoBack = () => {
                   <FaComment className="mr-2" />
                   Respond
                 </Button>
+                {renderEditButton()}
                 {renderDeleteButton()}
               </div>
 
@@ -1020,6 +1071,13 @@ const handleGoBack = () => {
         document.body
       )}
       {renderDeleteDialog()}
+
+      <EditQuestionModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={handleQuestionUpdate}
+        question={question}
+      />
     </div>
   );
 };
