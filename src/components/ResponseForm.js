@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Typography, DialogTitle, FormControl, Select, MenuItem, InputLabel, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import toast from 'react-hot-toast';
 
 const RESPONSE_TYPES = [
   { value: 'answer', label: 'Answer' },
@@ -67,10 +68,10 @@ const ResponseForm = ({ questionId, responseId, onSubmit, initialContent = '', i
       setUrl('');
       setResponseType('answer');
       onSubmit();
-      alert(isEditing ? 'Response updated successfully!' : 'Response submitted successfully!');
+      toast.success(isEditing ? 'Response updated successfully!' : 'Response submitted successfully!');
     } catch (error) {
       console.error('Error submitting response:', error);
-      alert('Failed to submit response. Please try again.');
+      toast.error('Failed to submit response. Please try again.');
     }
   };
 

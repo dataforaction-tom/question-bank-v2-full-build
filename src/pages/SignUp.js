@@ -10,7 +10,7 @@ import {
   Typography,
   Link as MuiLink,
 } from '@mui/material';
-
+import toast from 'react-hot-toast';
 const SignUp = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,11 +38,11 @@ const SignUp = () => {
 
       if (signUpError) throw signUpError;
 
-      alert('Sign-up successful! Please check your email to confirm your account.');
+      toast.success('Sign-up successful! Please check your email to confirm your account.');
       navigate(redirect);
     } catch (error) {
       console.error('Error signing up:', error);
-      alert('Error signing up: ' + error.message);
+      toast.error('Error signing up: ' + error.message);
     }
   };
 

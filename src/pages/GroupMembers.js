@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 import DeleteIcon from '@mui/icons-material/Delete';
+import toast from 'react-hot-toast';
 
 const GroupMembers = () => {
   const { session } = useContext(AuthContext);
@@ -96,7 +97,7 @@ const GroupMembers = () => {
 
   const handleInvite = async () => {
     if (!emailToInvite) {
-      alert('Please enter an email address.');
+      toast.error('Please enter an email address.');
       return;
     }
 
@@ -112,10 +113,10 @@ const GroupMembers = () => {
 
     if (error) {
       console.error('Error creating invitation:', error);
-      alert('Error creating invitation.');
+      toast.error('Error creating invitation.');
     } else {
       await sendInvitationEmail(emailToInvite, invitationToken);
-      alert('Invitation sent successfully!');
+      toast.success('Invitation sent successfully!');
       setEmailToInvite('');
     }
   };
@@ -149,13 +150,13 @@ const GroupMembers = () => {
       }
     } catch (error) {
       console.error('Error sending invitation email:', error);
-      alert('Error sending invitation email.');
+      toast.error('Error sending invitation email.');
     }
   };
 
   const handleRoleChange = async (memberId, newRole) => {
     if (!isAdmin) {
-      alert('Only admins can change user roles.');
+      toast.error('Only admins can change user roles.');
       return;
     }
 
@@ -168,7 +169,7 @@ const GroupMembers = () => {
 
     const member = members.find(m => m.id === memberId);
     if (member.user_id === organization.created_by) {
-      alert('Cannot change the role of the group owner.');
+      toast.error('Cannot change the role of the group owner.');
       return;
     }
 
@@ -176,7 +177,7 @@ const GroupMembers = () => {
     if (newRole === 'member') {
       const adminCount = members.filter(m => m.role === 'admin').length;
       if (adminCount === 1 && members.find(m => m.id === memberId).role === 'admin') {
-        alert('Cannot change role. There must be at least one admin in the organization.');
+        toast.error('Cannot change role. There must be at least one admin in the organization.');
         return;
       }
     }
@@ -188,7 +189,7 @@ const GroupMembers = () => {
 
     if (error) {
       console.error('Error updating role:', error);
-      alert('Error updating user role.');
+      toast.error('Error updating user role.');
     } else {
       await fetchMembers();
     }
@@ -205,7 +206,7 @@ const GroupMembers = () => {
       .single();
 
     if (memberToRemove.user_id === organization.created_by) {
-      alert('Cannot remove the group owner as they hold the subscription.');
+      toast.error('Cannot remove the group owner as they hold the subscription.');
       setMemberToRemove(null);
       return;
     }
@@ -214,7 +215,7 @@ const GroupMembers = () => {
     if (memberToRemove.role === 'admin') {
       const adminCount = members.filter(m => m.role === 'admin').length;
       if (adminCount === 1) {
-        alert('Cannot remove the last admin from the organization.');
+        toast.error('Cannot remove the last admin from the organization.');
         setMemberToRemove(null);
         return;
       }
@@ -227,7 +228,7 @@ const GroupMembers = () => {
 
     if (error) {
       console.error('Error removing member:', error);
-      alert('Error removing member from organization.');
+      toast.error('Error removing member from organization.');
     } else {
       await fetchMembers();
     }
@@ -243,7 +244,7 @@ const GroupMembers = () => {
 
     // Prevent the owner from leaving
     if (session.user.id === organization.created_by) {
-      alert('As the group owner, you cannot leave the group.');
+      toast.error('As the group owner, you cannot leave the group.');
       return;
     }
 
@@ -252,7 +253,7 @@ const GroupMembers = () => {
     if (userMember.role === 'admin') {
       const adminCount = members.filter(m => m.role === 'admin').length;
       if (adminCount === 1) {
-        alert('As the last admin, you must assign another admin before leaving the group.');
+        toast.error('As the last admin, you must assign another admin before leaving the group.');
         return;
       }
     }
@@ -265,7 +266,7 @@ const GroupMembers = () => {
 
     if (error) {
       console.error('Error leaving group:', error);
-      alert('Error leaving group.');
+      toast.error('Error leaving group.');
     } else {
       // Redirect to home or dashboard after leaving
       navigate('/dashboard');

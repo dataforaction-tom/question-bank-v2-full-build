@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import toast from 'react-hot-toast';
 
 const QuestionRanking = ({ open, onClose, onSubmit }) => {
   const [questions, setQuestions] = useState([]);
@@ -25,7 +26,7 @@ const QuestionRanking = ({ open, onClose, onSubmit }) => {
 
       if (error) {
         console.error('Error fetching questions:', error);
-        alert('An error occurred while fetching questions.');
+        toast.error('An error occurred while fetching questions.');
       } else {
         // Shuffle the fetched questions and take the first 3
         const shuffled = data.sort(() => 0.5 - Math.random());
@@ -68,13 +69,13 @@ const QuestionRanking = ({ open, onClose, onSubmit }) => {
         loser_id: questions[2].id,
       });
 
-      alert('Ranking submitted successfully!');
+      toast.success('Ranking submitted successfully!');
       if (typeof onSubmit === 'function') {
         onSubmit();
       }
     } catch (error) {
       console.error('Error submitting ranking:', error);
-      alert('An error occurred while submitting your ranking.');
+      toast.error('An error occurred while submitting your ranking.');
     }
   };
 

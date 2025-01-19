@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Container, Typography, Button, List, ListItem, ListItemText } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import toast from 'react-hot-toast';
 
 const OrganizationELORanking = ({ organizationId, onSubmitSuccess }) => {
   
@@ -56,7 +57,7 @@ const OrganizationELORanking = ({ organizationId, onSubmitSuccess }) => {
       setQuestions(selected);
     } catch (error) {
       console.error('Error fetching questions:', error);
-      alert('An error occurred while fetching questions.');
+      toast.error('An error occurred while fetching questions.');
     }
   };
 
@@ -88,14 +89,14 @@ const OrganizationELORanking = ({ organizationId, onSubmitSuccess }) => {
         }
       }
 
-      alert('Ranking submitted successfully!');
+      toast.success('Ranking submitted successfully!');
       await fetchRandomQuestions(); // Refetch questions to get updated scores
       if (onSubmitSuccess) {
         onSubmitSuccess();  // Call the callback after successful submission
       }
     } catch (error) {
       console.error('Error submitting ranking:', error);
-      alert('An error occurred while submitting your ranking.');
+      toast.error('An error occurred while submitting your ranking.');
     }
   };
   

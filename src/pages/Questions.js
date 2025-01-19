@@ -5,10 +5,11 @@ import QuestionCard from '../components/QuestionCard';
 import Filter from '../components/Filter';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDownIcon } from '@heroicons/react/20/solid';
+
 import Button from '../components/Button';
-import { useAuth } from '../hooks/useAuth'; // Import useAuth hook
-import Papa from 'papaparse'; // Import PapaParse
+import { useAuth } from '../hooks/useAuth'; 
+import Papa from 'papaparse'; 
+import toast from 'react-hot-toast';
 
 const Questions = () => {
   const [questions, setQuestions] = useState([]);
@@ -63,7 +64,7 @@ const Questions = () => {
   
       if (error) {
         console.error('Error fetching questions:', error);
-        alert('An error occurred while fetching questions.');
+        toast.error('An error occurred while fetching questions.');
       } else {
         const questionsWithCounts = data.map(q => ({
           ...q,

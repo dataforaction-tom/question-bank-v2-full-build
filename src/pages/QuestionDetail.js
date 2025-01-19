@@ -11,13 +11,14 @@ import Button from '../components/Button';
 import { FaThumbsUp, FaBell, FaComment, FaLinkedin, FaLink, FaEnvelope, FaTrash, FaCircularProgress, FaEdit } from 'react-icons/fa';
 import { styled, Box, Dialog, DialogTitle, DialogContent, DialogActions, Typography, CircularProgress } from '@mui/material';
 import { createPortal } from 'react-dom';
-import TagManager from '../components/TagManager';  // Import the new TagManager component
+import TagManager from '../components/TagManager';  
 import ResponseKanban from '../components/ResponseKanban';
 import ResponseManualRanking from '../components/ResponseManualRanking';
-import toast from 'react-hot-toast'; // Add this import
+import toast from 'react-hot-toast'; 
 import QuestionCard from '../components/QuestionCard';
-import EditQuestionModal from '../components/EditQuestionModal'; // New component we'll create
+import EditQuestionModal from '../components/EditQuestionModal'; 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
+
 
 const COLUMN_COLORS = {
   Now: '#f860b1',
@@ -207,7 +208,7 @@ const handleGoBack = () => {
       setIsResponseModalOpen(false);
     } catch (error) {
       console.error('Error handling response submission:', error);
-      alert('An error occurred while processing your response. Please try again.');
+      toast.error('An error occurred while processing your response. Please try again.');
     }
   }, [id, question, fetchResponses]);
 
@@ -395,7 +396,7 @@ const handleGoBack = () => {
       setDropdownState({ isOpen: false, position: null });
     } catch (error) {
       console.error('Error updating Kanban status:', error);
-      alert('Failed to update Kanban status. Please try again.');
+      toast.error('Failed to update Kanban status. Please try again.');
     }
   };
 
@@ -447,7 +448,7 @@ const handleGoBack = () => {
 
   const handleEndorse = async () => {
     if (!currentUser) {
-      alert('Please log in to endorse questions.');
+      toast.error('Please log in to endorse questions.');
       return;
     }
   
@@ -474,7 +475,7 @@ const handleGoBack = () => {
       setIsEndorsed(!isEndorsed);
     } catch (error) {
       console.error('Error updating endorsement:', error);
-      alert('Failed to update endorsement.');
+      toast.error('Failed to update endorsement.');
     }
   };
   
@@ -509,7 +510,7 @@ const handleGoBack = () => {
 
   const handleFollow = async () => {
     if (!currentUser) {
-      alert('Please log in to follow questions.');
+      toast.error('Please log in to follow questions.');
       return;
     }
 
@@ -528,7 +529,7 @@ const handleGoBack = () => {
       setIsFollowing(!isFollowing);
     } catch (error) {
       console.error('Error updating follow status:', error);
-      alert('Failed to update follow status.');
+      toast.error('Failed to update follow status.');
     }
   };
 
@@ -736,12 +737,12 @@ const handleGoBack = () => {
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(currentUrl);
-    alert('Link copied to clipboard');
+    toast.success('Link copied to clipboard');
   };
 
   const handleOpenResponseModal = () => {
     if (!session) {
-      alert('Please log in to respond to questions.');
+      toast.error('Please log in to respond to questions.');
       navigate('/signin');
       return;
     }

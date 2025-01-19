@@ -25,6 +25,7 @@ import * as Yup from 'yup';
 import SimilarQuestionsModal from '../components/SimilarQuestionsModal';
 import CircleIcon from '@mui/icons-material/Circle';
 import Button from '../components/Button';
+import toast from 'react-hot-toast';
 
 const QuestionSchema = Yup.object().shape({
   content: Yup.string().required('Question content is required'),
@@ -173,7 +174,7 @@ const SubmitQuestion = () => {
       };
     } catch (error) {
       console.error('Error checking similar questions:', error);
-      alert(`Failed to check for similar questions: ${error.message}`);
+      toast.error(`Failed to check for similar questions: ${error.message}`);
       throw error;
     }
   };
@@ -199,7 +200,7 @@ const SubmitQuestion = () => {
       }
     } catch (error) {
       console.error('Unexpected error:', error);
-      alert('An unexpected error occurred.');
+      toast.error('An unexpected error occurred.');
     } finally {
       setSubmitting(false);
     }
@@ -210,7 +211,7 @@ const SubmitQuestion = () => {
 
     if (userError) {
       console.error('Error fetching user:', userError);
-      alert('Error fetching user information.');
+      toast.error('Error fetching user information.');
       return;
     }
 
@@ -233,10 +234,10 @@ const SubmitQuestion = () => {
 
     if (error) {
       console.error('Error submitting question:', error);
-      alert(error.message);
+      toast.error(error.message);
     } else {
       console.log('Question submitted:', data);
-      alert('Question submitted successfully!');
+      toast.success('Question submitted successfully!');
       setSimilarQuestions([]);
       setShowModal(false);
     }
@@ -332,9 +333,9 @@ const SubmitQuestion = () => {
         setSubmissionData(null);
 
         if (selectedQuestion.is_open) {
-          alert('The public question has been added to your group\'s dashboard, and your question has been added as an alternative.');
+          toast.success('The public question has been added to your group\'s dashboard, and your question has been added as an alternative.');
         } else {
-          alert('Your question has been successfully added as an alternative to the closed question.');
+          toast.success('Your question has been successfully added as an alternative to the closed question.');
         }
       } else {
         // Existing behavior for public submissions
@@ -406,12 +407,12 @@ const SubmitQuestion = () => {
         setShowModal(false);
         setSimilarQuestions([]);
         setSubmissionData(null);
-        alert('Your question has been successfully added as an alternative.');
+        toast.success('Your question has been successfully added as an alternative.');
       }
 
     } catch (error) {
       console.error('Error processing similar question selection:', error);
-      alert(`An error occurred: ${error.message}`);
+      toast.error(`An error occurred: ${error.message}`);
     }
   };
 

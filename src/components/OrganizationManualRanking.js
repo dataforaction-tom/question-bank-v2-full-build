@@ -4,8 +4,8 @@ import { supabase } from '../supabaseClient';
 import { Container, Typography, Button as MuiButton } from '@mui/material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { colorMapping, defaultColors } from '../utils/colorMapping';
-import Button from '../components/Button';
 
+import toast from 'react-hot-toast';
 const OrganizationManualRanking = ({ organizationId }) => {
   
   const [questions, setQuestions] = useState([]);
@@ -84,7 +84,7 @@ const OrganizationManualRanking = ({ organizationId }) => {
       setQuestions(sortedQuestions);
     } catch (error) {
       console.error('Error fetching questions:', error);
-      alert('An error occurred while fetching questions.');
+      toast.error('An error occurred while fetching questions.');
     }
   };
 
@@ -127,11 +127,11 @@ const OrganizationManualRanking = ({ organizationId }) => {
       if (error) throw error;
 
       console.log('Ranking update response:', data);
-      alert('Ranking submitted successfully!');
+      toast.success('Ranking submitted successfully!');
       fetchQuestions(); // Refresh the questions to ensure we have the latest data
     } catch (error) {
       console.error('Error submitting ranking:', error);
-      alert(`An error occurred while submitting your ranking: ${error.message}`);
+      toast.error(`An error occurred while submitting your ranking: ${error.message}`);
     }
   };
 

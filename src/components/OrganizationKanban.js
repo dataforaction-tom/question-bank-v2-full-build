@@ -5,6 +5,7 @@ import { Container, Typography, Button, Card, CardContent, Box, Chip } from '@mu
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import ColorTag from './ColorTag';
 import { useOrganization } from '../context/OrganizationContext';
+import toast from 'react-hot-toast';
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
@@ -161,7 +162,7 @@ const OrganizationKanban = ({ organizationId, questions, setQuestions }) => {
       if (error) throw error;
     } catch (error) {
       console.error('Error updating question status:', error);
-      alert('An error occurred while updating the question status.');
+      toast.error('An error occurred while updating the question status.');
     }
   };
 

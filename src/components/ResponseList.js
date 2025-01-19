@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import ResponseForm from './ResponseForm';
 import Button from './Button';
 import ResponseTypePill from './ResponseTypePill';
-
+import toast from 'react-hot-toast';
 
 const ResponseCard = ({ response, currentUserId, onEdit, onDelete }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -133,7 +133,7 @@ const ResponseList = ({ questionId, currentUserId }) => {
       await fetchResponses();
     } catch (error) {
       console.error('Error updating response:', error);
-      alert('Failed to update response. Please try again.');
+      toast.error('Failed to update response. Please try again.');
     }
   };
 
@@ -148,7 +148,7 @@ const ResponseList = ({ questionId, currentUserId }) => {
       await fetchResponses();
     } catch (error) {
       console.error('Error deleting response:', error);
-      alert('Failed to delete response. Please try again.');
+      toast.error('Failed to delete response. Please try again.');
     }
   };
 
