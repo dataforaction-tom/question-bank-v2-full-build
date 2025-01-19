@@ -9,14 +9,13 @@ const supabaseServer = createClient(supabaseUrl, supabaseServiceKey);
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
-    res.status(405).end('Method Not Allowed');
-    return;
+    return res.status(405).end('Method Not Allowed');
   }
 
   try {
-    const { organizationId } = req.body;
+    const { organizationId, returnUrl } = req.body;
 
-    // Get organization's Stripe customer ID
+    // Get organization details from Supabase
     const { data: org, error: orgError } = await supabaseServer
       .from('organizations')
       .select('stripe_customer_id')
@@ -24,19 +23,26 @@ export default async function handler(req, res) {
       .single();
 
     if (orgError || !org) {
-      throw new Error('Organization not found');
+      console.error('Error fetching organization:', orgError);
+      return res.status(404).json({ error: 'Organization not found' });
     }
 
-    // Create Stripe portal session
+    if (!org.stripe_customer_id) {
+      return res.status(400).json({ error: 'No associated Stripe customer' });
+    }
+
+    // Create Stripe billing portal session
     const session = await stripe.billingPortal.sessions.create({
       customer: org.stripe_customer_id,
-      return_url: `${process.env.CLIENT_URL}/organization-dashboard`,
-      configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID // Optional: Use if you have a custom portal configuration
+      return_url: returnUrl || process.env.CLIENT_URL,
     });
 
     res.json({ url: session.url });
   } catch (error) {
     console.error('Portal session error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: 'Failed to create portal session',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 } 

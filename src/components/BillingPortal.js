@@ -12,18 +12,22 @@ const BillingPortal = ({ organizationId, disabled }) => {
       const response = await fetch('/api/create-portal-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId }),
+        body: JSON.stringify({ 
+          organizationId,
+          returnUrl: `${window.location.origin}/organization-dashboard`
+        }),
       });
 
-      const { url, error } = await response.json();
+      const data = await response.json();
       
-      if (error) throw new Error(error);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to access billing portal');
+      }
       
-      // Redirect to Stripe Portal
-      window.location.href = url;
+      window.location.href = data.url;
     } catch (error) {
       console.error('Error accessing billing portal:', error);
-      alert('Failed to access billing portal. Please try again.');
+      alert('Failed to access billing portal. Please try again later.');
     } finally {
       setLoading(false);
     }
