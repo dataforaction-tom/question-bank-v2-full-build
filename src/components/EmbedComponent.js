@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import DOMPurify from "dompurify";
-import { ErrorBoundary } from "react-error-boundary";
+
 
 const EmbedComponent = ({ embedCode, url }) => {
   const [fallbackData, setFallbackData] = useState(null);
