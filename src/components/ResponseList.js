@@ -4,6 +4,7 @@ import ResponseForm from './ResponseForm';
 import Button from './Button';
 import ResponseTypePill from './ResponseTypePill';
 import toast from 'react-hot-toast';
+import EmbedComponent from './EmbedComponent';
 
 const ResponseCard = ({ response, currentUserId, onEdit, onDelete }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -54,14 +55,17 @@ const ResponseCard = ({ response, currentUserId, onEdit, onDelete }) => {
       </div>
       <p className="text-gray-800 mb-2 p-4">{response.content}</p>
       {response.url && (
-        <a
-          href={response.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:underline p-4"
-        >
-          {response.url}
-        </a>
+        <div className="p-4">
+          <EmbedComponent url={response.url} />
+          <a
+            href={response.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline block mt-2"
+          >
+            {response.url}
+          </a>
+        </div>
       )}
       <p className="text-sm text-gray-500 mt-2 p-4">
         Responded on: {new Date(response.created_at).toLocaleDateString()}
