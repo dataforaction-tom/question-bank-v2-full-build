@@ -1,31 +1,33 @@
 import React, { useState, useEffect } from "react";
 import DOMPurify from "dompurify";
+import { ErrorBoundary } from "react-error-boundary";
 
 const EmbedComponent = ({ embedCode, url }) => {
   const [fallbackData, setFallbackData] = useState(null);
-  const [iframeError, setIframeError] = useState(false);
-  const [loadAttempted, setLoadAttempted] = useState(false);
+  const [shouldUseFallback, setShouldUseFallback] = useState(false);
 
   useEffect(() => {
-    if ((iframeError || loadAttempted) && url) {
-      console.log('Attempting to fetch OG data for:', url);
+    // Immediately try to fetch OG data as a backup
+    if (url) {
       fetch(`/api/og?url=${encodeURIComponent(url)}`)
-        .then(res => {
-          console.log('OG API response status:', res.status);
-          return res.json();
-        })
+        .then(res => res.json())
         .then(data => {
-          console.log('OG API response data:', data);
+          console.log('OG data fetched:', data);
           setFallbackData(data);
         })
         .catch(error => {
           console.error('Error fetching OG data:', error);
         });
     }
-  }, [iframeError, loadAttempted, url]);
+  }, [url]);
 
   // Function to sanitise iframe or embed code
   const sanitizedEmbedCode = embedCode ? DOMPurify.sanitize(embedCode) : null;
+
+  const handleIframeError = () => {
+    console.log('Iframe failed to load, switching to fallback');
+    setShouldUseFallback(true);
+  };
 
   const FallbackCard = ({ metadata }) => (
     <a 
@@ -159,32 +161,30 @@ const EmbedComponent = ({ embedCode, url }) => {
         );
       }
 
-      // Modified fallback for generic iframe
-      if ((iframeError || loadAttempted) && fallbackData) {
+      // If we should use fallback and we have fallback data, show the card
+      if (shouldUseFallback && fallbackData) {
         return <FallbackCard metadata={fallbackData} />;
       }
 
+      // Try the iframe with error handling
       return (
-        <iframe 
-          src={url} 
-          width="100%" 
-          height="600" 
-          frameBorder="0"
-          onError={() => setIframeError(true)}
-          onLoad={(e) => {
-            // Check if the iframe loaded successfully
-            try {
-              // Attempting to access iframe content will throw an error if blocked
-              const frameContent = e.target.contentWindow;
-              if (!frameContent) {
-                setLoadAttempted(true);
+        <ErrorBoundary fallback={fallbackData && <FallbackCard metadata={fallbackData} />}>
+          <iframe
+            src={url}
+            width="100%"
+            height="600"
+            frameBorder="0"
+            onError={handleIframeError}
+            onLoad={(e) => {
+              try {
+                // This will throw if we can't access the iframe
+                const _ = e.target.contentWindow.location.href;
+              } catch (error) {
+                handleIframeError();
               }
-            } catch (error) {
-              console.log('Frame access denied, falling back to OG data');
-              setLoadAttempted(true);
-            }
-          }}
-        />
+            }}
+          />
+        </ErrorBoundary>
       );
     }
 
@@ -193,5 +193,29 @@ const EmbedComponent = ({ embedCode, url }) => {
 
   return <div>{renderEmbed()}</div>;
 };
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.log('Iframe error caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || <div>Error loading content.</div>;
+    }
+
+    return this.props.children;
+  }
+}
 
 export default EmbedComponent;
