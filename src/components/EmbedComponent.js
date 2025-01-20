@@ -119,14 +119,18 @@ const EmbedComponent = ({ embedCode, url }) => {
       }
 
       if (isGoogleSheet) {
-        return (
-          <iframe
-            src={`${url.replace(/\/edit.*/, "/pubhtml?widget=true&headers=false")}`}
-            width="100%"
-            height="600"
-            frameBorder="0"
-          />
-        );
+        // Extract the spreadsheet ID from the URL
+        const sheetId = url.match(/[-\w]{25,}/);
+        if (sheetId) {
+          return (
+            <iframe
+              src={`https://docs.google.com/spreadsheets/d/${sheetId[0]}/preview`}
+              width="100%"
+              height="600"
+              frameBorder="0"
+            />
+          );
+        }
       }
 
       if (isGoogleSlide) {
@@ -165,22 +169,7 @@ const EmbedComponent = ({ embedCode, url }) => {
           width="100%" 
           height="600" 
           frameBorder="0"
-          onLoad={(e) => {
-            console.log('iframe loaded, checking if actually accessible...');
-            // Check if we can access the iframe's content
-            try {
-              // This will throw an error if we can't access the iframe due to same-origin policy
-              const iframeWindow = e.target.contentWindow;
-              const test = iframeWindow.location.href;
-            } catch (err) {
-              console.log('Security error detected, falling back to OG data');
-              setIframeError(true);
-            }
-          }}
-          onError={(e) => {
-            console.log('iframe load error occurred');
-            setIframeError(true);
-          }}
+          onError={() => setIframeError(true)}
         />
       );
     }
