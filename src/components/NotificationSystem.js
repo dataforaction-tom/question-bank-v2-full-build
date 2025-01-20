@@ -22,7 +22,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
-const NotificationSystem = ({ onCreateGroup }) => {
+const NotificationSystem = ({ onCreateGroup, onNotificationClick }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
@@ -86,15 +86,14 @@ const NotificationSystem = ({ onCreateGroup }) => {
   };
 
   const handleNotificationClick = async (notification) => {
-    await markAsRead(notification.id);
-    handleClose();
-
-    if (notification.type === 'question_update') {
-      navigate(`/questions/${notification.question_id}`);
-    } else if (notification.type === 'group_invitation') {
+    if (notification.type === 'group_invitation') {
       // Handle group invitation
-      onCreateGroup && onCreateGroup(notification.question_id);
+      onCreateGroup && onCreateGroup(notification.question_id, notification.id);
+    } else {
+      // For question updates and other notifications, use the passed onNotificationClick handler
+      onNotificationClick && onNotificationClick(notification.id, notification.question_id);
     }
+    handleClose();
   };
 
   const getNotificationIcon = (type) => {

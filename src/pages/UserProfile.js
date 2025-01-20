@@ -217,14 +217,30 @@ const UserProfile = () => {
   };
 
   const handleNotificationClick = async (notificationId, questionId) => {
-    // Mark notification as read
-    await supabase
-      .from('user_notifications')
-      .update({ read: true })
-      .eq('id', notificationId);
+    try {
+      // Mark notification as read
+      const { error } = await supabase
+        .from('user_notifications')
+        .update({ read: true })
+        .eq('id', notificationId);
 
-    // Navigate to the question
-    navigate(`/questions/${questionId}`);
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        return;
+      }
+
+      // Update local notifications state to reflect the change
+      setNotifications(prevNotifications =>
+        prevNotifications.filter(notification => notification.id !== notificationId)
+      );
+
+      // Navigate to the question detail page
+      if (questionId) {
+        navigate(`/questions/${questionId}`);
+      }
+    } catch (error) {
+      console.error('Error handling notification click:', error);
+    }
   };
 
   const handleOrganizationSelect = useCallback((org) => {
@@ -411,7 +427,19 @@ const UserProfile = () => {
             Profile Settings
           </Typography>
           <Box>
-            <NotificationSystem onCreateGroup={handleCreateGroup} />
+            <NotificationSystem 
+              onCreateGroup={handleCreateGroup} 
+              onNotificationClick={handleNotificationClick}
+              sx={{
+                '& .MuiTypography-root': {
+                  whiteSpace: 'normal',
+                  overflow: 'visible'
+                },
+                '& .MuiListItemText-root': {
+                  margin: '8px 0'
+                }
+              }}
+            />
           </Box>
         </Box>
 
