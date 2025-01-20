@@ -4,9 +4,10 @@ import DOMPurify from "dompurify";
 const EmbedComponent = ({ embedCode, url }) => {
   const [fallbackData, setFallbackData] = useState(null);
   const [iframeError, setIframeError] = useState(false);
+  const [loadAttempted, setLoadAttempted] = useState(false);
 
   useEffect(() => {
-    if (iframeError && url) {
+    if ((iframeError || loadAttempted) && url) {
       console.log('Attempting to fetch OG data for:', url);
       fetch(`/api/og?url=${encodeURIComponent(url)}`)
         .then(res => {
@@ -21,7 +22,7 @@ const EmbedComponent = ({ embedCode, url }) => {
           console.error('Error fetching OG data:', error);
         });
     }
-  }, [iframeError, url]);
+  }, [iframeError, loadAttempted, url]);
 
   // Function to sanitise iframe or embed code
   const sanitizedEmbedCode = embedCode ? DOMPurify.sanitize(embedCode) : null;
@@ -159,7 +160,7 @@ const EmbedComponent = ({ embedCode, url }) => {
       }
 
       // Modified fallback for generic iframe
-      if (iframeError && fallbackData) {
+      if ((iframeError || loadAttempted) && fallbackData) {
         return <FallbackCard metadata={fallbackData} />;
       }
 
@@ -170,6 +171,19 @@ const EmbedComponent = ({ embedCode, url }) => {
           height="600" 
           frameBorder="0"
           onError={() => setIframeError(true)}
+          onLoad={(e) => {
+            // Check if the iframe loaded successfully
+            try {
+              // Attempting to access iframe content will throw an error if blocked
+              const frameContent = e.target.contentWindow;
+              if (!frameContent) {
+                setLoadAttempted(true);
+              }
+            } catch (error) {
+              console.log('Frame access denied, falling back to OG data');
+              setLoadAttempted(true);
+            }
+          }}
         />
       );
     }
