@@ -7,10 +7,19 @@ const EmbedComponent = ({ embedCode, url }) => {
 
   useEffect(() => {
     if (iframeError && url) {
+      console.log('Attempting to fetch OG data for:', url);
       fetch(`/api/og?url=${encodeURIComponent(url)}`)
-        .then(res => res.json())
-        .then(data => setFallbackData(data))
-        .catch(error => console.error('Error fetching metadata:', error));
+        .then(res => {
+          console.log('OG API response status:', res.status);
+          return res.json();
+        })
+        .then(data => {
+          console.log('OG API response data:', data);
+          setFallbackData(data);
+        })
+        .catch(error => {
+          console.error('Error fetching OG data:', error);
+        });
     }
   }, [iframeError, url]);
 
@@ -156,7 +165,22 @@ const EmbedComponent = ({ embedCode, url }) => {
           width="100%" 
           height="600" 
           frameBorder="0"
-          onError={() => setIframeError(true)}
+          onLoad={(e) => {
+            console.log('iframe loaded, checking if actually accessible...');
+            // Check if we can access the iframe's content
+            try {
+              // This will throw an error if we can't access the iframe due to same-origin policy
+              const iframeWindow = e.target.contentWindow;
+              const test = iframeWindow.location.href;
+            } catch (err) {
+              console.log('Security error detected, falling back to OG data');
+              setIframeError(true);
+            }
+          }}
+          onError={(e) => {
+            console.log('iframe load error occurred');
+            setIframeError(true);
+          }}
         />
       );
     }
