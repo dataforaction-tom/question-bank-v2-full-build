@@ -175,14 +175,23 @@ const EmbedComponent = ({ embedCode, url }) => {
             height="600"
             frameBorder="0"
             onError={handleIframeError}
-            onLoad={(e) => {
-              try {
-                // This will throw if we can't access the iframe
-                const _ = e.target.contentWindow.location.href;
-              } catch (error) {
-                handleIframeError();
-              }
-            }}
+           onLoad={(e) => {
+  try {
+    const iframeWindow = e.target.contentWindow;
+    // A naive check for same origin 
+    const sameOrigin = iframeWindow.location.origin === window.location.origin;
+    
+    if (sameOrigin) {
+      // Now safe to do your checks
+      console.log('Iframe location is:', iframeWindow.location.href);
+    } else {
+      console.log('Cross-origin: skipping contentWindow checks.');
+    }
+  } catch (error) {
+    // Possibly a real error, or cross-origin error
+    handleIframeError();
+  }
+}}
           />
         </ErrorBoundary>
       );
