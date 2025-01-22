@@ -63,6 +63,12 @@ const EmbedComponent = ({ embedCode, url }) => {
       const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
       const isNotion = url.includes("notion.so") || url.includes("notion.site");
       const isAirtable = url.includes("airtable.com");
+      const isFelt = url.includes("felt.com");
+
+      // Add Felt handling early in the conditions
+      if (isFelt && fallbackData) {
+        return <FallbackCard metadata={fallbackData} />;
+      }
 
       if (isNotion) {
         return (
@@ -161,12 +167,12 @@ const EmbedComponent = ({ embedCode, url }) => {
         );
       }
 
-      // If we should use fallback and we have fallback data, show the card
+      // Move the fallback check earlier, before the generic iframe
       if (shouldUseFallback && fallbackData) {
         return <FallbackCard metadata={fallbackData} />;
       }
 
-      // Try the iframe with error handling
+      // Generic iframe with improved error handling
       return (
         <ErrorBoundary fallback={fallbackData && <FallbackCard metadata={fallbackData} />}>
           <iframe
@@ -175,9 +181,18 @@ const EmbedComponent = ({ embedCode, url }) => {
             height="600"
             frameBorder="0"
             onError={handleIframeError}
-           onLoad={(e) => {
-  
-}}
+            onLoad={(e) => {
+              // Check if the iframe loaded successfully
+              try {
+                // Try to access iframe content - if blocked, trigger fallback
+                const iframeDoc = e.target.contentDocument;
+                if (!iframeDoc) {
+                  handleIframeError();
+                }
+              } catch (error) {
+                handleIframeError();
+              }
+            }}
           />
         </ErrorBoundary>
       );
