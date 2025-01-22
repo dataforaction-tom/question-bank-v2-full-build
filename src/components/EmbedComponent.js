@@ -63,12 +63,6 @@ const EmbedComponent = ({ embedCode, url }) => {
       const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
       const isNotion = url.includes("notion.so") || url.includes("notion.site");
       const isAirtable = url.includes("airtable.com");
-      const isFelt = url.includes("felt.com");
-
-      // Add Felt handling early in the conditions
-      if (isFelt && fallbackData) {
-        return <FallbackCard metadata={fallbackData} />;
-      }
 
       if (isNotion) {
         return (
@@ -174,7 +168,9 @@ const EmbedComponent = ({ embedCode, url }) => {
 
       // Generic iframe with improved error handling
       return (
-        <ErrorBoundary fallback={fallbackData && <FallbackCard metadata={fallbackData} />}>
+        <ErrorBoundary 
+          fallback={fallbackData && <FallbackCard metadata={fallbackData} />}
+        >
           <iframe
             src={url}
             width="100%"
@@ -182,16 +178,17 @@ const EmbedComponent = ({ embedCode, url }) => {
             frameBorder="0"
             onError={handleIframeError}
             onLoad={(e) => {
-              // Check if the iframe loaded successfully
-              try {
-                // Try to access iframe content - if blocked, trigger fallback
-                const iframeDoc = e.target.contentDocument;
-                if (!iframeDoc) {
-                  handleIframeError();
-                }
-              } catch (error) {
-                handleIframeError();
+              // We can check if the iframe element itself loaded
+              const iframe = e.target;
+              
+              // Check if iframe has a contentWindow at all
+              if (!iframe.contentWindow) {
+                handleIframeError('No content window available');
+                return;
               }
+
+              // Reset any previous error state since the iframe loaded
+              setShouldUseFallback(false);
             }}
           />
         </ErrorBoundary>
