@@ -178,16 +178,21 @@ const EmbedComponent = ({ embedCode, url }) => {
             frameBorder="0"
             onError={handleIframeError}
             onLoad={(e) => {
-              // We can check if the iframe element itself loaded
               const iframe = e.target;
               
-              // Check if iframe has a contentWindow at all
               if (!iframe.contentWindow) {
                 handleIframeError('No content window available');
                 return;
               }
 
-              // Reset any previous error state since the iframe loaded
+              // Check if iframe content is blocked by comparing rendered height
+              // Most browsers render blocked iframes with minimal or zero height
+              if (iframe.clientHeight < 50) {  // threshold for considering iframe blocked
+                handleIframeError('Iframe content appears to be blocked');
+                return;
+              }
+
+              // Reset any previous error state since the iframe loaded successfully
               setShouldUseFallback(false);
             }}
           />
