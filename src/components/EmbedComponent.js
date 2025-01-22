@@ -7,16 +7,24 @@ const EmbedComponent = ({ embedCode, url }) => {
   const [shouldUseFallback, setShouldUseFallback] = useState(false);
 
   useEffect(() => {
-    // Immediately try to fetch OG data as a backup
+    // Fetch OG data and check X-Frame-Options header immediately when URL changes
     if (url) {
-      fetch(`/api/og?url=${encodeURIComponent(url)}`)
+      console.log('🔄 URL changed, checking embedding capability:', url);
+      setShouldUseFallback(false);
+      fetch(`/api/og?url=${encodeURIComponent(url)}&checkXFrame=true`)
         .then(res => res.json())
         .then(data => {
-          console.log('OG data fetched:', data);
+          console.log('✅ Site data fetched:', data);
           setFallbackData(data);
+          
+          // If the API tells us X-Frame-Options blocks embedding, use fallback immediately
+          if (data.isFrameBlocked) {
+            console.log('❌ Site blocks embedding, using fallback');
+            setShouldUseFallback(true);
+          }
         })
         .catch(error => {
-          console.error('Error fetching OG data:', error);
+          console.error('❌ Error fetching site data:', error);
         });
     }
   }, [url]);
@@ -25,7 +33,8 @@ const EmbedComponent = ({ embedCode, url }) => {
   const sanitizedEmbedCode = embedCode ? DOMPurify.sanitize(embedCode) : null;
 
   const handleIframeError = () => {
-    console.log('Iframe failed to load, switching to fallback');
+    console.log('❌ Iframe failed to load for URL:', url);
+    console.log('🔄 Triggering fallback display mechanism');
     setShouldUseFallback(true);
   };
 
@@ -161,41 +170,29 @@ const EmbedComponent = ({ embedCode, url }) => {
         );
       }
 
-      // Move the fallback check earlier, before the generic iframe
+      // If we already know we should use fallback and have the data, show it
       if (shouldUseFallback && fallbackData) {
+        console.log('✅ Rendering fallback card for URL:', url);
         return <FallbackCard metadata={fallbackData} />;
       }
 
-      // Generic iframe with improved error handling
       return (
         <ErrorBoundary 
           fallback={fallbackData && <FallbackCard metadata={fallbackData} />}
         >
-          <iframe
-            src={url}
-            width="100%"
-            height="600"
-            frameBorder="0"
-            onError={handleIframeError}
-            onLoad={(e) => {
-              const iframe = e.target;
-              
-              if (!iframe.contentWindow) {
-                handleIframeError('No content window available');
-                return;
-              }
-
-              // Check if iframe content is blocked by comparing rendered height
-              // Most browsers render blocked iframes with minimal or zero height
-              if (iframe.clientHeight < 50) {  // threshold for considering iframe blocked
-                handleIframeError('Iframe content appears to be blocked');
-                return;
-              }
-
-              // Reset any previous error state since the iframe loaded successfully
-              setShouldUseFallback(false);
-            }}
-          />
+          <div>
+            <iframe
+              src={url}
+              width="100%"
+              height="600"
+              frameBorder="0"
+              onError={handleIframeError}
+              style={{ display: shouldUseFallback ? 'none' : 'block' }}
+            />
+            {shouldUseFallback && fallbackData && (
+              <FallbackCard metadata={fallbackData} />
+            )}
+          </div>
         </ErrorBoundary>
       );
     }

@@ -17,6 +17,25 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Checking headers for:', url);
+    // First make a HEAD request to check headers
+    const headResponse = await fetch(url, { method: 'HEAD' });
+    const xFrameOptions = headResponse.headers.get('x-frame-options');
+    const csp = headResponse.headers.get('content-security-policy');
+    
+    // Check if framing is blocked by X-Frame-Options or CSP frame-ancestors
+    const isFrameBlocked = 
+      xFrameOptions?.toLowerCase().includes('sameorigin') ||
+      xFrameOptions?.toLowerCase().includes('deny') ||
+      csp?.includes('frame-ancestors');
+    
+    console.log('Frame headers:', {
+      xFrameOptions,
+      csp,
+      isFrameBlocked
+    });
+
+    // Now fetch the full response for OG data
     console.log('Attempting to fetch:', url);
     const response = await fetch(url);
     console.log('Fetch response status:', response.status);
@@ -33,7 +52,8 @@ export default async function handler(req, res) {
                   root.querySelector('meta[name="description"]')?.getAttribute('content') || '',
       image: root.querySelector('meta[property="og:image"]')?.getAttribute('content') || '',
       site_name: root.querySelector('meta[property="og:site_name"]')?.getAttribute('content') ||
-                new URL(url).hostname
+                new URL(url).hostname,
+      isFrameBlocked // Add the frame blocking status to the metadata
     };
 
     console.log('Extracted metadata:', metadata);
