@@ -12,13 +12,13 @@ const LandingSection = () => {
             <p className="text-gray-600 text-lg">
               We want the Question Bank to help social purpose organisations to identify the most important questions to ask in their area of interest and help people to work together to answer them.
               We believe in <span className="inline-block relative">
-                <span className="relative z-10">open infrastructure</span>
+                <span className="relative z-10 font-bold">open infrastructure</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
               </span>, the power of <span className="inline-block relative">
-                <span className="relative z-10">questions</span>
+                <span className="relative z-10 font-bold">questions</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
               </span> and the power of <span className="inline-block relative">
-                <span className="relative z-10">collaboration</span>
+                <span className="relative z-10 font-bold">collaboration</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
               </span>.
             </p>
@@ -35,32 +35,28 @@ const LandingSection = () => {
           <div className="p-6">
             <p className="text-gray-600 text-lg">
               The Question Bank is a platform for people to <span className="inline-block relative">
-                <span className="relative z-10">ask questions</span>
+                <span className="relative z-10 font-bold">ask questions</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
               </span>, allow community users to <span className="inline-block relative">
-                <span className="relative z-10">determine the most important questions</span>
+                <span className="relative z-10 font-bold">determine</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
-              </span>, & 
-              <span className="inline-block relative">
-                <span className="relative z-10">  take action</span>
+              </span> the most important questions, & <span className="inline-block relative">
+                <span className="relative z-10 font-bold">take action</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
               </span> on them.
-              Questions are asked by users with a focus on <span className="inline-block relative">
-                <span className="relative z-10"></span>
-                <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
-              </span>social purpose organisations and their areas of interest.
-              We <span className="inline-block relative">
-                <span className="relative z-10">show similar questions</span>
-                <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
-              </span> both on submission and on question detail pages. 
+              Questions are asked by users with a focus on social purpose organisations and their areas of interest.
+              We show similar questions both on submission and on question detail pages. 
               Community users can <span className="inline-block relative">
-                <span className="relative z-10">vote on questions</span>
-                <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
-              </span> and the most important questions will be shown at the top of the list.
-              Users can also <span className="inline-block relative">
-                <span className="relative z-10">follow and endorse questions</span>
+                <span className="relative z-10 font-bold">vote</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
-              </span> to get notifications when they are updated or responded to.
+              </span> on questions and the most important questions will be shown at the top of the list.
+              Users can also <span className="inline-block relative">
+                <span className="relative z-10 font-bold">follow</span>
+                <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
+              </span> and <span className="inline-block relative">
+                <span className="relative z-10 font-bold">endorse</span>
+                <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
+              </span> questions to get notifications when they are updated or responded to.
             </p>
           </div>
         </div>
@@ -74,21 +70,23 @@ const LandingSection = () => {
           </div>
           <div className="p-6">
             <p className="text-gray-600 text-lg">
-              We want the public Question Bank to be <span className="font-bold">free to use for everyone</span>. To fund the open infrastructure we have a paid for version which allows groups to have:     
+              We want the public Question Bank to be <span className="font-bold">free to use for everyone</span>. To fund the open infrastructure we have a paid for version which allows groups to have{' '}     
               <span className="inline-block relative">
-                <span className="relative z-10"> private questions</span>
+                <span className="relative z-10 font-bold">private</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
-              </span>, <span className="inline-block relative">
-                <span className="relative z-10">kanban prioritisation features</span>
+              </span> questions, {' '}
+              <span className="inline-block relative">
+                <span className="relative z-10 font-bold">kanban</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
-              </span>, <span className="inline-block relative">
-                <span className="relative z-10"> full tagging options</span>
+              </span> prioritisation features, {' '}
+              <span className="inline-block relative">
+                <span className="relative z-10 font-bold">tagging</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
-              </span>, and <span className="inline-block relative">
-                <span className="relative z-10">flexible ranking </span>
+              </span> options, and {' '}
+              <span className="inline-block relative">
+                <span className="relative z-10 font-bold">ranking</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
-                approaches
-              </span>.
+              </span> approaches.
             </p>
           </div>
         </div>
@@ -103,10 +101,10 @@ const LandingSection = () => {
           <div className="p-6">
             <p className="text-gray-600 text-lg">
               Yes we use some AI to <span className="inline-block relative">
-                <span className="relative z-10">create embeddings</span>
+                <span className="relative z-10 font-bold">create embeddings</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
               </span> of the Questions on submission so that we can identify similar questions. We believe in using AI where it is  <span className="inline-block relative">
-                <span className="relative z-10">effective</span>
+                <span className="relative z-10 font-bold">effective</span>
                 <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
               </span>, but use it sparingly.
             </p>
@@ -124,7 +122,7 @@ const LandingSection = () => {
             <p className="text-gray-600 text-lg">
               The Question Bank was created by and is maintained by <span className="inline-block relative">
                 <a href="https://dataforaction.org.uk/" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-800">
-                  <span className="relative z-10">Data For Action</span>
+                  <span className="relative z-10 font-bold">Data For Action</span>
                   <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
                 </a>
               </span>.

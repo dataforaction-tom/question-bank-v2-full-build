@@ -164,7 +164,7 @@ const QuestionCard = ({
       </div>
 
       
-      <div className="font-semibold text-base md:text-xl text-slate-900 p-3 md:p-4 flex-grow break-words">
+      <div className=" text-base md:text-xl text-slate-900 p-3 md:p-4 flex-grow break-words">
         {question.content}
       </div>
      

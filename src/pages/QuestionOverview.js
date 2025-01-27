@@ -127,7 +127,7 @@ const QuestionOverview = () => {
       >
         <div className="bg-gradient-to-r from-slate-950 to-sky-900 h-2"></div>
         <div className="p-4">
-          <h4 className="text-lg font-semibold mb-2 wrap">{question.content}</h4>
+          <h4 className="text-lg  mb-2 wrap">{question.content}</h4>
         </div>
       </div>
     );
@@ -153,13 +153,13 @@ const QuestionOverview = () => {
       </h1>
       <p className="text-xl text-gray-600 max-w-2xl mx-auto">
         <span className="inline-block relative">
-          <span className="relative z-10">Search</span>
+          <span className="relative z-10 font-bold">Search</span>
           <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
         </span>, <span className="inline-block relative">
-          <span className="relative z-10">browse</span>
+          <span className="relative z-10 font-bold">browse</span>
           <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
         </span>, or <span className="inline-block relative">
-          <span className="relative z-10">ask </span>
+          <span className="relative z-10 font-bold">ask </span>
           <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
         </span> your own open questions so we can all work together to answer them.
       </p>
