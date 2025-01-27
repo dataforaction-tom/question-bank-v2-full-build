@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import Button from '../components/Button';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,7 @@ const QuestionOverview = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [focusedCardIndex, setFocusedCardIndex] = useState(-1);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,7 +61,7 @@ const QuestionOverview = () => {
       const questionsWithCounts = data.map(q => ({
         ...q,
         endorsements_count: q.endorsements[0]?.count || 0,
-        followers_count: q.followers[0]?.count || 0,
+        followers_count: q.followers[0]?.count || 0,  
         responses_count: q.responses[0]?.count || 0
       }));
 
@@ -70,7 +71,21 @@ const QuestionOverview = () => {
     } finally {
       setIsSearching(false);
     }
-  };
+  }
+
+  // Update the useEffect
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery) {
+        handleSearch();
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, handleSearch]); // Add handleSearch as dependency
 
   const fetchLatestQuestions = async () => {
     const { data, error } = await supabase
@@ -119,28 +134,27 @@ const QuestionOverview = () => {
     return colorMapping[category] || defaultColors[Math.floor(Math.random() * defaultColors.length)];
   };
 
-  const CompactQuestionCard = ({ question }) => {
-    return (
-      <div 
-        className="bg-white shadow-md rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200"
-        onClick={() => handleQuestionClick(question.id)}
-      >
-        <div className="bg-gradient-to-r from-slate-950 to-sky-900 h-2"></div>
-        <div className="p-4">
-          <h4 className="text-lg  mb-2 wrap">{question.content}</h4>
-        </div>
-      </div>
-    );
-  };
-
-  const CategoryHeading = ({ category }) => {
-    const colors = getColorForCategory(category);
-    return (
-      <h3 className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white px-4 py-2 rounded-md mb-2">
-      {category}
-    </h3>
-    );
-  };
+  const handleCardKeyDown = useCallback((e, index, questionId) => {
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        handleQuestionClick(questionId);
+        break;
+      case 'ArrowRight':
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedCardIndex(prev => Math.min(prev + 1, searchResults.length - 1));
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedCardIndex(prev => Math.max(prev - 1, 0));
+        break;
+      default:
+        break;
+    }
+  }, [handleQuestionClick, searchResults.length]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -222,11 +236,14 @@ const QuestionOverview = () => {
           </Typography>
           {searchResults.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {searchResults.map(question => (
+              {searchResults.map((question, index) => (
                 <QuestionCard
                   key={question.id}
                   question={question}
                   onClick={() => handleQuestionClick(question.id)}
+                  onKeyDown={(e) => handleCardKeyDown(e, index, question.id)}
+                  tabIndex={0}
+                  className={`${focusedCardIndex === index ? 'ring-2 ring-sky-500' : ''}`}
                 />
               ))}
             </div>
@@ -244,14 +261,22 @@ const QuestionOverview = () => {
           <div className="lg:w-1/3">
             <h2 className="text-2xl font-semibold mb-4">Latest Questions</h2>
             <div className="space-y-3 bg-gradient-to-r from-slate-950 to-sky-900 rounded-lg p-4">
-              {latestQuestions.map(question => (
+              {latestQuestions.map((question, index) => (
                 <Paper
                   key={question.id}
                   elevation={1}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => handleCardKeyDown(e, index, question.id)}
+                  aria-label={`Question ${index + 1} of ${latestQuestions.length}: ${question.content}. Press Enter to view details.`}
                   sx={{
                     '&:hover': {
                       backgroundColor: 'grey.50',
                       cursor: 'pointer',
+                    },
+                    '&:focus': {
+                      outline: 'none',
+                      boxShadow: '0 0 0 2px rgb(236 72 153)', // pink-500
                     },
                     transition: 'background-color 0.2s ease',
                   }}
@@ -261,8 +286,8 @@ const QuestionOverview = () => {
                     <Typography 
                       sx={{ 
                         fontWeight: 500,
-                        whiteSpace: 'normal',  // Allows text to wrap
-                        wordBreak: 'break-word' // Handles very long words
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word'
                       }}
                     >
                       {question.content}
@@ -298,11 +323,44 @@ const QuestionOverview = () => {
           <div className="lg:w-2/3">
             <h2 className="text-2xl font-semibold mb-4">Top Questions by Category</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Object.entries(topQuestionsByCategory).map(([category, question]) => (
-                <div key={category}>
-                  <CategoryHeading category={category} />
-                  <CompactQuestionCard question={question} />
-                </div>
+              {Object.entries(topQuestionsByCategory).map(([category, question], index) => (
+                <Paper
+                  key={category}
+                  elevation={1}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => handleCardKeyDown(e, index, question.id)}
+                  aria-label={`${category} category question ${index + 1} of ${Object.keys(topQuestionsByCategory).length}: ${question.content}. Press Enter to view details.`}
+                  sx={{
+                    borderRadius: '1rem',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      backgroundColor: 'grey.50',
+                      cursor: 'pointer',
+                    },
+                    '&:focus': {
+                      outline: 'none',
+                      boxShadow: '0 0 0 2px rgb(236 72 153)', // pink-500
+                    },
+                    transition: 'background-color 0.2s ease',
+                  }}
+                  onClick={() => handleQuestionClick(question.id)}
+                >
+                  <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white px-6 py-3 rounded-t-2xl">
+                    {category}
+                  </div>
+                  <Box sx={{ p: 3 }}>
+                    <Typography 
+                      sx={{ 
+                        fontWeight: 500,
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word'
+                      }}
+                    >
+                      {question.content}
+                    </Typography>
+                  </Box>
+                </Paper>
               ))}
             </div>
           </div>

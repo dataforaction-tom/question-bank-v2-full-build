@@ -6,9 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
+  
   TextField,
   Button,
   Box,
@@ -17,7 +15,7 @@ import {
   DialogContent,
   DialogActions,
   Grid,
-  Badge,
+
   Card,
   CardActionArea,
   CardContent,
@@ -25,7 +23,7 @@ import {
   Paper
 } from '@mui/material';
 import { colorMapping, defaultColors } from '../utils/colorMapping';
-import { Notifications as NotificationsIcon } from '@mui/icons-material';
+
 import { useAuth } from '../hooks/useAuth';
 import NotificationSystem from '../components/NotificationSystem';
 

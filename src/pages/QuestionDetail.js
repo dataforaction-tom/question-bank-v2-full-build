@@ -228,7 +228,6 @@ const handleGoBack = () => {
 
       if (questionError) throw questionError;
 
-      console.log('Fetched question:', questionData);
       setQuestion(questionData);
       
       // Format tags and ensure we have the kanban status
@@ -357,8 +356,6 @@ const handleGoBack = () => {
     }
   }, [question]);
 
-  console.log('Similar questions:', similarQuestions);
-
   const handleStatusClick = (e) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -400,7 +397,7 @@ const handleGoBack = () => {
     }
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = useCallback((event) => {
     if (!dropdownState.isOpen) return;
 
     switch (event.key) {
@@ -423,7 +420,7 @@ const handleGoBack = () => {
       default:
         break;
     }
-  };
+  }, [dropdownState.isOpen, focusedIndex, handleStatusChange]);
 
   useEffect(() => {
     if (dropdownState.isOpen && itemRefs.current[focusedIndex]) {
@@ -444,7 +441,7 @@ const handleGoBack = () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [dropdownState.isOpen]);
+  }, [handleKeyDown]);
 
   const handleEndorse = async () => {
     if (!currentUser) {
@@ -642,12 +639,6 @@ const handleGoBack = () => {
 
   const renderDeleteButton = () => {
     if (!currentUser || !question) return null;
-
-    console.log('Checking delete button visibility:', {
-      currentUserId: currentUser.id,
-      questionCreatedBy: question.created_by,
-      isOwner: currentUser.id === question.created_by
-    });
 
     if (currentUser.id === question.created_by) {
       return (
