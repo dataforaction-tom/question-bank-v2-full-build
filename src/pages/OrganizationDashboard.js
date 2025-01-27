@@ -192,9 +192,8 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   // Then define fetchQuestions which depends on them
   const fetchQuestions = useCallback(async (organizationId) => {
     try {
-      console.log('Fetching questions for organization:', organizationId);
+      // Remove: console.log('Fetching questions for organization:', organizationId);
 
-      // Fetch all questions associated with the organization
       const { data: allQuestions, error: allQuestionsError } = await supabase
         .from('questions')
         .select(`
@@ -284,7 +283,7 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
       processTopQuestionsByCategory(uniqueQuestions);
 
     } catch (error) {
-      console.error('Error fetching questions:', error);
+      // Remove: console.error('Error fetching questions:', error);
       toast.error('Failed to load organization questions');
     }
   }, [sortBy, processLatestQuestions, processTopQuestionsByCategory]);
@@ -793,23 +792,22 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   };
 
   const sortQuestions = (questions, sortBy) => {
-    console.log('Sorting questions:', questions);
-    console.log('Sort by:', sortBy);
+    // Remove: console.log('Sorting questions:', questions);
+    // Remove: console.log('Sort by:', sortBy);
   
     const sorted = [...questions].sort((a, b) => {
       if (sortBy === 'manual_rank') {
         const rankA = a.manual_rank !== undefined ? a.manual_rank : 0;
         const rankB = b.manual_rank !== undefined ? b.manual_rank : 0;
-        console.log(`Comparing manual_rank: ${rankA} vs ${rankB}`);
-        return rankA - rankB; // Sort in descending order
+        // Remove: console.log(`Comparing manual_rank: ${rankA} vs ${rankB}`);
+        return rankA - rankB;
       } else {
         const scoreA = a.elo_score !== undefined ? a.elo_score : 1500;
         const scoreB = b.elo_score !== undefined ? b.elo_score : 1500;
-        console.log(`Comparing elo_score: ${scoreA} vs ${scoreB}`);
-        return scoreB - scoreA; // Sort in descending order
+        // Remove: console.log(`Comparing elo_score: ${scoreA} vs ${scoreB}`);
+        return scoreB - scoreA;
       }
     });
-  
     
     setSortedQuestions(sorted);
   };
@@ -893,7 +891,6 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     if (!isAdmin) return;
 
     try {
-      // Remove tags first (since it's a foreign key relationship)
       const { error: tagsError } = await supabase
         .from('question_tags')
         .delete()
@@ -908,11 +905,9 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
       if (deleteError) throw deleteError;
 
-      // Update local state only after successful deletion
       setTags(prevTags => prevTags.filter(tag => tag && tag.id !== tagId));
       toast.success('Tag deleted successfully');
     } catch (error) {
-      console.error('Error deleting tag:', error);
       toast.error('Failed to delete tag');
     }
   };
@@ -957,7 +952,6 @@ const handleSearch = useCallback(() => {
 
     setSearchResults(sortedResults);
   } catch (error) {
-    console.error('Error searching questions:', error);
     toast.error('Failed to search questions');
   } finally {
     setIsSearching(false);
@@ -999,7 +993,6 @@ const handleKeyDown = (event) => {
       setIsTagDialogOpen(false);
       setIsManageTagsDialogOpen(false);
     } catch (error) {
-      console.error('Error creating tag:', error);
       toast.error('Failed to create tag');
     }
   };
@@ -1009,7 +1002,6 @@ const handleKeyDown = (event) => {
       .from('question_tags')
       .insert({ question_id: questionId, tag_id: tagId });
     if (error) {
-      console.error('Error adding tag to question:', error);
       toast.error('Failed to add tag to question.');
     } else {
       await fetchQuestions(currentOrganization.id);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Container, Typography, Button, Card, CardContent, Box, Chip } from '@mui/material';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import ColorTag from './ColorTag';
 import { useOrganization } from '../context/OrganizationContext';
 import toast from 'react-hot-toast';

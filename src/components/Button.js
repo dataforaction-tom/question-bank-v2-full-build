@@ -14,6 +14,7 @@ const Button = ({
   size = 'md', 
   className = '', 
   active = false,
+  fullWidth = false,
   children, 
   ...props 
 }) => {
@@ -27,15 +28,16 @@ const Button = ({
   const typeClasses = buttonTypes[type];
   const sizeClass = sizeClasses[size];
   const activeClass = !active ? 'bg-opacity-80 ' : '';
+  const widthClass = fullWidth ? 'w-full' : '';
 
-  const finalClassName = `${baseClasses} ${typeClasses} ${sizeClass} ${activeClass} ${className}`;
+  const finalClassName = `${baseClasses} ${typeClasses} ${sizeClass} ${activeClass} ${widthClass} ${className}`.trim();
   
+  const { fullwidth, ...restProps } = props;
   
-
   return (
     <button
       className={finalClassName}
-      {...props}
+      {...restProps}
     >
       {children}
     </button>

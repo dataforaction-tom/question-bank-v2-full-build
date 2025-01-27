@@ -6,6 +6,7 @@ import { colorMapping, defaultColors } from '../utils/colorMapping';
 import { TextField, InputAdornment, Paper, Box, Typography, CircularProgress } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import QuestionCard from '../components/QuestionCard';
+import LandingSection from '../components/LandingSection';
 
 const QuestionOverview = () => {
   const [latestQuestions, setLatestQuestions] = useState([]);
@@ -145,12 +146,25 @@ const QuestionOverview = () => {
     <div className="container mx-auto px-4 py-8">
     <div className="text-center mb-12">
       <h1 className="text-4xl font-bold mb-4">
-        Welcome to Impact Questions
+        Welcome to the <span className="inline-block relative">
+        <span className="relative z-10">Question Bank</span>
+        <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
+      </span>
       </h1>
       <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-        Search, browse, or ask your own open questions so we can all work together to answer them.
+        <span className="inline-block relative">
+          <span className="relative z-10">Search</span>
+          <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
+        </span>, <span className="inline-block relative">
+          <span className="relative z-10">browse</span>
+          <span className="absolute bottom-0 left-0 w-full h-2 bg-sky-200/50"></span>
+        </span>, or <span className="inline-block relative">
+          <span className="relative z-10">ask </span>
+          <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
+        </span> your own open questions so we can all work together to answer them.
       </p>
     </div>
+    
 
     {/* Search Section */}
 <Paper elevation={3} sx={{ 
@@ -295,7 +309,7 @@ const QuestionOverview = () => {
         </div>
       )}
 
-      
+<LandingSection />
     </div>
   );
 };

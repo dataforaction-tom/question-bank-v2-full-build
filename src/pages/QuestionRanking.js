@@ -10,7 +10,7 @@ import {
   DialogContent,
   DialogTitle,
 } from '@mui/material';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 
 const QuestionRanking = ({ open, onClose, onSubmit }) => {

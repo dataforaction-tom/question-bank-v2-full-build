@@ -4,8 +4,6 @@ import { useAuth } from '../hooks/useAuth';
 const AuthRoute = ({ children }) => {
   const { session } = useAuth();
 
-  console.log('Session in AuthRoute:', session); // Add this log
-
   if (!session) {
     return <Navigate to='/signin' replace />;
   }

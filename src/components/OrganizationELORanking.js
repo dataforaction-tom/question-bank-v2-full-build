@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import { supabase } from '../supabaseClient';
 import { Container, Typography, Button, List, ListItem, ListItemText } from '@mui/material';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import toast from 'react-hot-toast';
 
 const OrganizationELORanking = ({ organizationId, onSubmitSuccess }) => {

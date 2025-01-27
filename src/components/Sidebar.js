@@ -28,15 +28,6 @@ const Sidebar = ({
   const navigate = useNavigate();
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
 
-  useEffect(() => {
-    console.log('Sidebar Debug Info:', {
-      isAdmin,
-      currentOrganization,
-      selectedOrganizationId,
-      isTagManagerOpen
-    });
-  }, [isAdmin, currentOrganization, selectedOrganizationId, isTagManagerOpen]);
-
   const goToMembersPage = () => {
     if (selectedOrganizationId) {
       navigate(`/group-members/${selectedOrganizationId}`);
@@ -44,33 +35,16 @@ const Sidebar = ({
   };
 
   const handleManageTags = () => {
-    console.log('handleManageTags called:', {
-      isAdmin,
-      currentOrganization,
-      selectedOrganizationId
-    });
-    
     if (!isAdmin) {
-      console.log('Tag management blocked: User is not admin');
       return;
     }
     
     if (!currentOrganization) {
-      console.log('Tag management blocked: No current organization');
       return;
     }
     
-    console.log('Opening tag manager modal');
     setIsTagManagerOpen(true);
   };
-
-  useEffect(() => {
-    console.log('Modal state changed:', {
-      isTagManagerOpen,
-      isAdmin,
-      currentOrganization: currentOrganization?.name
-    });
-  }, [isTagManagerOpen, isAdmin, currentOrganization]);
 
   return (
     <>
