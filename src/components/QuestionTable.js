@@ -420,20 +420,19 @@ const QuestionTable = ({
             {table.getRowModel().rows.map(row => (
               <tr 
                 key={row.id} 
-                
                 onKeyDown={(e) => handleRowKeyDown(e, row.original.id)}
-                className="cursor-pointer hover:bg-gray-100"
+                className="cursor-pointer hover:bg-[#e3f2fd]"
                 tabIndex={0}
                 role="button"
                 aria-label={`Question: ${row.original.content}`}
               >
                 {row.getVisibleCells().map(cell => (
-      <td 
-        key={cell.id} 
-        className="px-4 py-2 border"
-        onClick={() => cell.column.id === 'content' ? handleQuestionClick(row.original.id) : null}
-        style={{ cursor: cell.column.id === 'content' ? 'pointer' : 'default' }}
-      >
+                  <td 
+                    key={cell.id} 
+                    className="px-4 py-2 border"
+                    onClick={() => cell.column.id === 'content' ? handleQuestionClick(row.original.id) : null}
+                    style={{ cursor: cell.column.id === 'content' ? 'pointer' : 'default' }}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}

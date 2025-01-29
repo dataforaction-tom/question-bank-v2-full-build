@@ -140,7 +140,7 @@ const QuestionCard = ({
     <div 
       onClick={onClick}
       onKeyDown={handleKeyDown}
-      className="flex flex-col h-full rounded-xl overflow-hidden shadow-lg cursor-pointer hover:bg-zinc-50 transition duration-300 w-full"
+      className="flex flex-col h-full rounded-xl overflow-hidden shadow-lg cursor-pointer hover:bg-[#e3f2fd] transition duration-300 w-full"
       tabIndex={0}
       role="button"
       aria-label={`Question: ${question.content}`}

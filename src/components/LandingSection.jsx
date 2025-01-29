@@ -2,8 +2,8 @@ const LandingSection = () => {
     return (
       <div className="space-y-8 py-12">
         {/* First section */}
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white p-6">
+        <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-sky-200">
+          <div className=" font-bold text-lg p-6 underline">
             <h1 className="text-2xl md:text-3xl font-medium mb-2">
               What is the purpose of the Question Bank?
             </h1>
@@ -26,8 +26,8 @@ const LandingSection = () => {
         </div>
   
         {/* Second section */}
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white p-6">
+        <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-pink-200">
+          <div className=" font-bold text-lg p-6 underline">
             <h2 className="text-2xl md:text-3xl font-medium mb-2">
               How does the Question Bank work?
             </h2>
@@ -62,8 +62,8 @@ const LandingSection = () => {
         </div>
   
         {/* Third section */}
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white p-6">
+        <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-sky-200">
+          <div className=" font-bold text-lg p-6 underline">
             <h2 className="text-2xl md:text-3xl font-medium mb-2">
               Why is there a paid for version and what is it?
             </h2>
@@ -92,8 +92,8 @@ const LandingSection = () => {
         </div>
   
         {/* Fourth section - AI */}
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white p-6">
+        <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-pink-200">
+          <div className=" font-bold text-lg p-6 underline">
             <h2 className="text-2xl md:text-3xl font-medium mb-2">
               Do we use AI in the Question Bank?
             </h2>
@@ -112,8 +112,8 @@ const LandingSection = () => {
         </div>
   
         {/* Fifth section - Creator */}
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-950 to-sky-900 font-bold text-lg text-white p-6">
+        <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-sky-200">
+          <div className=" font-bold text-lg p-6 underline">
             <h2 className="text-2xl md:text-3xl font-medium mb-2">
               Who created and maintains the Question Bank?
             </h2>

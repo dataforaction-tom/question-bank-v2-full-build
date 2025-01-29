@@ -271,7 +271,7 @@ const QuestionOverview = () => {
                   aria-label={`Question ${index + 1} of ${latestQuestions.length}: ${question.content}. Press Enter to view details.`}
                   sx={{
                     '&:hover': {
-                      backgroundColor: 'grey.50',
+                      backgroundColor: '#e3f2fd',
                       cursor: 'pointer',
                     },
                     '&:focus': {
@@ -335,7 +335,7 @@ const QuestionOverview = () => {
                     borderRadius: '1rem',
                     overflow: 'hidden',
                     '&:hover': {
-                      backgroundColor: 'grey.50',
+                      backgroundColor: '#e3f2fd',
                       cursor: 'pointer',
                     },
                     '&:focus': {

@@ -10,6 +10,7 @@ import {
   Typography,
   Link as MuiLink,
 } from '@mui/material';
+import toast from 'react-hot-toast';
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const SignIn = () => {
 
     if (error) {
       console.error('Error signing in:', error);
-      alert('Error signing in: ' + error.message);
+      toast.error('Error signing in: ' + error.message);
     } else {
       // Redirect to the desired page after sign-in
       navigate(redirect);
