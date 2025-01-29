@@ -1,6 +1,14 @@
 const LandingSection = () => {
     return (
-      <div className="space-y-8 py-12">
+      <div className="space-y-8 py-12 pt-20">
+        <div className="">
+          <h1 className="text-4xl md:text-3xl font-medium mb-2 text-center ">
+            <span className="inline-block relative">
+                <span className="relative z-10 font-bold">About the Question Bank</span>
+                <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
+              </span>
+          </h1>
+        </div>
         {/* First section */}
         <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-sky-200">
           <div className=" font-bold text-lg p-6 underline">
