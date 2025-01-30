@@ -221,77 +221,77 @@ const QuestionTable = ({
           );
         },
       },
+      {
+        accessorKey: 'tags',
+        header: 'Tags',
+        cell: ({ row }) => (
+          <TagManager 
+            questionId={row.original.id}
+            organizationId={organizationId}
+            isAdmin={isAdmin}
+            mode="question"
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <div className="flex flex-wrap gap-2">
+            {onAddToOrganization && (
+              <Button 
+                type="Action"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToOrganization(row.original.id);
+                }}
+                size="sm"
+              >
+                Add
+              </Button>
+            )}
+            {onRemoveFromOrganization && row.original.is_direct === false && (
+              <Button 
+                type="Cancel"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveFromOrganization(row.original.id);
+                }}
+                size="sm"
+              >
+                Remove
+              </Button>
+            )}
+            {onDeleteQuestion && row.original.is_direct && (
+              <Button 
+                type="Cancel"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+                    onDeleteQuestion(row.original.id);
+                  }
+                }}
+                size="sm"
+              >
+                Delete
+              </Button>
+            )}
+            {isAdmin && onMakeQuestionOpen && !row.original.is_open && (
+              <Button 
+                type="Submit"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMakeQuestionOpen(row.original.id);
+                }}
+                size="sm"
+              >
+                Make Public
+              </Button>
+            )}
+          </div>
+        ),
+      },
     ] : []),
-    {
-      accessorKey: 'tags',
-      header: 'Tags',
-      cell: ({ row }) => (
-        <TagManager 
-          questionId={row.original.id}
-          organizationId={organizationId}
-          isAdmin={isAdmin}
-          mode="question"
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <div className="flex flex-wrap gap-2">
-          {onAddToOrganization && (
-            <Button 
-              type="Action"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToOrganization(row.original.id);
-              }}
-              size="sm"
-            >
-              Add
-            </Button>
-          )}
-          {onRemoveFromOrganization && row.original.is_direct === false && (
-            <Button 
-              type="Cancel"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemoveFromOrganization(row.original.id);
-              }}
-              size="sm"
-            >
-              Remove
-            </Button>
-          )}
-          {onDeleteQuestion && row.original.is_direct && (
-            <Button 
-              type="Cancel"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
-                  onDeleteQuestion(row.original.id);
-                }
-              }}
-              size="sm"
-            >
-              Delete
-            </Button>
-          )}
-          {isAdmin && onMakeQuestionOpen && !row.original.is_open && (
-            <Button 
-              type="Submit"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMakeQuestionOpen(row.original.id);
-              }}
-              size="sm"
-            >
-              Make Public
-            </Button>
-          )}
-        </div>
-      ),
-    },
   ];
 
   const uniqueCategories = useMemo(() => 
