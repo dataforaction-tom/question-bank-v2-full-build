@@ -56,11 +56,11 @@ const SubmitQuestion = () => {
   const hasOrganizations = userOrganizations.length > 0;
 
   useEffect(() => {
-    console.log('similarQuestions updated:', similarQuestions);
+    
   }, [similarQuestions]);
 
   useEffect(() => {
-    console.log('Modal state changed:', showModal);
+    
   }, [showModal]);
 
   useEffect(() => {
@@ -73,7 +73,7 @@ const SubmitQuestion = () => {
           .eq('user_id', user.id);
 
         if (error) {
-          console.error('Error fetching user organizations:', error);
+          
         } else {
           setUserOrganizations(data.map(item => ({
             id: item.organizations.id,
@@ -91,9 +91,7 @@ const SubmitQuestion = () => {
 
   const checkSimilarQuestions = async (content, isOpen, organizationId) => {
     try {
-      console.log('Sending request to generate embedding');
-      console.log('Is Open:', isOpen);
-      console.log('Organization ID:', organizationId);
+      
 
       const response = await fetch('/api/generateEmbedding', {
         method: 'POST',
@@ -105,12 +103,12 @@ const SubmitQuestion = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error response:', errorText);
+       
         throw new Error(`Failed to generate embedding: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('Embedding data:', data);
+      
 
       if (!data.embedding) {
         throw new Error('No embedding returned from API');
@@ -128,13 +126,13 @@ const SubmitQuestion = () => {
 
       if (searchError) throw searchError;
 
-      console.log('All similar questions:', similarData);
+      
 
       if (similarData) {
         if (isOpen) {
           // For open submissions, only include open questions
           allSimilarQuestions = similarData.filter(q => q.is_open);
-          console.log('Open questions:', allSimilarQuestions);
+          
         } else {
           // For closed submissions, filter questions based on the organization
           const { data: orgQuestions, error: orgError } = await supabase
@@ -145,7 +143,7 @@ const SubmitQuestion = () => {
 
           if (orgError) throw orgError;
 
-          console.log('Organization questions found:', orgQuestions);
+          
 
           // Merge similarity scores with org questions
           const relevantOrgQuestions = orgQuestions.map(orgQ => {
@@ -156,8 +154,7 @@ const SubmitQuestion = () => {
           // Filter open questions and keep their similarity scores
           const openQuestions = similarData.filter(q => q.is_open);
 
-          console.log('Relevant org questions:', relevantOrgQuestions);
-          console.log('Open questions:', openQuestions);
+          
 
           // Combine and sort by similarity
           allSimilarQuestions = [...relevantOrgQuestions, ...openQuestions]
@@ -165,7 +162,7 @@ const SubmitQuestion = () => {
         }
       }
 
-      console.log('Final similar questions:', allSimilarQuestions);
+      
 
       return { 
         embedding: data.embedding, 
@@ -173,7 +170,7 @@ const SubmitQuestion = () => {
         similarQuestions: allSimilarQuestions.slice(0, 5)  // Limit to top 5 results
       };
     } catch (error) {
-      console.error('Error checking similar questions:', error);
+      
       toast.error(`Failed to check for similar questions: ${error.message}`);
       throw error;
     }
@@ -186,20 +183,20 @@ const SubmitQuestion = () => {
         values.is_open, 
         values.organization_id
       );
-      console.log('Similar questions found:', similarQuestions);
+      
 
       if (similarQuestions.length > 0) {
-        console.log('Showing modal for similar questions');
+        
         setSubmissionData({ values, embedding, category });
         setSimilarQuestions(similarQuestions);
         setShowModal(true);
       } else {
-        console.log('No similar questions found, submitting original question');
+        
         await submitQuestion(values, embedding, category);
         resetForm();
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
+      
       toast.error('An unexpected error occurred.');
     } finally {
       setSubmitting(false);
@@ -210,7 +207,7 @@ const SubmitQuestion = () => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
 
     if (userError) {
-      console.error('Error fetching user:', userError);
+      
       toast.error('Error fetching user information.');
       return;
     }
@@ -233,10 +230,10 @@ const SubmitQuestion = () => {
     ]);
 
     if (error) {
-      console.error('Error submitting question:', error);
+      
       toast.error(error.message);
     } else {
-      console.log('Question submitted:', data);
+      
       toast.success('Question submitted successfully!');
       setSimilarQuestions([]);
       setShowModal(false);
@@ -338,7 +335,7 @@ const SubmitQuestion = () => {
           toast.success('Your question has been successfully added as an alternative to the closed question.');
         }
       } else {
-        // Existing behavior for public submissions
+        
         // Check if user has already endorsed the question
         const { data: existingEndorsement } = await supabase
           .from('endorsements')
@@ -411,7 +408,7 @@ const SubmitQuestion = () => {
       }
 
     } catch (error) {
-      console.error('Error processing similar question selection:', error);
+      
       toast.error(`An error occurred: ${error.message}`);
     }
   };
