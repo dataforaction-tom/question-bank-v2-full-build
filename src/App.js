@@ -33,52 +33,57 @@ const App = () => {
 
   return (
     <Elements stripe={stripePromise}>
-    <ThemeProvider>
-      <OrganizationProvider>
-      <Router>
-        <Navbar />
-        <Routes>
-          <Route path='/signin' element={<SignIn />} />
-          <Route path='/signup' element={<SignUp />} />
-          <Route path='/accept-invitation' element={<AcceptInvitation />} />
-          <Route path='/dashboard' element={<AuthRoute><Dashboard /></AuthRoute>} />
-          <Route path='/group-dashboard' element={<AuthRoute><OrganizationDashboard /></AuthRoute>} />
-          <Route path='/create-group' element={<AuthRoute><OrganizationSignUp /></AuthRoute>} />
-          <Route path='/submit-question' element={<AuthRoute><SubmitQuestion /></AuthRoute>} />
-          <Route path='/questions/:id' element={<QuestionDetail />} />
-          <Route path='/questions' element={<Questions />} />
-          <Route path='/my-questions' element={<AuthRoute><MyQuestions /></AuthRoute>} />
-          <Route path='/rank-questions' element={<AuthRoute><QuestionRanking /></AuthRoute>} />
-          <Route path='/profile' element={<AuthRoute><UserProfile /></AuthRoute>} />
-          <Route path='/group-members/:organizationId' element={<AuthRoute><GroupMembers /></AuthRoute>} />
-          <Route 
-            path="/organization/:organizationId/elo-ranking" 
-            element={
-              <AuthRoute checkOrganization>
-                <OrganizationELORanking />
-              </AuthRoute>
-            } 
-          />
-          <Route 
-            path="/organization/:organizationId/manual-ranking" 
-            element={
-              <AuthRoute checkOrganization>
-                <OrganizationManualRanking />
-              </AuthRoute>
-            } 
-          />
-         
-          <Route path="/" element={<Navigate replace to="/question-overview" />} />
-          
-          <Route path="*" element={<Navigate replace to="/question-overview" />} />
-          <Route path="/question-overview" element={<QuestionOverview />} />
-        </Routes>
-        
-        <QuestionRankingModal />
-        
+      <ThemeProvider>
+        <Router>
+          <OrganizationProvider>
+            <Navbar />
+            <Routes>
+              <Route path='/signin' element={<SignIn />} />
+              <Route path='/signup' element={<SignUp />} />
+              <Route path='/accept-invitation' element={<AcceptInvitation />} />
+              <Route path='/dashboard' element={<AuthRoute><Dashboard /></AuthRoute>} />
+              <Route 
+                path='/group-dashboard/:organizationId?' 
+                element={
+                  <AuthRoute>
+                    <OrganizationDashboard />
+                  </AuthRoute>
+                }
+              />
+              <Route path='/create-group' element={<AuthRoute><OrganizationSignUp /></AuthRoute>} />
+              <Route path='/submit-question' element={<AuthRoute><SubmitQuestion /></AuthRoute>} />
+              <Route path='/questions/:id' element={<QuestionDetail />} />
+              <Route path='/questions' element={<Questions />} />
+              <Route path='/my-questions' element={<AuthRoute><MyQuestions /></AuthRoute>} />
+              <Route path='/rank-questions' element={<AuthRoute><QuestionRanking /></AuthRoute>} />
+              <Route path='/profile' element={<AuthRoute><UserProfile /></AuthRoute>} />
+              <Route path='/group-members/:organizationId' element={<AuthRoute><GroupMembers /></AuthRoute>} />
+              <Route 
+                path="/organization/:organizationId/elo-ranking" 
+                element={
+                  <AuthRoute checkOrganization>
+                    <OrganizationELORanking />
+                  </AuthRoute>
+                } 
+              />
+              <Route 
+                path="/organization/:organizationId/manual-ranking" 
+                element={
+                  <AuthRoute checkOrganization>
+                    <OrganizationManualRanking />
+                  </AuthRoute>
+                } 
+              />
+             
+              <Route path="/" element={<Navigate replace to="/question-overview" />} />
+              
+              <Route path="*" element={<Navigate replace to="/question-overview" />} />
+              <Route path="/question-overview" element={<QuestionOverview />} />
+            </Routes>
+            <QuestionRankingModal />
+          </OrganizationProvider>
         </Router>
-      </OrganizationProvider>
-    </ThemeProvider>
+      </ThemeProvider>
     </Elements>
   );
 };

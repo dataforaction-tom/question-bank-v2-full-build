@@ -32,7 +32,7 @@ const Navbar = () => {
           .from('organization_users')
           .select('organization_id')
           .eq('user_id', session.user.id)
-          .single();
+          
         
         setIsMemberOfGroup(!!data);
       }

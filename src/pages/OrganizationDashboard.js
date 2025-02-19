@@ -289,12 +289,12 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   }, [sortBy, processLatestQuestions, processTopQuestionsByCategory]);
 
   const handleOrganizationSelect = useCallback((org) => {
-    updateCurrentOrganization(org);
+    setShowOrgSelector(false);
     const adminStatus = org.organization_users[0].role === 'admin';
     updateIsAdmin(adminStatus);
-    setShowOrgSelector(false);
-    fetchQuestions(org.id);
-  }, [updateCurrentOrganization, updateIsAdmin, fetchQuestions]);
+    // Call updateCurrentOrganization last as it triggers navigation
+    updateCurrentOrganization(org);
+  }, [updateCurrentOrganization, updateIsAdmin]);
 
   useEffect(() => {
     if (location.state?.viewMode) {

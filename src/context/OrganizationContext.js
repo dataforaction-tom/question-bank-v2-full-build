@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const OrganizationContext = createContext();
 
@@ -8,6 +9,7 @@ export const OrganizationProvider = ({ children }) => {
   const [currentOrganization, setCurrentOrganization] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const { session } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const validateAndSetOrganization = async () => {
@@ -43,8 +45,11 @@ export const OrganizationProvider = ({ children }) => {
     setCurrentOrganization(org);
     if (org) {
       localStorage.setItem('currentOrganization', JSON.stringify(org));
+      navigate(`/group-dashboard/${org.id}`, { replace: true });
     } else {
       localStorage.removeItem('currentOrganization');
+      localStorage.removeItem('isAdmin');
+      navigate('/group-dashboard', { replace: true });
     }
   };
 
