@@ -18,6 +18,24 @@ export default async function handler(req, res) {
   try {
     const { userId, priceId, organizationName } = req.body;
 
+    // Check if user exists and is email verified
+    const { data: user, error: userError } = await supabaseServer
+      .auth.admin.getUserById(userId);
+
+    if (userError || !user) {
+      console.error('User not found:', userError);
+      return res.status(400).json({
+        error: 'User not found'
+      });
+    }
+
+    if (!user.user.email_confirmed_at) {
+      return res.status(403).json({
+        error: 'Email not verified',
+        message: 'Please verify your email before starting a trial'
+      });
+    }
+
     console.log('Creating checkout session with:', { // Debug params
       userId,
       priceId,
@@ -45,11 +63,18 @@ export default async function handler(req, res) {
         organizationName: organizationName.toString(),
       },
       subscription_data: {
+        trial_period_days: 30,
+        trial_settings: {
+          end_behavior: {
+            missing_payment_method: 'pause'
+          }
+        },
         metadata: {
           userId: userId.toString(),
           organizationName: organizationName.toString(),
         },
       },
+      payment_method_collection: 'if_required', // Makes card input optional
       success_url: `${process.env.CLIENT_URL}/organization-signup?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/organization-signup?canceled=true`,
     });
