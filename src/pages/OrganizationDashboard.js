@@ -107,19 +107,36 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
     }
   }, [subscriptionStatus, currentOrganization, organizations.length, navigate, updateCurrentOrganization]);
 
-  // Add this useEffect to check when to show the modal
   useEffect(() => {
-    if (currentOrganization) {
-      const lastShown = localStorage.getItem(`eloRankingModalLastShown_${currentOrganization.id}`);
-      const currentTime = new Date().getTime();
-      
-      if (!lastShown || currentTime - parseInt(lastShown) > 24 * 60 * 60 * 1000 * 7) {
-        setShowEloRankingModal(true);
-        localStorage.setItem(`eloRankingModalLastShown_${currentOrganization.id}`, currentTime.toString());
+    const checkAndShowEloModal = async () => {
+      if (!currentOrganization) return;
+  
+      // Check if we have enough questions
+      const { data: questionCount, error } = await supabase
+        .from('questions')
+        .select('id', { count: 'exact' })
+        .eq('organization_id', currentOrganization.id);
+  
+      if (error) {
+        console.error('Error checking question count:', error);
+        return;
       }
-    }
+  
+      // Only proceed if we have 3 or more questions
+      if (questionCount.length >= 3) {
+        const lastShown = localStorage.getItem(`eloRankingModalLastShown_${currentOrganization.id}`);
+        const currentTime = new Date().getTime();
+        
+        if (!lastShown || currentTime - parseInt(lastShown) > 24 * 60 * 60 * 1000 * 7) {
+          setShowEloRankingModal(true);
+          localStorage.setItem(`eloRankingModalLastShown_${currentOrganization.id}`, currentTime.toString());
+        }
+      }
+    };
+  
+    checkAndShowEloModal();
   }, [currentOrganization]);
-
+  
   // Add handler to close the modal
   const handleCloseEloRanking = () => {
     setShowEloRankingModal(false);
