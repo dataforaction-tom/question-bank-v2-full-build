@@ -81,6 +81,14 @@ const Navbar = () => {
                 <Link to="/submit-question" className="block px-3 py-2 text-lg font-bold text-[#f4f4f4] hover:text-pink-300 rounded transition">
                   Submit Question
                 </Link>
+                <a 
+                  href="https://airtable.com/app56ys06qJmXrBHJ/shr7HqYgrl3DHjwjy" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="block px-3 py-2 text-lg font-bold text-[#f4f4f4] hover:text-pink-300 rounded transition"
+                >
+                  Feedback
+                </a>
                 <Link to="/create-group" className="block px-3 py-2 text-lg font-bold text-[#f4f4f4] hover:text-pink-300 rounded transition">
                   Create Group
                 </Link>
@@ -115,6 +123,14 @@ const Navbar = () => {
               <Link to="/question-overview" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
                 Questions
               </Link>
+              <a 
+                href="https://airtable.com/app56ys06qJmXrBHJ/shr7HqYgrl3DHjwjy" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition"
+              >
+                Feedback
+              </a>
               {session ? (
                 <>
                   <Link to="/submit-question" className="block sm:inline-block mt-2 sm:mt-0 sm:ml-4 px-4 py-2 text-lg font-bold text-[#f4f4f4] hover:text-yellow-300 rounded transition">
