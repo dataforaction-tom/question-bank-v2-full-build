@@ -43,6 +43,7 @@ import Button from '../components/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Papa from 'papaparse';
 import MobileNav from '../components/MobileNav';
+import { Link } from 'react-router-dom';
 
 
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
@@ -88,10 +89,23 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   
 
   useEffect(() => {
-    if (subscriptionStatus === 'inactive') {
-      navigate('/billing-required');
+    if (currentOrganization && subscriptionStatus === 'inactive') {
+      // Store the current organization ID for potential return
+      const inactiveOrgId = currentOrganization.id;
+      // Clear current organization
+      updateCurrentOrganization(null);
+      // Show organization selector if user has other organizations
+      if (organizations.length > 1) {
+        setShowOrgSelector(true);
+        toast.error(`${currentOrganization.name}'s subscription is inactive. Please select another group or update billing.`);
+      } else {
+        // If this is their only organization, redirect to billing
+        navigate('/billing-required', { 
+          state: { organizationId: inactiveOrgId } 
+        });
+      }
     }
-  }, [subscriptionStatus, navigate]);
+  }, [subscriptionStatus, currentOrganization, organizations.length, navigate, updateCurrentOrganization]);
 
   // Add this useEffect to check when to show the modal
   useEffect(() => {
@@ -827,12 +841,16 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   };
 
   const OrganizationSelectorModal = ({ open, organizations, onSelect }) => {
-    const COLUMN_COLORS = {
-      0: '#f860b1',
-      1: '#f3581d',
-      2: '#9dc131',
-      3: '#6a7efc',
-      4: '#53c4af'
+    const navigate = useNavigate();
+
+    const handleOrgSelection = (org) => {
+      if (org.subscription_status === 'inactive') {
+        navigate('/billing-required', { 
+          state: { organizationId: org.id } 
+        });
+      } else {
+        onSelect(org);
+      }
     };
 
     return (
@@ -846,48 +864,71 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '80%',
-          maxWidth: 800,
+          width: '90%',
+          maxWidth: 600,
           bgcolor: 'background.paper',
           boxShadow: 24,
           p: 4,
           borderRadius: 2,
           maxHeight: '90vh',
-          overflow: 'auto',
+          overflow: 'auto'
         }}>
           <Typography id="organization-selector-title" variant="h6" component="h2" gutterBottom>
             Select a Group
           </Typography>
-          <Grid container spacing={2}>
-            {organizations.map((org, index) => (
-              <Grid item xs={12} sm={6} md={4} key={org.id}>
-                <Card 
-                  sx={{ 
-                    cursor: 'pointer',
-                    '&:hover': { boxShadow: 6 },
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
-                  <Box sx={{ height: 8, backgroundColor: COLUMN_COLORS[index % 5] }} />
-                  <CardActionArea 
-                    onClick={() => onSelect(org)}
-                    sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }}
+          
+          {organizations.length > 0 ? (
+            <Grid container spacing={2}>
+              {organizations.map((org) => (
+                <Grid item xs={12} key={org.id}>
+                  <Card 
+                    sx={{ 
+                      cursor: 'pointer',
+                      opacity: org.subscription_status === 'inactive' ? 0.8 : 1,
+                      position: 'relative'
+                    }}
+                    onClick={() => handleOrgSelection(org)}
                   >
-                    <CardContent>
-                      <Typography variant="h5" component="div" gutterBottom>
-                        {org.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Role: {org.organization_users[0].role}
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+                    <CardActionArea>
+                      <CardContent>
+                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                          <Typography variant="h6">
+                            {org.name}
+                          </Typography>
+                          {org.subscription_status === 'inactive' && (
+                            <Chip 
+                              label="Inactive Subscription" 
+                              color="warning"
+                              size="small"
+                            />
+                          )}
+                        </Box>
+                        {org.subscription_status === 'inactive' && (
+                          <Typography variant="body2" color="text.secondary">
+                            Click to update billing
+                          </Typography>
+                        )}
+                      </CardContent>
+                    </CardActionArea>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 3 }}>
+              <Typography variant="body1" gutterBottom>
+                No groups found.
+              </Typography>
+              <Link 
+                to="/organization-signup" 
+                style={{ textDecoration: 'none' }}
+              >
+                <CustomButton type="Submit">
+                  Create New Group
+                </CustomButton>
+              </Link>
+            </Box>
+          )}
         </Box>
       </Modal>
     );
