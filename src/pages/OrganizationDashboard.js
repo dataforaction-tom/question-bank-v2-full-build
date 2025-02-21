@@ -48,7 +48,7 @@ import MobileNav from '../components/MobileNav';
 const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
 
   const OrganizationDashboard = () => {
-  const { currentOrganization, isAdmin, updateCurrentOrganization, updateIsAdmin } = useOrganization();
+  const { currentOrganization, isAdmin, subscriptionStatus, updateCurrentOrganization, updateIsAdmin } = useOrganization();
   const { session } = useAuth();
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -86,6 +86,12 @@ const KANBAN_STATUSES = ['Now', 'Next', 'Future', 'Parked', 'Done'];
   const [tagFilter, setTagFilter] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   
+
+  useEffect(() => {
+    if (subscriptionStatus === 'inactive') {
+      navigate('/billing-required');
+    }
+  }, [subscriptionStatus, navigate]);
 
   // Add this useEffect to check when to show the modal
   useEffect(() => {

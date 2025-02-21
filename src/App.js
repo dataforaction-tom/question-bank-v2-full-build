@@ -25,6 +25,7 @@ import GroupMembers from './pages/GroupMembers';
 import { OrganizationProvider } from './context/OrganizationContext';
 import { Elements } from '@stripe/react-stripe-js';
 import { stripePromise } from './stripe';
+import BillingRequired from './pages/BillingRequired';
 
 
 
@@ -79,6 +80,7 @@ const App = () => {
               
               <Route path="*" element={<Navigate replace to="/question-overview" />} />
               <Route path="/question-overview" element={<QuestionOverview />} />
+              <Route path='/billing-required' element={<BillingRequired />} />
             </Routes>
             <QuestionRankingModal />
           </OrganizationProvider>
