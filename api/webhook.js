@@ -116,11 +116,24 @@ export default async function handler(req, res) {
 
         if (orgError) throw orgError;
 
+        // Define subscription status based on Stripe status
+        let subscriptionStatus = 'active';
+        if (subscription.status === 'canceled' || 
+            subscription.status === 'unpaid' || 
+            subscription.status === 'incomplete_expired') {
+          subscriptionStatus = 'inactive';
+        } else if (subscription.status === 'trialing') {
+          subscriptionStatus = 'trial';
+        }
+
         // Update subscription status
         const updates = {
-          subscription_status: subscription.status,
+          subscription_status: subscriptionStatus,
           cancellation_date: subscription.cancel_at 
             ? new Date(subscription.cancel_at * 1000).toISOString()
+            : null,
+          trial_end: subscription.trial_end
+            ? new Date(subscription.trial_end * 1000).toISOString()
             : null
         };
 
@@ -150,7 +163,8 @@ export default async function handler(req, res) {
           .from('organizations')
           .update({ 
             subscription_status: 'inactive',
-            cancellation_date: new Date().toISOString()
+            cancellation_date: new Date().toISOString(),
+            trial_end: null
           })
           .eq('id', org.id);
 
@@ -159,7 +173,26 @@ export default async function handler(req, res) {
       }
 
       case 'customer.subscription.trial_will_end': {
-        // Handle trial ending notification if you implement trials
+        const subscription = event.data.object;
+        
+        // Get organization by subscription ID
+        const { data: org, error: orgError } = await supabaseServer
+          .from('organizations')
+          .select()
+          .eq('stripe_subscription_id', subscription.id)
+          .single();
+
+        if (orgError) throw orgError;
+
+        // Update trial end date
+        const { error: updateError } = await supabaseServer
+          .from('organizations')
+          .update({ 
+            trial_end: new Date(subscription.trial_end * 1000).toISOString()
+          })
+          .eq('id', org.id);
+
+        if (updateError) throw updateError;
         break;
       }
 
@@ -178,7 +211,13 @@ export default async function handler(req, res) {
         // Update organization status to payment_failed
         const { error: updateError } = await supabaseServer
           .from('organizations')
-          .update({ subscription_status: 'payment_failed' })
+          .update({ 
+            subscription_status: 'payment_failed',
+            // If this is the final payment attempt, mark as inactive
+            ...(invoice.next_payment_attempt === null && {
+              subscription_status: 'inactive'
+            })
+          })
           .eq('id', org.id);
 
         if (updateError) throw updateError;
