@@ -314,7 +314,7 @@ const OrganizationSignUp = () => {
                   'Private questions',
                   'Ranking for questions and responses',
                   'Kanban prioritisation',
-                  'Export and graph features'
+                  'Assign questions to group members'
                 ].map((text, index) => (
                   <ListItem key={index} sx={{ py: 0 }}>
                     <ListItemIcon sx={{ minWidth: 30 }}>
@@ -336,10 +336,19 @@ const OrganizationSignUp = () => {
                 </Typography>
               </div>
               <List>
+                <ListItem sx={{ py: 0 }}>
+                  <ListItemIcon sx={{ minWidth: 30 }}>
+                    <CircleIcon sx={{ fontSize: 8 }} />
+                  </ListItemIcon>
+                  <span className="inline-block relative">
+                    <span className="relative z-10 font-bold">60 day free trial</span>
+                    <span className="absolute bottom-0 left-0 w-full h-2 bg-pink-200/50"></span>
+                  </span>
+                </ListItem>
                 {[
-                  '£100 per year, per group',
-                  'Stripe payment',
-                  'Online cancellation and account management'
+                  '£5 per month, per group afterwards',
+                  '20 users per group',
+                  'Cancel anytime'
                 ].map((text, index) => (
                   <ListItem key={index} sx={{ py: 0 }}>
                     <ListItemIcon sx={{ minWidth: 30 }}>
