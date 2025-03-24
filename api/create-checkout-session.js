@@ -63,7 +63,7 @@ export default async function handler(req, res) {
         organizationName: organizationName.toString(),
       },
       subscription_data: {
-        trial_period_days: 30,
+        trial_period_days: 60,
         trial_settings: {
           end_behavior: {
             missing_payment_method: 'pause'
