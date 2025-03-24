@@ -249,7 +249,7 @@ const OrganizationSignUp = () => {
               Subscription Details
             </Typography>
             <Typography variant="body1" paragraph>
-              Create your group "{organizationName}" for £100 per year
+              Create your group "{organizationName}" for £5 per month for 20 users
             </Typography>
             
             <Button
